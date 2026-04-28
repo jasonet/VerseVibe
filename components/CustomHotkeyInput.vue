@@ -152,14 +152,20 @@ const canConfirm = computed(() => {
          (parsedHotkey.value?.isValid && !errorMessage.value);
 });
 
+const isMacPlatform = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 // 推荐的快捷键
 const recommendedHotkeys = [
+  { value: 'Alt+A', label: 'Alt+A / Option+A' },
   { value: 'Alt+T', label: 'Alt+T' },
   { value: 'Alt+Q', label: 'Alt+Q' },
   { value: 'Alt+D', label: 'Alt+D' },
   { value: 'F9', label: 'F9' },
   { value: 'F10', label: 'F10' },
-];
+].filter((item) => {
+  if (!isMacPlatform) return true;
+  return !/^Alt\+[A-Z]$/i.test(item.value);
+});
 
 // 监听当前值变化
 watch(() => props.currentValue, (newValue) => {

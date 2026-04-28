@@ -18,7 +18,7 @@ export const urls: any = {
     [services.lingyi]: "https://api.lingyiwanwu.com/v1/chat/completions",
     [services.deepseek]: "https://api.deepseek.com/chat/completions",
     [services.jieyue]: "https://api.stepfun.com/v1/chat/completions",
-    [services.yiyan]: {tokenUrl: "https://aip.baidubce.com/oauth/2.0/token"},
+    [services.yiyan]: { tokenUrl: "https://aip.baidubce.com/oauth/2.0/token" },
     [services.groq]: "https://api.groq.com/openai/v1/chat/completions",
     [services.cozecom]: "https://api.coze.com/open_api/v2/chat",
     [services.cozecn]: "https://api.coze.cn/open_api/v2/chat",
@@ -33,7 +33,7 @@ export const urls: any = {
     // [services.baidu]: "https://fanyi-api.baidu.com/api/trans/vip/translate",
 }
 
-export const method = {POST: "POST", GET: "GET",};
+export const method = { POST: "POST", GET: "GET", };
 
 export const constants = {
     // 键鼠事件
@@ -57,6 +57,14 @@ export const styles = {
 
 // 右键菜单ID常量
 export const CONTEXT_MENU_IDS = {
-    TRANSLATE_FULL_PAGE: 'fluent-read-translate-full-page',
-    RESTORE_ORIGINAL: 'fluent-read-restore-original',
+    TRANSLATE_FULL_PAGE: 'versevibe-translate-full-page',
+    RESTORE_ORIGINAL: 'versevibe-restore-original',
+    FLICKR_DOWNLOAD_MAX: 'versevibe-flickr-download-max',
+    LINKEDIN_WIDE_SCALE_NORMAL: 'versevibe-linkedin-wide-scale-normal',
+    LINKEDIN_WIDE_SCALE_15X: 'versevibe-linkedin-wide-scale-15x',
+    LINKEDIN_WIDE_SCALE_2X: 'versevibe-linkedin-wide-scale-2x',
+    LINKEDIN_WIDE_SCALE_3X: 'versevibe-linkedin-wide-scale-3x',
+    LINKEDIN_WIDE_SCALE_FULL: 'versevibe-linkedin-wide-scale-full',
+    LINKEDIN_FEED_WIDE_DESPONSOR: 'versevibe-linkedin-feed-wide-desponsor',
+    LINKEDIN_POST_TEXT_ZOOM: 'versevibe-linkedin-post-text-zoom',
 }

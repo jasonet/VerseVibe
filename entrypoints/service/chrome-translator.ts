@@ -1,5 +1,20 @@
 import { config } from "@/entrypoints/utils/config";
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error ?? '未知错误');
+}
+
+function isExpectedChromeTranslationError(error: unknown): boolean {
+    const message = getErrorMessage(error).toLowerCase();
+    return [
+        '不支持的语言',
+        '不支持的语言组合',
+        'not supported',
+        'unsupported language',
+        'language',
+    ].some(keyword => message.includes(keyword.toLowerCase()));
+}
+
 /**
  * Chrome 内置翻译 API 服务
  * 基于 Chrome 浏览器的 Translation API 实现快速、安全的翻译
@@ -43,8 +58,12 @@ async function translateWithOffscreen(message: any): Promise<any> {
 
         throw new Error('无效的响应格式');
     } catch (error) {
-        console.error('Offscreen 翻译失败:', error);
-        throw new Error(`Chrome Translation API 不可用：${error instanceof Error ? error.message : '未知错误'}`);
+        if (isExpectedChromeTranslationError(error)) {
+            console.warn('Offscreen 翻译不可用（预期内）:', getErrorMessage(error));
+        } else {
+            console.error('Offscreen 翻译失败:', error);
+        }
+        throw new Error(`Chrome Translation API 不可用：${getErrorMessage(error)}`);
     }
 }
 

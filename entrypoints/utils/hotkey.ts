@@ -77,7 +77,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
   }
 
   const parts = hotkeyString.toLowerCase().split('+').map(part => part.trim());
-  
+
   if (parts.length === 0) {
     return {
       modifiers: [],
@@ -90,11 +90,11 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
 
   const modifiers: string[] = [];
   let key = '';
-  
+
   // 检查每个部分
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
-    
+
     if (i === parts.length - 1) {
       // 最后一个部分应该是普通按键
       if (REGULAR_KEYS[part as keyof typeof REGULAR_KEYS]) {
@@ -120,7 +120,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
           break;
         }
       }
-      
+
       if (!isValidModifier) {
         return {
           modifiers,
@@ -157,7 +157,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
 
   // 生成显示名称
   const displayName = generateDisplayName(modifiers, key);
-  
+
   return {
     modifiers,
     key,
@@ -174,23 +174,23 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
  */
 function generateDisplayName(modifiers: string[], key: string): string {
   const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-  const modifierDisplayNames: Record<string, string> = isMac ? 
+  const modifierDisplayNames: Record<string, string> = isMac ?
     {
       ctrl: 'Control',
-      alt: 'Option', 
+      alt: 'Option',
       shift: 'Shift',
       meta: 'Cmd'
-    } : 
+    } :
     {
       ctrl: 'Ctrl',
       alt: 'Alt',
-      shift: 'Shift', 
+      shift: 'Shift',
       meta: 'Win'
     };
 
   const keyDisplayName = key.charAt(0).toUpperCase() + key.slice(1);
   const modifierNames = modifiers.map(mod => modifierDisplayNames[mod] || mod);
-  
+
   return [...modifierNames, keyDisplayName].join('+');
 }
 
@@ -206,7 +206,7 @@ export function matchesHotkey(event: KeyboardEvent, parsedHotkey: ParsedHotkey):
   // 检查修饰键
   const requiredModifiers = new Set(parsedHotkey.modifiers);
   const actualModifiers = new Set();
-  
+
   if (event.ctrlKey) actualModifiers.add('ctrl');
   if (event.altKey) actualModifiers.add('alt');
   if (event.shiftKey) actualModifiers.add('shift');
@@ -221,7 +221,7 @@ export function matchesHotkey(event: KeyboardEvent, parsedHotkey: ParsedHotkey):
   // 检查普通按键
   const eventKey = event.key.toLowerCase();
   const eventCode = event.code?.toLowerCase();
-  
+
   // 处理特殊按键映射
   const keyMappings: Record<string, string[]> = {
     'space': [' ', 'space'],
@@ -237,8 +237,8 @@ export function matchesHotkey(event: KeyboardEvent, parsedHotkey: ParsedHotkey):
   };
 
   if (keyMappings[parsedHotkey.key]) {
-    return keyMappings[parsedHotkey.key].includes(eventKey) || 
-           keyMappings[parsedHotkey.key].some(k => eventCode?.includes(k));
+    return keyMappings[parsedHotkey.key].includes(eventKey) ||
+      keyMappings[parsedHotkey.key].some(k => eventCode?.includes(k));
   }
 
   // 普通字母数字键
@@ -260,9 +260,9 @@ export function matchesHotkey(event: KeyboardEvent, parsedHotkey: ParsedHotkey):
  * @param parsedHotkey 解析后的快捷键
  * @returns 冲突信息
  */
-export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): { 
-  hasConflict: boolean; 
-  conflictDescription?: string 
+export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
+  hasConflict: boolean;
+  conflictDescription?: string
 } {
   if (!parsedHotkey.isValid) {
     return { hasConflict: false };
@@ -293,7 +293,7 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
     { modifiers: ['ctrl', 'shift'], key: 't', desc: '重新打开关闭的标签页' },
     { modifiers: ['ctrl', 'shift'], key: 'n', desc: '无痕模式' },
     { modifiers: ['ctrl', 'shift'], key: 'delete', desc: '清除浏览数据' },
-    
+
     // macOS 系统快捷键
     { modifiers: ['meta'], key: 'c', desc: '复制' },
     { modifiers: ['meta'], key: 'v', desc: '粘贴' },
@@ -312,9 +312,9 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
   ];
 
   for (const conflict of commonConflicts) {
-    if (conflict.modifiers.length === modifiers.length && 
-        conflict.key === key &&
-        conflict.modifiers.every(mod => modifiers.includes(mod))) {
+    if (conflict.modifiers.length === modifiers.length &&
+      conflict.key === key &&
+      conflict.modifiers.every(mod => modifiers.includes(mod))) {
       return {
         hasConflict: true,
         conflictDescription: `与系统快捷键冲突: ${conflict.desc}`
@@ -328,9 +328,11 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
 /**
  * 预设的快捷键选项
  */
+const isMacPlatform = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 export const PRESET_HOTKEYS = [
   { value: "Alt+T", label: "Alt+T / Option+T" },
-  { value: "Alt+A", label: "Alt+A / Option+A" },
+  { value: "Alt+A", label: "Alt+A / Option+A (默认)" },
   { value: "Alt+S", label: "Alt+S / Option+S" },
   { value: "Alt+D", label: "Alt+D / Option+D" },
   { value: "Alt+Q", label: "Alt+Q / Option+Q" },
@@ -344,4 +346,7 @@ export const PRESET_HOTKEYS = [
   { value: "F12", label: "F12" },
   { value: "none", label: "禁用快捷键" },
   { value: "custom", label: "自定义快捷键..." },
-];
+].filter((item) => {
+  if (!isMacPlatform) return true;
+  return !/^Alt\+[A-Z]$/i.test(item.value);
+});

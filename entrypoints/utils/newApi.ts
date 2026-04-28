@@ -1,5 +1,5 @@
 import { config } from "@/entrypoints/utils/config";
-import {customModelString, services} from "@/entrypoints/utils/option";
+import { customModelString, services } from "@/entrypoints/utils/option";
 import { storage } from '@wxt-dev/storage';
 
 let containerEl: HTMLElement | null = null;
@@ -15,11 +15,11 @@ export function mountNewApiComponent() {
 
   // 创建容器元素
   const container = document.createElement('div');
-  container.id = 'fluent-new-api-container';
+  container.id = 'versevibe-new-api-container';
   document.body.appendChild(container);
   containerEl = container;
 
-  container.addEventListener('fluent:prefill', async (e) => {
+  container.addEventListener('versevibe:prefill', async (e) => {
     const customEvent = e as CustomEvent;
     const payload = (customEvent?.detail) || {};
 
@@ -60,7 +60,7 @@ export function mountNewApiComponent() {
  * 卸载New API 组件
  */
 export function unmountNewApiComponent() {
-  const container = document.getElementById('fluent-new-api-container');
+  const container = document.getElementById('versevibe-new-api-container');
   if (container) container.remove();
   containerEl = null;
 }

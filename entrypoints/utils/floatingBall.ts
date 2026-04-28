@@ -4,6 +4,7 @@ import { config } from '@/entrypoints/utils/config';
 import browser from 'webextension-polyfill';
 import { storage } from '@wxt-dev/storage';
 import { autoTranslateEnglishPage, restoreOriginalContent } from '@/entrypoints/main/trans';
+import { mountVueWithTrustedTypesBypass } from '@/entrypoints/utils/trustedTypes';
 
 let floatingBallInstance: any = null;
 let app: any = null;
@@ -27,7 +28,7 @@ export function mountFloatingBall(position?: 'left' | 'right') {
 
   // 创建容器元素
   const container = document.createElement('div');
-  container.id = 'fluent-read-floating-ball-container';
+  container.id = 'vv-widget-cnt';
   document.body.appendChild(container);
 
   // 创建 Vue 应用实例
@@ -43,7 +44,7 @@ export function mountFloatingBall(position?: 'left' | 'right') {
     onPositionChanged: (newPosition: 'left' | 'right') => {
       // 保存位置到配置
       config.floatingBallPosition = newPosition;
-      
+
       // 保存配置到存储
       saveConfig();
 
@@ -52,19 +53,19 @@ export function mountFloatingBall(position?: 'left' | 'right') {
     onTranslationToggle: (isTranslating: boolean) => {
       if (isTranslating && !isTranslated) {
         // 触发翻译开始事件
-        document.dispatchEvent(new CustomEvent('fluentread-translation-started'));
+        document.dispatchEvent(new CustomEvent('versevibe-translation-started'));
 
         // 触发即时翻译
         autoTranslateEnglishPage();
         isTranslated = true;
       } else if (!isTranslating && isTranslated) {
         // 触发翻译结束事件
-        document.dispatchEvent(new CustomEvent('fluentread-translation-ended'));
-        
+        document.dispatchEvent(new CustomEvent('versevibe-translation-ended'));
+
         // 恢复原文
         restoreOriginalContent();
         isTranslated = false;
-        
+
         // 恢复后确保状态同步
         floatingBallInstance.$el.classList.remove('is-translating');
       }
@@ -72,10 +73,17 @@ export function mountFloatingBall(position?: 'left' | 'right') {
   });
 
   // 挂载应用
-  floatingBallInstance = app.mount(container);
-  
+  const mounted = mountVueWithTrustedTypesBypass(() => app.mount(container));
+  if (!mounted) {
+    app.unmount();
+    app = null;
+    container.remove();
+    return;
+  }
+  floatingBallInstance = mounted;
+
   // 监听自定义事件，用于通过快捷键触发悬浮球
-  document.addEventListener('fluentread-toggle-translation', toggleFloatingBallTranslation);
+  document.addEventListener('versevibe-toggle-translation', toggleFloatingBallTranslation);
 
   return floatingBallInstance;
 }
@@ -89,25 +97,25 @@ export function toggleFloatingBallTranslation() {
 
   const currentState = floatingBallInstance.isTranslating;
   const newState = !currentState;
-  
+
   // 触发对应的自定义事件
   if (newState) {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-started'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-started'));
   } else {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-ended'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-ended'));
   }
-  
+
   // 更新悬浮球状态
   floatingBallInstance.isTranslating = newState;
-  
+
   // 更新UI状态 - 使用Vue实例的$el属性
   if (floatingBallInstance.$el) {
     if (newState) {
-      floatingBallInstance.$el.classList.add('fluent-read-floating-ball-active');
+      floatingBallInstance.$el.classList.add('vv-widget-active');
       // 开始翻译
       autoTranslateEnglishPage();
     } else {
-      floatingBallInstance.$el.classList.remove('fluent-read-floating-ball-active');
+      floatingBallInstance.$el.classList.remove('vv-widget-active');
       // 恢复原文
       restoreOriginalContent();
     }
@@ -119,26 +127,26 @@ export function toggleFloatingBallTranslation() {
  */
 function handleFloatingBallClick() {
   if (!floatingBallInstance) return;
-  
+
   // 切换悬浮球翻译状态
   const newState = !floatingBallInstance.isTranslating;
   floatingBallInstance.isTranslating = newState;
-  
+
   // 触发对应的自定义事件
   if (newState) {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-started'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-started'));
   } else {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-ended'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-ended'));
   }
-  
+
   // 更新UI状态 - 使用Vue实例的$el属性
   if (floatingBallInstance.$el) {
     if (newState) {
-      floatingBallInstance.$el.classList.add('fluent-read-floating-ball-active');
+      floatingBallInstance.$el.classList.add('versevibe-floating-ball-active');
       // 开始翻译
       autoTranslateEnglishPage();
     } else {
-      floatingBallInstance.$el.classList.remove('fluent-read-floating-ball-active');
+      floatingBallInstance.$el.classList.remove('versevibe-floating-ball-active');
       // 恢复原文
       restoreOriginalContent();
     }
@@ -148,14 +156,14 @@ function handleFloatingBallClick() {
 // 悬浮球动画效果
 function addFloatingBallAnimation(type: 'translate' | 'restore') {
   if (!floatingBallInstance) return;
-  
+
   const ball = floatingBallInstance.element;
   const originalBackground = ball.style.background;
   const originalTransition = ball.style.transition;
-  
+
   // 设置过渡效果
   ball.style.transition = 'all 0.3s ease';
-  
+
   // 根据类型设置不同动画
   if (type === 'translate') {
     // 翻译激活动画
@@ -168,14 +176,14 @@ function addFloatingBallAnimation(type: 'translate' | 'restore') {
     ball.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.8)';
     ball.style.background = '#4caf50';
   }
-  
+
   // 恢复原状
   setTimeout(() => {
     if (!floatingBallInstance) return;
     ball.style.transform = '';
     ball.style.boxShadow = '';
     ball.style.background = originalBackground;
-    
+
     // 恢复原来的过渡设置
     setTimeout(() => {
       if (floatingBallInstance) {
@@ -201,16 +209,16 @@ function saveConfig() {
 export function unmountFloatingBall() {
   if (floatingBallInstance && app) {
     // 移除事件监听
-    document.removeEventListener('fluentread-toggle-translation', toggleFloatingBallTranslation);
-    
+    document.removeEventListener('versevibe-toggle-translation', toggleFloatingBallTranslation);
+
     // 获取容器
-    const container = document.getElementById('fluent-read-floating-ball-container');
-    
+    const container = document.getElementById('vv-widget-cnt');
+
     // 卸载 Vue 应用
     app.unmount();
     floatingBallInstance = null;
     app = null;
-    
+
     // 移除容器
     if (container) {
       container.remove();
@@ -229,7 +237,7 @@ export function toggleFloatingBall() {
     config.disableFloatingBall = false;
     mountFloatingBall();
   }
-  
+
   // 保存配置到存储
   saveConfig();
 }
@@ -246,7 +254,7 @@ export function toggleFloatingBallPosition() {
   } else {
     config.floatingBallPosition = newPosition;
   }
-  
+
   // 保存配置到存储
   saveConfig();
 } 

@@ -2,7 +2,7 @@
   <div class="translation-status-container" v-if="isVisible && isFloatingBallTranslating && !userClosed">
     <div class="translation-status-card">
       <div class="translation-status-header">
-        <div class="translation-status-title">翻译进度</div>
+        <div class="translation-status-title">生命树进度</div>
         <div class="translation-status-close" @click="close">×</div>
       </div>
       <div class="translation-status-content">
@@ -110,14 +110,14 @@ const listenToFloatingBallState = () => {
   };
   
   // 添加事件监听器
-  document.addEventListener('fluentread-translation-started', handleTranslationStarted);
-  document.addEventListener('fluentread-translation-ended', handleTranslationEnded);
+  document.addEventListener('versevibe-translation-started', handleTranslationStarted);
+  document.addEventListener('versevibe-translation-ended', handleTranslationEnded);
   
   // 返回清理函数
   return {
     cleanup: () => {
-      document.removeEventListener('fluentread-translation-started', handleTranslationStarted);
-      document.removeEventListener('fluentread-translation-ended', handleTranslationEnded);
+      document.removeEventListener('versevibe-translation-started', handleTranslationStarted);
+      document.removeEventListener('versevibe-translation-ended', handleTranslationEnded);
     }
   };
 };
@@ -195,7 +195,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .translation-status-label {
@@ -220,7 +220,7 @@ onUnmounted(() => {
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-/* 暗黑模式支持 - 使用 :root[class="dark"] 选择器匹配 FluentRead 的主题系统 */
+/* 暗黑模式支持 - 使用 :root[class="dark"] 选择器匹配 VerseVibe 的主题系统 */
 :root[class="dark"] .translation-status-card {
   background-color: #2d3436;
   border-color: #4d4d4d;

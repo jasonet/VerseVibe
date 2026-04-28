@@ -37,6 +37,8 @@ export const services = {
     chromeTranslator: "chromeTranslator", // Chrome 内置翻译 API
 };
 
+const isMacPlatform = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 export const servicesType = {
     // 阵营划分
     machine: new Set([services.microsoft, services.deepL, services.deeplx, services.google, services.xiaoniu, services.youdao, services.tencent, services.chromeTranslator,]),
@@ -192,7 +194,7 @@ export const models = new Map<string, Array<string>>([
     [services.huanYuan, ["hunyuan-turbos-latest", "hunyuan-t1-latest", "hunyuan-a13b", "hunyuan-lite", "hunyuan-standard", customModelString]],
     [services.huanYuanTranslation, ["hunyuan-translation", "hunyuan-translation-lite", customModelString]],
     [services.newapi, ["gemini-2.5-flash-lite", "gemini-2.0-flash", "gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", customModelString]],
-    [services.grok, ["grok-4-0709","grok-3-mini", customModelString]],
+    [services.grok, ["grok-4-0709", "grok-3-mini", customModelString]],
     [services.doubao, [customModelString]],
 
     // mix model
@@ -206,185 +208,207 @@ export const models = new Map<string, Array<string>>([
 
 export const options = {
     on: [
-        {value: true, label: "开启"},
-        {value: false, label: "关闭"},
+        { value: true, label: "开启" },
+        { value: false, label: "关闭" },
     ],
     // 是否即时翻译
     autoTranslate: [
-        {value: true, label: "开启"},
-        {value: false, label: "关闭"},
+        { value: true, label: "开启" },
+        { value: false, label: "关闭" },
     ],
     // 是否使用缓存
     useCache: [
-        {value: true, label: "开启"},
-        {value: false, label: "关闭"},
+        { value: true, label: "开启" },
+        { value: false, label: "关闭" },
     ],
-    form: [{value: "auto", label: "自动检测"}],
+    form: [{ value: "auto", label: "自动检测" }],
     to: [
-        {value: "zh-Hans", label: "中文"},
-        {value: "en", label: "英语"},
-        {value: "ja", label: "日语"},
-        {value: "ko", label: "韩语"},
-        {value: "fr", label: "法语"},
-        {value: "ru", label: "俄语"},
+        { value: "zh-Hans", label: "中文" },
+        { value: "en", label: "英语" },
+        { value: "ja", label: "日语" },
+        { value: "ko", label: "韩语" },
+        { value: "fr", label: "法语" },
+        { value: "ru", label: "俄语" },
     ],
     keys: [
-        {value: "none", label: "禁用快捷键"},
+        { value: "none", label: "禁用快捷键" },
 
-        {value: "Computer", label: "键盘选项", disabled: true},
-        {value: "Control", label: "Ctrl"},
-        {value: "Alt", label: "Alt"},
-        {value: "Shift", label: "Shift"},
-        {value: "Escape", label: "ESC"},
-        {value: "`", label: "波浪号键"},
+        { value: "Computer", label: "键盘选项", disabled: true },
+        { value: "Control", label: "Ctrl" },
+        { value: "Alt", label: "Alt" },
+        { value: "Shift", label: "Shift" },
+        { value: "Escape", label: "ESC" },
+        { value: "`", label: "波浪号键" },
 
-        {value: "mouse", label: "鼠标选项", disabled: true},
-        {value: "DoubleClick", label: "鼠标双击"},
-        {value: "LongPress", label: "鼠标长按"},
-        {value: "MiddleClick", label: "鼠标滚轮单击"},
+        { value: "mouse", label: "鼠标选项", disabled: true },
+        { value: "DoubleClick", label: "鼠标双击" },
+        { value: "LongPress", label: "鼠标长按" },
+        { value: "MiddleClick", label: "鼠标滚轮单击" },
 
-        {value: "touchscreen", label: "触屏设备选项", disabled: true},
-        {value: "TwoFinger", label: "双指翻译"},
-        {value: "ThreeFinger", label: "三指翻译"},
-        {value: "FourFinger", label: "四指翻译"},
-        {value: "DoubleClickScree", label: "双击翻译"},
-        {value: "TripleClickScree", label: "三击翻译"},
-        
-        {value: "custom", label: "自定义快捷键（测试版）"},
+        { value: "touchscreen", label: "触屏设备选项", disabled: true },
+        { value: "TwoFinger", label: "双指翻译" },
+        { value: "ThreeFinger", label: "三指翻译" },
+        { value: "FourFinger", label: "四指翻译" },
+        { value: "DoubleClickScree", label: "双击翻译" },
+        { value: "TripleClickScree", label: "三击翻译" },
+
+        { value: "custom", label: "自定义快捷键（测试版）" },
     ],
     services: [
         // 传统机器翻译
-        {value: "machine", label: "机器翻译", disabled: true},
-        {value: services.microsoft, label: "微软翻译"},
-        {value: services.google, label: "谷歌翻译"},
-        {value: services.deepL, label: "DeepL"},
-        {value: services.deeplx, label: "DeepLX"},
-        {value: services.xiaoniu, label: "小牛翻译"},
-        {value: services.youdao, label: "有道翻译"},
-        {value: services.tencent, label: "腾讯云翻译"},
+        { value: "machine", label: "机器翻译", disabled: true },
+        { value: services.microsoft, label: "微软翻译" },
+        { value: services.google, label: "谷歌翻译" },
+        { value: services.deepL, label: "DeepL" },
+        { value: services.deeplx, label: "DeepLX" },
+        { value: services.xiaoniu, label: "小牛翻译" },
+        { value: services.youdao, label: "有道翻译" },
+        { value: services.tencent, label: "腾讯云翻译" },
         // 大模型翻译
-        {value: "ai", label: "AI翻译", disabled: true},
-        {value: services.chromeTranslator, label: "Chrome内置AI翻译⭐"},
-        {value: services.siliconCloud, label: "硅基流动⭐️"},
-        {value: services.huanYuan, label: "腾讯混元⭐"},
-        {value: services.newapi, label: "New API"},
-        {value: services.deepseek, label: "DeepSeek️"},
-        {value: services.openai, label: "OpenAI"},
-        {value: services.azureOpenai, label: "Azure OpenAI"},
-        {value: services.huanYuanTranslation, label: "腾讯混元翻译"},
-        {value: services.tongyi, label: "阿里通义"},
-        {value: services.doubao, label: "字节豆包"},
-        {value: services.grok, label: "Grok (X.AI)"},
-        {value: services.openrouter, label: "OpenRouter"},
-        {value: services.groq, label: "Groq"},
-        {value: services.moonshot, label: "Kimi"},
-        {value: services.zhipu, label: "智谱清言"},
-        {value: services.baichuan, label: "百川智能"},
-        {value: services.lingyi, label: "零一万物"},
-        {value: services.minimax, label: "MiniMax"},
-        {value: services.jieyue, label: "阶跃星辰"},
-        {value: services.infini, label: "无向芯穹"},
-        {value: services.cozecom, label: "Coze国际"},
-        {value: services.cozecn, label: "Coze国内"},
-        {value: services.claude, label: "Claude"},
-        {value: services.gemini, label: "Gemini"},
-        {value: services.yiyan, label: "文心一言"},
-        {value: services.custom, label: "自定义接口⭐️"},
+        { value: "ai", label: "AI翻译", disabled: true },
+        { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐" },
+        { value: services.siliconCloud, label: "硅基流动⭐️" },
+        { value: services.huanYuan, label: "腾讯混元⭐" },
+        { value: services.newapi, label: "New API" },
+        { value: services.deepseek, label: "DeepSeek️" },
+        { value: services.openai, label: "OpenAI" },
+        { value: services.azureOpenai, label: "Azure OpenAI" },
+        { value: services.huanYuanTranslation, label: "腾讯混元翻译" },
+        { value: services.tongyi, label: "阿里通义" },
+        { value: services.doubao, label: "字节豆包" },
+        { value: services.grok, label: "Grok (X.AI)" },
+        { value: services.openrouter, label: "OpenRouter" },
+        { value: services.groq, label: "Groq" },
+        { value: services.moonshot, label: "Kimi" },
+        { value: services.zhipu, label: "智谱清言" },
+        { value: services.baichuan, label: "百川智能" },
+        { value: services.lingyi, label: "零一万物" },
+        { value: services.minimax, label: "MiniMax" },
+        { value: services.jieyue, label: "阶跃星辰" },
+        { value: services.infini, label: "无向芯穹" },
+        { value: services.cozecom, label: "Coze国际" },
+        { value: services.cozecn, label: "Coze国内" },
+        { value: services.claude, label: "Claude" },
+        { value: services.gemini, label: "Gemini" },
+        { value: services.yiyan, label: "文心一言" },
+        { value: services.custom, label: "自定义接口⭐️" },
     ],
     display: [
-        {value: 0, label: "仅译文模式"},
-        {value: 1, label: "双语对照模式"},
+        { value: 0, label: "仅译文模式" },
+        { value: 1, label: "双语对照模式" },
     ],
     // 双语翻译样式
     styles: [
-        // 基础样式
-        {value: "basic", label: "基础样式", disabled: true},
-        {value: 0, label: "朴素模式", class: "fluent-display-default", group: "basic"},
-        {value: 1, label: "加粗显示", class: "fluent-display-bold", group: "basic"},
-        {value: 2, label: "优雅斜体", class: "fluent-display-italic", group: "basic"},
-        {value: 3, label: "立体阴影", class: "fluent-display-text-shadow", group: "basic"},
-
         // 下划线系列
-        {value: "underline", label: "下划线系列", disabled: true},
-        {value: 4, label: "蓝色实线", class: "fluent-display-solid-underline", group: "underline"},
-        {value: 5, label: "优雅虚线", class: "fluent-display-dot-underline", group: "underline"},
-        {value: 6, label: "活泼波浪", class: "fluent-display-wavy", group: "underline"},
+        { value: "underline", label: "下划线系列", disabled: true },
+        { value: 5, label: "优雅虚线", class: "verse-vibe-display-dot-underline", group: "underline" },
+        { value: 4, label: "蓝色实线", class: "verse-vibe-display-solid-underline", group: "underline" },
+        { value: 6, label: "活泼波浪", class: "verse-vibe-display-wavy", group: "underline" },
+        { value: 26, label: "闷骚浪", class: "verse-vibe-display-wavy-red", group: "underline" },
 
         // 卡片系列
-        {value: "card", label: "卡片系列", disabled: true},
-        {value: 7, label: "简约卡片", class: "fluent-display-card-mode", group: "card"},
-        {value: 8, label: "渐变卡片", class: "fluent-display-modern-card", group: "card"},
-        {value: 9, label: "纸张卡片", class: "fluent-display-paper", group: "card"},
+        { value: "card", label: "卡片系列", disabled: true },
+        { value: 7, label: "简约卡片", class: "verse-vibe-display-card-mode", group: "card" },
+        { value: 8, label: "渐变卡片", class: "verse-vibe-display-modern-card", group: "card" },
+        { value: 9, label: "纸张卡片", class: "verse-vibe-display-paper", group: "card" },
 
         // 高亮系列
-        {value: "highlight", label: "高亮系列", disabled: true},
-        {value: 10, label: "学习标记", class: "fluent-display-learning-mode", group: "highlight"},
-        {value: 11, label: "荧光标记", class: "fluent-display-marker", group: "highlight"},
-        {value: 12, label: "柔和渐变", class: "fluent-display-highlight-fade", group: "highlight"},
+        { value: "highlight", label: "高亮系列", disabled: true },
+        { value: 10, label: "学习标记", class: "verse-vibe-display-learning-mode", group: "highlight" },
+        { value: 11, label: "荧光标记", class: "verse-vibe-display-marker", group: "highlight" },
+        { value: 12, label: "柔和渐变", class: "verse-vibe-display-highlight-fade", group: "highlight" },
 
         // 背景色系列
-        {value: "background", label: "背景色系列", disabled: true},
-        {value: 13, label: "温暖黄底", class: "fluent-display-lightyellow", group: "background"},
-        {value: 14, label: "清新蓝底", class: "fluent-display-lightblue", group: "background"},
-        {value: 15, label: "素雅灰底", class: "fluent-display-lightgray", group: "background"},
+        { value: "background", label: "背景色系列", disabled: true },
+        { value: 13, label: "温暖黄底", class: "verse-vibe-display-lightyellow", group: "background" },
+        { value: 14, label: "清新蓝底", class: "verse-vibe-display-lightblue", group: "background" },
+        { value: 15, label: "素雅灰底", class: "verse-vibe-display-lightgray", group: "background" },
 
         // 特殊效果
-        {value: "special", label: "特殊效果", disabled: true},
-        {value: 16, label: "典雅引用", class: "fluent-display-quote", group: "special"},
-        {value: 17, label: "轻巧边框", class: "fluent-display-border", group: "special"},
-        {value: 18, label: "阅读焦点", class: "fluent-display-focus", group: "special"},
-        {value: 19, label: "简约底线", class: "fluent-display-clean", group: "special"},
+        { value: "special", label: "特殊效果", disabled: true },
+        { value: 16, label: "典雅引用", class: "verse-vibe-display-quote", group: "special" },
+        { value: 17, label: "轻巧边框", class: "verse-vibe-display-border", group: "special" },
+        { value: 18, label: "阅读焦点", class: "verse-vibe-display-focus", group: "special" },
+        { value: 19, label: "简约底线", class: "verse-vibe-display-clean", group: "special" },
 
         // 专业样式
-        {value: "pro", label: "专业样式", disabled: true},
-        {value: 20, label: "代码风格", class: "fluent-display-tech", group: "pro"},
-        {value: 21, label: "书籍风格", class: "fluent-display-elegant", group: "pro"},
+        { value: "pro", label: "专业样式", disabled: true },
+        { value: 20, label: "代码风格", class: "verse-vibe-display-tech", group: "pro" },
+        { value: 21, label: "书籍风格", class: "verse-vibe-display-elegant", group: "pro" },
 
         // 透明度
-        {value: "transparent", label: "透明效果", disabled: true},
-        {value: 22, label: "半透明弱化", class: "fluent-display-dimmed", group: "transparent"},
-        {value: 23, label: "轻透明感", class: "fluent-display-transparent-mode", group: "transparent"},
+        { value: "transparent", label: "透明效果", disabled: true },
+        { value: 22, label: "半透明弱化", class: "verse-vibe-display-dimmed", group: "transparent" },
+        { value: 23, label: "轻透明感", class: "verse-vibe-display-transparent-mode", group: "transparent" },
+
+        // 用户自定义扩展 (New)
+        { value: "custom_ext", label: "高级扩展", disabled: true },
+        { value: 24, label: "LinkedIn 优化", class: "verse-vibe-display-linkedin-spec", group: "custom_ext" },
+        { value: 25, label: "玻璃拟态", class: "verse-vibe-display-glass", group: "custom_ext" },
     ],
     // 悬浮球快捷键选项
     floatingBallHotkeys: [
-        {value: "none", label: "禁用快捷键"},
-        {value: "Alt+T", label: "Alt+T / Option+T (默认)"},
-        {value: "Alt+A", label: "Alt+A / Option+A"},
-        {value: "Alt+S", label: "Alt+S / Option+S"},
-        {value: "Alt+D", label: "Alt+D / Option+D"},
-        {value: "Alt+Q", label: "Alt+Q / Option+Q"},
-        {value: "Ctrl+Shift+T", label: "Ctrl+Shift+T / Control+Shift+T"},
-        {value: "Ctrl+Shift+A", label: "Ctrl+Shift+A / Control+Shift+A"},
-        {value: "F9", label: "F9"},
-        {value: "F10", label: "F10"},
-        {value: "F11", label: "F11"},
-        {value: "F12", label: "F12"},
-        {value: "custom", label: "自定义快捷键（测试版）"},
-    ],
+        { value: "none", label: "禁用快捷键" },
+        { value: "Alt+T", label: "Alt+T / Option+T" },
+        { value: "Alt+A", label: "Alt+A / Option+A (默认)" },
+        { value: "Alt+S", label: "Alt+S / Option+S" },
+        { value: "Alt+D", label: "Alt+D / Option+D" },
+        { value: "Alt+Q", label: "Alt+Q / Option+Q" },
+        { value: "Ctrl+Shift+T", label: "Ctrl+Shift+T / Control+Shift+T" },
+        { value: "Ctrl+Shift+A", label: "Ctrl+Shift+A / Control+Shift+A" },
+        { value: "F9", label: "F9" },
+        { value: "F10", label: "F10" },
+        { value: "F11", label: "F11" },
+        { value: "F12", label: "F12" },
+        { value: "custom", label: "自定义快捷键（测试版）" },
+    ].filter((item) => {
+        if (!isMacPlatform) return true;
+        return !/^Alt\+[A-Z]$/i.test(item.value);
+    }),
     theme: [
-        {value: "auto", label: "跟随操作系统"},
-        {value: "light", label: "亮色主题"},
-        {value: "dark", label: "暗色主题"},
+        { value: "auto", label: "跟随操作系统" },
+        { value: "light", label: "亮色主题" },
+        { value: "dark", label: "暗色主题" },
+    ],
+    // 最小中文字号选项
+    minFontSizes: [
+        { value: 12, label: "12px" },
+        { value: 13, label: "13px" },
+        { value: 14, label: "14px (默认)" },
+        { value: 15, label: "15px" },
+        { value: 16, label: "16px" },
+        { value: 17, label: "17px" },
+        { value: 18, label: "18px" },
+        { value: 19, label: "19px" },
+        { value: 20, label: "20px" },
     ],
     // 输入框翻译目标语言选项
     inputBoxTranslationTarget: [
-        {value: "zh-Hans", label: "中文"},
-        {value: "en", label: "英语"},
-        {value: "ja", label: "日语"},
-        {value: "ko", label: "韩语"},
-        {value: "fr", label: "法语"},
-        {value: "ru", label: "俄语"},
-        {value: "es", label: "西班牙语"},
-        {value: "de", label: "德语"},
-        {value: "pt", label: "葡萄牙语"},
-        {value: "it", label: "意大利语"},
+        { value: "zh-Hans", label: "中文" },
+        { value: "en", label: "英语" },
+        { value: "ja", label: "日语" },
+        { value: "ko", label: "韩语" },
+        { value: "fr", label: "法语" },
+        { value: "ru", label: "俄语" },
+        { value: "es", label: "西班牙语" },
+        { value: "de", label: "德语" },
+        { value: "pt", label: "葡萄牙语" },
+        { value: "it", label: "意大利语" },
     ],
     // 输入框翻译触发方式选项
     inputBoxTranslationTrigger: [
-        {value: "disabled", label: "关闭"},
-        {value: "triple_space", label: "连按三下空格"},
-        {value: "triple_equal", label: "连按三下等号(=)"},
-        {value: "triple_dash", label: "连按三下短横线(-)"},
+        { value: "disabled", label: "关闭" },
+        { value: "triple_space", label: "连按三下空格" },
+        { value: "triple_equal", label: "连按三下等号(=)" },
+        { value: "triple_dash", label: "连按三下短横线(-)" },
+    ],
+    // LinkedIn 宽幅尺寸档位
+    linkedinWideScale: [
+        { value: "normal", label: "原始宽" },
+        { value: "1.5x", label: "1.5倍宽" },
+        { value: "2x", label: "2倍宽" },
+        { value: "3x", label: "3倍宽" },
+        { value: "full", label: "全宽" },
     ],
 };
 
@@ -392,21 +416,30 @@ export const defaultOption = {
     on: true,
     from: "auto",
     to: "zh-Hans",
-    style: 1,
+    style: 5,
     display: 1,
     hotkey: "Control",
     service: services.microsoft,
     custom: "http://localhost:11434/v1/chat/completions",
     deeplx: "http://localhost:1188/translate",
     system_role:
-        "You are a professional, authentic machine translation engine.",
-    user_role: `Translate the following text into {{to}}, If translation is unnecessary (e.g. proper nouns, codes, etc.), return the original text. NO explanations. NO notes:
-
-{{origin}}`,
+        "You are a professional translation engine. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    user_role: `Translate the content between the markers into {{to}}:
+### CONTENT START ###
+{{origin}}
+### CONTENT END ###
+- Strictly data-only output. 
+- NO explanations, tags, or prompt text in result.
+- If translation is unnecessary, return original between the markers.`,
     count: 0,
     useCache: true,
-    floatingBallHotkey: "Alt+T", // 默认悬浮球快捷键
+    floatingBallHotkey: "Alt+A", // 默认悬浮球快捷键
     inputBoxTranslationTrigger: "disabled", // 默认关闭输入框翻译
     inputBoxTranslationTarget: "en", // 默认翻译成英文
+    minFontSize: 14, // 默认最小字号
+    forceChineseHeiFont: true, // 默认中文强制黑体
+    flickrDownloadMenu: true, // 默认启用 Flickr 大图下载菜单
+    linkedinWideUi: true, // 默认启用 LinkedIn 宽幅 UI
+    linkedinWideScale: "1.5x", // 默认 LinkedIn 1.5倍宽
+    linkedinAutoHidePromotedMedia: true, // 默认自动隐藏 LinkedIn 推广帖媒体
 };
-

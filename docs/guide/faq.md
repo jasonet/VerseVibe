@@ -50,7 +50,7 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ### 正确的 Ollama 接口地址
 
-使用 Ollama 时，请确保在 FluentRead 插件设置中使用正确的接口地址：
+使用 Ollama 时，请确保在灵魂树插件设置中使用正确的接口地址：
 
 ```
 http://localhost:11434/v1/chat/completions

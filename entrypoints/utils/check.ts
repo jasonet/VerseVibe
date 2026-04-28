@@ -21,7 +21,7 @@ export function checkConfig(): boolean {
         sendErrorMessage("令牌尚未配置，请前往设置页配置");
         return false;
     }
-    
+
     // Special case for Tencent Cloud service (requires both SecretId and SecretKey)
     if (config.service === services.tencent && (!config.tencentSecretId || !config.tencentSecretKey)) {
         sendErrorMessage("腾讯云机器翻译密钥尚未配置，请前往设置页配置SecretId和SecretKey");
@@ -57,7 +57,7 @@ export function hasLoadingSpinner(node: Node): boolean {
     if (node.nodeType === Node.TEXT_NODE) return false;
 
     // Type guard to check if the node is an Element
-    if (node instanceof Element && node.classList.contains('fluent-read-loading')) return true;
+    if (node instanceof Element && node.classList.contains('verse-vibe-loading')) return true;
 
     // Check children only if the node is an Element
     if (node instanceof Element) {
@@ -71,8 +71,17 @@ export function hasLoadingSpinner(node: Node): boolean {
 export function hasRetryTag(node: Node): boolean {
     if (node.nodeType === Node.TEXT_NODE) return false;
 
+    // Skip extension's own UI elements
+    if (node instanceof Element) {
+        if (node.id && (node.id.startsWith('versevibe-') || node.id === 'vv-widget-cnt')) {
+            return true;
+        }
+        if (node.classList && (node.classList.contains('vv-widget-main') || node.classList.contains('versevibe-selection-translator'))) {
+            return true;
+        }
+    }
     // Type guard to check if the node is an Element
-    if (node instanceof Element && node.classList.contains('fluent-read-failure')) return true;
+    if (node instanceof Element && (node.classList.contains('verse-vibe-failure') || node.classList.contains('verse-vibe-read-failure'))) return true;
 
     // Check children only if the node is an Element
     if (node instanceof Element) {
@@ -101,5 +110,21 @@ export function contentPostHandler(text: string) {
     // 替换掉<think>与</think>之间的内容
     let content = text;
     content = content.replace(/^<think>[\s\S]*?<\/think>/, "");
-    return content;
+    // 2. 移除常见的 AI 废话指令（漏出的 Prompt）
+    const promptLeaks = [
+        /### CONTENT (START|END) ###/g,
+        /如果无需翻译.*/g, /无需解释.*/g, /无需备注.*/g, /则返回原文.*/g,
+        /以下是翻译结果.*/g, /Translate the following.*/gi,
+        /^Translate into .*:?\s*/gi,
+        /请将以下文本翻译成简体中文.*/g, // Catch: "请将以下文本翻译成简体中文..." 
+        /若无需翻译.*/g, // Catch: "若无需翻译..."
+        /如专有名词、代码等.*/g, // Catch parenthetical instructions
+        /^- Strictly data-only output.*/gm,
+        /^- No explanations.*/gm,
+        /^- If no translation needed, return original.*/gm,
+        /^.*(Sorry|I apologize|As an AI).*(translate|provide).*/gi
+    ];
+    promptLeaks.forEach(regex => { content = content.replace(regex, ""); });
+
+    return content.trim();
 }

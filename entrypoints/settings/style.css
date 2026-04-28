@@ -1,0 +1,67 @@
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--fr-text-color);
+    background-color: var(--fr-bg-color);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+}
+
+.title {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin: 1em 0;
+    color: var(--fr-text-color);
+}
+
+.rounded-corner {
+    border-radius: 5px;
+}
+
+.popup-text {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.popup-vertical-left {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    height: 100%;
+}
+
+.margin-left-2em {
+    margin-left: 2em;
+}
+
+.margin-bottom {
+    margin-bottom: 10px;
+}
+
+.custom-padding {
+    padding: 10px !important;
+}
+
+#app {
+    min-width: 340px;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    #app {
+        min-width: 480px;
+        max-width: 720px;
+        padding: 12px 16px;
+        text-align: left;
+    }
+
+    .popup-text {
+        font-size: 16px;
+    }
+}

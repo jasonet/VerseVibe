@@ -11,7 +11,43 @@ import { detectlang } from './common';
 import { storage } from '@wxt-dev/storage';
 
 // 调试相关
-const isDev = process.env.NODE_ENV === 'development';
+// @ts-ignore
+const isDev = import.meta.env.DEV;
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error ?? '未知错误');
+}
+
+export function isExtensionContextInvalidatedError(error: unknown): boolean {
+  const message = extractErrorMessage(error).toLowerCase();
+  return [
+    'extension context invalidated',
+    'receiving end does not exist',
+    'message port closed',
+    'context invalidated',
+  ].some(keyword => message.includes(keyword));
+}
+
+export function isExpectedTranslationError(error: unknown): boolean {
+  const message = extractErrorMessage(error).toLowerCase();
+  return [
+    '不支持的语言',
+    '不支持的语言组合',
+    'language not supported',
+    'not supported',
+    'unsupported language',
+    'model不可用',
+    '模型不可用',
+    'extension context invalidated',
+    'receiving end does not exist',
+    'message port closed',
+  ].some(keyword => message.includes(keyword.toLowerCase()));
+}
+
+export function getTranslationErrorMessage(error: unknown): string {
+  return extractErrorMessage(error);
+}
 
 /**
  * 翻译API的统一入口
@@ -24,15 +60,32 @@ const isDev = process.env.NODE_ENV === 'development';
  */
 export async function translateText(origin: string, context: string = document.title, options: TranslateOptions = {}): Promise<string> {
   const {
-    maxRetries = 3, 
-    retryDelay = 1000, 
+    maxRetries = 3,
+    retryDelay = 1000,
     timeout = 45000,
     useCache = config.useCache,
   } = options;
 
+  // 如果原文为空，直接返回
+  if (!origin || typeof origin !== 'string') {
+    return origin || '';
+  }
+
   // 如果目标语言与当前文本语言相同，直接返回原文
   if (detectlang(origin.replace(/[\s\u3000]/g, '')) === config.to) {
     return origin;
+  }
+
+  // 检查是否开启 Mock 模式
+  const urlParams = new URLSearchParams(window.location.search);
+  const isMockMode = urlParams.get('versevibe-mock') === '1';
+
+  if (isMockMode) {
+    if (isDev) {
+      console.log('[翻译API] Mock 模式开启，返回模拟结果');
+    }
+    // 简单的 Mock 逻辑：在原文字数前加 [Mock]
+    return `[已翻译] ${origin}`;
   }
 
   // 检查缓存
@@ -49,7 +102,13 @@ export async function translateText(origin: string, context: string = document.t
   // 增加翻译计数
   config.count++;
   // 保存配置以确保计数持久化
-  storage.setItem('local:config', JSON.stringify(config));
+  storage.setItem('local:config', JSON.stringify(config)).catch((error: unknown) => {
+    if (isExtensionContextInvalidatedError(error)) {
+      if (isDev) console.warn('[翻译API] 扩展上下文失效，跳过 count 持久化');
+      return;
+    }
+    console.warn('[翻译API] 保存翻译计数失败:', getTranslationErrorMessage(error));
+  });
 
   // 使用队列处理翻译请求
   return enqueueTranslation(async () => {
@@ -59,7 +118,7 @@ export async function translateText(origin: string, context: string = document.t
         // 发送翻译请求给background脚本处理
         const result = await Promise.race([
           browser.runtime.sendMessage({ context, origin }),
-          new Promise<never>((_, reject) => 
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('翻译请求超时')), timeout)
           )
         ]) as string;
@@ -76,19 +135,38 @@ export async function translateText(origin: string, context: string = document.t
 
         return result;
       } catch (error) {
+        const expectedError = isExpectedTranslationError(error);
+
+        if (expectedError) {
+          if (isDev) {
+            console.warn('[翻译API] 预期内翻译失败，不重试:', extractErrorMessage(error));
+          }
+          throw new Error(getTranslationErrorMessage(error));
+        }
+
         // 处理错误，根据重试策略决定是否重试
         if (retryCount < maxRetries) {
           if (isDev) {
             console.log(`[翻译API] 翻译失败，${retryCount + 1}/${maxRetries} 次重试，原因:`, error);
           }
-          
+
           // 等待一段时间后重试
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           return translationTask(retryCount + 1);
         }
-        
-        // 超过最大重试次数，抛出异常
-        throw error;
+
+        // 超过最大重试次数，记录并抛出异常，便于检测页面翻译过程是否有 error
+        if (isExtensionContextInvalidatedError(error)) {
+          if (isDev) console.warn('[VerseVibe] 扩展上下文失效，终止当前翻译请求');
+          throw new Error(getTranslationErrorMessage(error));
+        }
+
+        const errorMessage = getTranslationErrorMessage(error);
+        console.error('[VerseVibe] 翻译失败（已达最大重试）', {
+          context: context?.slice(0, 50),
+          error: errorMessage,
+        });
+        throw new Error(getTranslationErrorMessage(error));
       }
     };
 

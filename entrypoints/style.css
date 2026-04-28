@@ -1,72 +1,76 @@
 @keyframes spin {
-    0% { transform: rotate(-1deg); }
-    100% { transform: rotate(360deg); }
-}
-.fluent-read-loading {
-    border: 3px solid #f3f3f3; /* 轨迹灰色 */
-    border-top: 3px solid blue;   /* 主色调，首次翻译蓝色、缓存应改为绿色 */
-    border-radius: 50%;
-    width: 12px;
-    height: 12px;
-    animation: spin 1s linear infinite;
-    display: inline-block;
+    0% {
+        transform: rotate(-1deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
-/* 静态加载样式（禁用动画时） */
-.fluent-read-loading.static {
+.verse-vibe-loading {
+    border: 2px solid #EBE7E0;
+    /* MUJI Warm Gray */
+    border-top: 2px solid #A8A29A;
+    /* MUJI Deep Gray */
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* 静态加载样式 */
+.verse-vibe-loading.static {
     animation: none;
-    background: radial-gradient(circle, rgb(230, 151, 171) 30%, rgba(230, 151, 171, 0.6) 70%);
-    border: 2px solid rgb(200, 121, 141);
-    box-shadow: 0 0 8px rgba(230, 151, 171, 0.4);
+    background: #EBE7E0;
+    border: 1px solid #D1CDC5;
+    box-shadow: none;
     position: relative;
 }
 
-/* 添加一个微妙的内阴影效果 */
-.fluent-read-loading.static::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    right: 2px;
-    bottom: 2px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.fluent-read-retry-wrapper {
+.verse-vibe-retry-wrapper {
     display: inline-flex;
     align-items: center;
 }
-.fluent-read-retry, .fluent-read-reason {
-    color: #428ADF;
+
+.verse-vibe-retry,
+.verse-vibe-reason {
+    color: #8F9F8B;
+    /* MUJI Sage Green */
     text-decoration: underline;
-    text-underline-offset: 0.2em;
+    text-underline-offset: 0.3em;
     margin-left: 0.2em;
-    font-size: 1em;
+    font-size: 0.9em;
     cursor: pointer;
+    transition: opacity 0.2s;
 }
 
-/* 输入框翻译相关样式 - 柔和呼吸效果 */
+.verse-vibe-retry:hover {
+    opacity: 0.7;
+}
+
+/* 输入框翻译相关样式 - MUJI 风格柔和反馈 */
 @keyframes inputBoxTranslating {
     0% {
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        box-shadow: 0 0 0 2px rgba(168, 162, 154, 0.1);
     }
+
     50% {
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        box-shadow: 0 0 0 3px rgba(168, 162, 154, 0.2);
     }
+
     100% {
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        box-shadow: 0 0 0 2px rgba(168, 162, 154, 0.1);
     }
 }
 
 @keyframes inputBoxSuccess {
     0% {
-        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+        box-shadow: 0 0 0 2px rgba(143, 159, 139, 0.3);
     }
-    50% {
-        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
-    }
+
     100% {
         box-shadow: none;
     }
@@ -74,78 +78,90 @@
 
 @keyframes inputBoxError {
     0% {
-        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 0 2px rgba(189, 154, 149, 0.3);
         transform: translateX(0);
     }
+
     25% {
         transform: translateX(-1px);
     }
+
     75% {
         transform: translateX(1px);
     }
+
     100% {
         box-shadow: none;
         transform: translateX(0);
     }
 }
 
-.fluent-input-translating {
-    animation: inputBoxTranslating 3s infinite ease-in-out;
-    transition: all 0.3s ease;
+.verse-vibe-input-translating {
+    animation: inputBoxTranslating 2s infinite ease-in-out;
+    border-color: #A8A29A !important;
 }
 
-.fluent-input-success {
-    animation: inputBoxSuccess 1.5s ease-out;
+.verse-vibe-input-success {
+    animation: inputBoxSuccess 1s ease-out;
+    border-color: #8F9F8B !important;
 }
 
-.fluent-input-error {
-    animation: inputBoxError 0.5s ease-out;
+.verse-vibe-input-error {
+    animation: inputBoxError 0.4s ease-out;
+    border-color: #BD9A95 !important;
 }
 
-/* 翻译提示弹窗样式 - 柔和低调设计 */
-.fluent-input-tooltip {
+/* 翻译提示弹窗样式 - MUJI 极简设计 */
+.verse-vibe-input-tooltip {
     position: fixed;
-    background: rgba(0, 0, 0, 0.75);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
+    background: #FDFBF7;
+    /* MUJI Ivory */
+    color: #4A4540;
+    /* MUJI Charcoal */
+    padding: 6px 14px;
+    border-radius: 2px;
+    /* 趋近直角，更 MUJI */
+    border: 1px solid #EBE7E0;
+    font-size: 13px;
     font-weight: 400;
     z-index: 10000;
     pointer-events: none;
-    transition: all 0.2s ease;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-    transform: translateY(3px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.fluent-input-tooltip.show {
+.verse-vibe-input-tooltip.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
 }
 
-.fluent-input-tooltip.hide {
+.verse-vibe-input-tooltip.hide {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateX(-50%) translateY(-4px);
 }
 
-.fluent-input-tooltip.translating {
-    background: rgba(59, 130, 246, 0.85);
+.verse-vibe-input-tooltip.translating {
+    border-left: 3px solid #A8A29A;
 }
 
-.fluent-input-tooltip.success {
-    background: rgba(34, 197, 94, 0.85);
+.verse-vibe-input-tooltip.success {
+    border-left: 3px solid #8F9F8B;
 }
 
-.fluent-input-tooltip.error {
-    background: rgba(239, 68, 68, 0.85);
+.verse-vibe-input-tooltip.error {
+    border-left: 3px solid #BD9A95;
+    color: #7D6B68;
 }
 
-/* 图标旋转动画 */
 @keyframes spin {
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }
@@ -154,32 +170,32 @@
 /* display 译文显示样式*/
 
 /* 弱化 */
-.fluent-display-dimmed {
+.verse-vibe-display-dimmed {
     opacity: 0.7;
 }
 
 /* 实线下划线 */
-.fluent-display-solid-underline {
+.verse-vibe-display-solid-underline {
     border-bottom: 2px solid #409eff;
 }
 
 /* 虚线下划线 */
-.fluent-display-dot-underline {
+.verse-vibe-display-dot-underline {
     border-bottom: 2px dotted #409eff;
 }
 
 /* 学习模式 */
-.fluent-display-learning-mode {
+.verse-vibe-display-learning-mode {
     background: linear-gradient(transparent 60%, #ffd700 40%);
 }
 
 /* 透明模式 */
-.fluent-display-transparent-mode {
+.verse-vibe-display-transparent-mode {
     opacity: 0.85;
 }
 
 /* 阴影效果 */
-.fluent-display-card-mode {
+.verse-vibe-display-card-mode {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
     padding: 4px 8px;
     border-radius: 4px;
@@ -187,62 +203,65 @@
 }
 
 /* 马克笔 */
-.fluent-display-marker {
+.verse-vibe-display-marker {
     background: #ffeb3b;
     padding: 0 4px;
 }
 
 /* 引用 */
-.fluent-display-quote {
+.verse-vibe-display-quote {
     border-left: 4px solid #409eff;
     padding-left: 8px;
     font-style: italic;
 }
 
 /* 加粗 */
-.fluent-display-bold {
+.verse-vibe-display-bold {
     font-weight: bold;
 }
 
 /* 双语模式，block 强制换行、inline-block 自适应换行 */
-.fluent-read-bilingual-content {
-    display: block; /* 设置为块级元素，强制换行 */
-    word-break: break-word; /* 允许在单词内断行，避免超出容器边界 */
-    margin: 8px 0 !important; /* 上下边距设置为8px，并强制覆盖其他样式 */
-    color: inherit; /* 保持文本颜色与周围文本一致 */
-    background: transparent; /* 确保背景透明，与周围背景融合 */
-    box-sizing: border-box; /* 使用 border-box 模型，确保内外边距和边框计算正确 */
-    overflow-wrap: break-word; /* 处理长单词或 URL 的断行，避免溢出 */
+.verse-vibe-bilingual-content {
+    display: block;
+    /* 设置为块级元素，强制换行 */
+    width: 100%;
+    /* 默认占满父容器宽度，保证译文在原文下方单独一行 */
+    max-width: 100%;
+    word-break: break-word;
+    margin: 4px 0;
+    background: transparent;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
 }
 
-.fluent-display-lightyellow {
+.verse-vibe-display-lightyellow {
     background-color: rgba(255, 235, 59, 0.2);
 }
 
-.fluent-display-lightblue {
+.verse-vibe-display-lightblue {
     background-color: rgba(64, 158, 255, 0.1);
 }
 
-.fluent-display-lightgray {
+.verse-vibe-display-lightgray {
     background-color: rgba(158, 158, 158, 0.1);
 }
 
-.fluent-display-italic {
+.verse-vibe-display-italic {
     font-style: italic;
 }
 
-.fluent-display-border {
+.verse-vibe-display-border {
     border: 1px solid #409eff;
     border-radius: 4px;
     padding: 2px 6px;
 }
 
-.fluent-display-text-shadow {
+.verse-vibe-display-text-shadow {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 新增的双语翻译样式 */
-.fluent-display-modern-card {
+.verse-vibe-display-modern-card {
     background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
     border-radius: 8px;
     padding: 6px 12px;
@@ -250,48 +269,78 @@
     margin: 4px 0;
 }
 
-.fluent-display-wavy {
+.verse-vibe-display-wavy {
     text-decoration: wavy underline #409eff;
     text-underline-offset: 4px;
 }
 
-.fluent-display-highlight-fade {
-    background: linear-gradient(104deg, rgba(64,158,255,0) 0.9%, rgba(64,158,255,0.1) 2.4%, rgba(64,158,255,0.15) 5.8%, rgba(64,158,255,0.1) 93%, rgba(64,158,255,0.1) 96%);
+.verse-vibe-display-wavy-red {
+    /* 使用 SVG 背景实现自定义波浪：频率减半（浪宽翻倍），浪高微调 */
+    text-decoration: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 4'%3E%3Cpath fill='none' stroke='%23f56c6c' stroke-width='1.5' stroke-linecap='round' d='M0 3 Q5 0 10 3 T20 3'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: bottom;
+    background-size: 20px 4px;
+    /* 宽度20px让波浪更疏（频率低），高度4px让波浪可见 */
+    padding-bottom: 3px;
+}
+
+.verse-vibe-display-highlight-fade {
+    background: linear-gradient(104deg, rgba(64, 158, 255, 0) 0.9%, rgba(64, 158, 255, 0.1) 2.4%, rgba(64, 158, 255, 0.15) 5.8%, rgba(64, 158, 255, 0.1) 93%, rgba(64, 158, 255, 0.1) 96%);
     padding: 0.5em 0.8em;
     border-radius: 4px;
 }
 
-.fluent-display-elegant {
+.verse-vibe-display-elegant {
     font-family: "Georgia", serif;
     color: #666;
     line-height: 1.6;
     letter-spacing: 0.3px;
 }
 
-.fluent-display-focus {
-    background: linear-gradient(to right, transparent, rgba(64,158,255,0.1) 4%, rgba(64,158,255,0.1) 96%, transparent);
+.verse-vibe-display-focus {
+    background: linear-gradient(to right, transparent, rgba(64, 158, 255, 0.1) 4%, rgba(64, 158, 255, 0.1) 96%, transparent);
     padding: 4px 12px;
     border-radius: 3px;
 }
 
-.fluent-display-paper {
+.verse-vibe-display-paper {
     background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     border: 1px solid #eee;
     padding: 8px 12px;
     border-radius: 6px;
 }
 
-.fluent-display-clean {
+.verse-vibe-display-clean {
     border-bottom: 1px solid #e4e7ed;
     padding-bottom: 2px;
     margin-bottom: 2px;
 }
 
-.fluent-display-tech {
+.verse-vibe-display-tech {
     font-family: "Consolas", monospace;
     background: #f8f9fa;
     padding: 2px 6px;
     border-radius: 3px;
     border: 1px solid #eee;
+}
+
+/* LinkedIn 专项样式 - 突出显示提取的内容 */
+.verse-vibe-display-linkedin-spec {
+    background-color: #eef3f8 !important;
+    border-left: 4px solid #0a66c2 !important;
+    color: #000 !important;
+}
+
+/* 玻璃拟态样式 */
+/* 玻璃拟态样式 */
+.verse-vibe-display-glass {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
 }

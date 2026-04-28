@@ -12,34 +12,6 @@
         </el-icon>
         {{ buttonText }}
       </el-link>
-      <div class="right-links">
-        <el-link class="action-link" href="https://fluent.thinkstu.com/" target="_blank">
-          <el-icon class="github-icon">
-            <Star />
-          </el-icon>
-          GitHub开源
-        </el-link>
-      </div>
-    </div>
-    
-    <!-- 赞赏码弹窗 -->
-    <div
-      title="赞赏作者"
-      width="300px"
-      align-center
-      :show-close="true"
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-      class="donate-dialog"
-    >
-      <div class="donate-content">
-        <p class="donate-text">如果你觉得这个插件对您有帮助，<br>可以通过微信👇🏻赞赏作者一杯咖啡
-          <el-icon class="donate-icon"><Coffee /></el-icon> </p>
-        <div class="qrcode-container">
-          <img src="/misc/approve.jpg" alt="赞赏码" class="qrcode-image" />
-        </div>
-        <p class="donate-thanks">感谢你的支持！❤️</p>
-      </div>
     </div>
   </div>
 </template>
@@ -94,15 +66,26 @@ async function clearCache() {
   }
 }
 
-// 获取配置，用于显示翻译次数
+// 获取配置,用于显示翻译次数
+// 这里采用「快照」模式: 仅在设置页打开时读取一次,避免在使用过程中
+// 后台频繁更新 count 导致 settings.html 中“翻译次数”数字来回跳动。
 let localConfig = reactive(new Config());
 
 storage.getItem('local:config').then((value) => {
-  if (typeof value === 'string' && value) Object.assign(localConfig, JSON.parse(value));
-});
-
-storage.watch('local:config', (newValue, oldValue) => {
-  if (typeof newValue === 'string' && newValue) Object.assign(localConfig, JSON.parse(newValue));
+  if (typeof value === 'string' && value) {
+    try {
+      Object.assign(localConfig, JSON.parse(value));
+    } catch (e) {
+      console.error('Failed to parse local:config for Footer:', e);
+    }
+  }
+}).catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (message.toLowerCase().includes('context invalidated')) {
+    console.warn('[VerseVibe] Footer: 扩展上下文已失效，跳过读取配置');
+    return;
+  }
+  console.warn('[VerseVibe] Footer: 读取配置失败:', message);
 });
 
 const computedCount = computed(() => localConfig.count);
@@ -116,7 +99,6 @@ const computedCount = computed(() => localConfig.count);
 }
 
 .footer-container {
-  background: var(--fr-bg-color);
   margin: -16px;
 }
 
@@ -136,7 +118,7 @@ const computedCount = computed(() => localConfig.count);
 
 .footer-links {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 0 16px;
 }
@@ -256,10 +238,6 @@ const computedCount = computed(() => localConfig.count);
 
 /* 暗色主题适配 */
 @media (prefers-color-scheme: dark) {
-  .footer-container {
-    background: var(--fr-bg-color-darker);
-  }
-  
   .qrcode-image {
     border: 1px solid var(--fr-border-color);
   }

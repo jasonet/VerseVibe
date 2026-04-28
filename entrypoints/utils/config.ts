@@ -4,6 +4,16 @@ import { Config } from "@/entrypoints/utils/model";
 export let config: Config = new Config();
 export const configReady = loadConfig();
 
+function hasExtensionRuntime(): boolean {
+    try {
+        const chromeRuntimeId = typeof chrome !== 'undefined' && !!chrome?.runtime?.id;
+        const browserRuntimeId = typeof browser !== 'undefined' && !!(browser as any)?.runtime?.id;
+        return chromeRuntimeId || browserRuntimeId;
+    } catch {
+        return false;
+    }
+}
+
 // 检查从存储中解析出的对象是否是有效的Config对象
 function isConfigObjectValid(obj: any): obj is Config {
     if (typeof obj !== 'object' || obj === null) {
@@ -15,6 +25,8 @@ function isConfigObjectValid(obj: any): obj is Config {
 
 // 异步加载配置并应用
 async function loadConfig() {
+    if (!hasExtensionRuntime()) return;
+
     try {
         const value = await storage.getItem('local:config');
         if (typeof value === 'string' && value.trim().length > 0) {
@@ -39,18 +51,24 @@ async function loadConfig() {
 }
 
 // 监控配置变化并更新 config
-storage.watch('local:config', (newValue: any, oldValue: any) => {
-    if (typeof newValue === 'string' && newValue.trim().length > 0) {
-        try {
-            const parsedConfig = JSON.parse(newValue);
-            if (isConfigObjectValid(parsedConfig)) {
-                // 如果新的配置有效，更新 config
-                Object.assign(config, parsedConfig);
-            } else {
-                console.warn('An invalid configuration was detected in storage.watch. Ignoring.');
+if (hasExtensionRuntime()) {
+    try {
+        storage.watch('local:config', (newValue: any, oldValue: any) => {
+            if (typeof newValue === 'string' && newValue.trim().length > 0) {
+                try {
+                    const parsedConfig = JSON.parse(newValue);
+                    if (isConfigObjectValid(parsedConfig)) {
+                        // 如果新的配置有效，更新 config
+                        Object.assign(config, parsedConfig);
+                    } else {
+                        console.warn('An invalid configuration was detected in storage.watch. Ignoring.');
+                    }
+                } catch (error) {
+                    console.error('Error parsing new config in storage.watch:', error);
+                }
             }
-        } catch (error) {
-            console.error('Error parsing new config in storage.watch:', error);
-        }
+        });
+    } catch (error) {
+        console.warn('[VerseVibe] storage.watch 初始化失败，使用默认配置:', error);
     }
-});
+}

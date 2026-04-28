@@ -47,7 +47,9 @@ export function enqueueTranslation<T>(translationTask: () => Promise<T>): Promis
     if (activeTranslations < getMaxConcurrentTranslations()) {
       // 直接执行任务
       activeTranslations++;
-      taskWrapper();
+      taskWrapper().catch(() => {
+        // 错误已在 Promise reject 中返回，避免未捕获的 Promise 异常
+      });
     } else {
       pendingTranslations.push(taskWrapper);
     }

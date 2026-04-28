@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerseVibe Debug Page</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Fira Sans", Ubuntu, Oxygen, "Oxygen Sans", Cantarell, "Droid Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Lucida Grande", Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f3f2ef;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .linkedin-post {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .linkedin-text {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.9);
+        }
+
+        .linkedin-image-container {
+            position: relative;
+            background: #e9e9e9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .linkedin-image-placeholder {
+            width: 100%;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-weight: bold;
+        }
+
+        /* 模拟 LinkedIn 图片贴的文字描述 */
+        .linkedin-image-alt-text {
+            margin-top: 8px;
+            font-style: italic;
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 调试控制台 */
+        #debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: #333;
+            color: #fff;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            z-index: 10000;
+        }
+
+        .mock-active {
+            color: #4caf50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>VerseVibe 本地调试页面</h1>
+    <p>使用 <code>?verse-vibe-mock=1</code> 参数开启 Mock 模式。</p>
+
+    <div id="status-indicator"></div>
+
+    <!-- 模拟 LinkedIn 帖子结构 -->
+    <div class="card linkedin-post" id="linkedin-mock-post">
+        <div class="linkedin-text">
+            This is a sample post on LinkedIn. It contains some English text that should be translated by VerseVibe.
+            The goal is to test if we can extract content correctly.
+        </div>
+        <div class="linkedin-image-container">
+            <div class="linkedin-image-placeholder">LinkedIn Image Post Simulation</div>
+            <!-- 假设这是我们要提取的图片内嵌文字或描述 -->
+            <div class="update-components-image__description">
+                Expert analysis showing 15% growth in AI adoption across enterprise sectors in 2025.
+            </div>
+        </div>
+    </div>
+
+    <!-- 模拟 Github 结构 -->
+    <div class="card github-post">
+        <h3>Github Issue Simulation</h3>
+        <div class="comment-body">
+            <p>I found a bug in the translation logic. When the page is dynamic, the observer sometimes fails to catch
+                new elements.</p>
+            <code>console.log("Debug trace");</code>
+        </div>
+    </div>
+
+    <div id="debug-console">
+        <div>[System] Debug console initialized.</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const isMock = urlParams.get('verse-vibe-mock') === '1';
+        const indicator = document.getElementById('status-indicator');
+        const consoleEl = document.getElementById('debug-console');
+
+        if (isMock) {
+            indicator.innerHTML = '<span class="mock-active">Mock 模式已启用</span>';
+            indicator.style.color = '#4caf50';
+        } else {
+            indicator.innerHTML = '<span>标准模式 (实际调用 API)</span>';
+        }
+
+        function log(msg) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        log("Debug page loaded.");
+    </script>
+</body>
+
+</html>

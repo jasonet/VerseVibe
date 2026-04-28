@@ -1,5 +1,5 @@
 <template>
-  <div class="fr-floating-ball" :class="{
+  <div class="vv-widget-main" :class="{
     'floating-ball-expanded': isExpanded,
     'dragging': isDragging,
     'is-translating': isTranslating,
@@ -21,14 +21,8 @@
             d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07Z"
             fill="#4caf50" />
         </svg>
-        <svg v-if="iconType === 'morden'" class="imt-fb-logo-img-big-bg translation-icon"
-          :class="{ 'imt-float-ball-translated': isTranslating }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-          width="20" height="20">
-          <path fill="none" d="M0 0h24v24H0z"></path>
-          <path
-            d="M5 15v2a2 2 0 0 0 1.85 1.995L7 19h3v2H7a4 4 0 0 1-4-4v-2h2zm13-5l4.4 11h-2.155l-1.201-3h-4.09l-1.199 3h-2.154L16 10h2zm-1 2.885L15.753 16h2.492L17 12.885zM8 2v2h4v7H8v3H6v-3H2V4h4V2h2zm9 1a4 4 0 0 1 4 4v2h-2V7a2 2 0 0 0-2-2h-3V3h3zM6 6H4v3h2V6zm4 0H8v3h2V6z"
-            fill="rgba(255,255,255,1)"></path>
-        </svg>
+        <img v-if="iconType === 'morden'" :src="iconUrl" class="imt-fb-logo-img-big-bg translation-icon"
+          :class="{ 'imt-float-ball-translated': isTranslating }" alt="VerseVibe" width="20" height="20" />
 
         <div class="check-mark" v-if="isTranslating"></div>
         
@@ -48,6 +42,8 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import type { PropType, CSSProperties } from 'vue';
 import { config } from '@/entrypoints/utils/config';
+
+const iconUrl = browser.runtime.getURL('icon/tree-64.png');
 
 const props = defineProps({
   position: {
@@ -103,7 +99,12 @@ const floatingBall = ref<HTMLElement | null>(null);
 const rippleContainer = ref<HTMLElement | null>(null);
 const isAnimating = ref(false);
 const showShortcutTooltip = ref(false);
-const shortcutTip = ref('快捷键: Alt+T');
+const shortcutTip = computed(() => {
+  const hotkey = config.floatingBallHotkey === 'custom' 
+    ? config.customFloatingBallHotkey 
+    : config.floatingBallHotkey;
+  return `快捷键: ${hotkey}`;
+});
 
 const currentDisplayPosition = computed(() => internalPosition.value || props.position);
 
@@ -282,9 +283,9 @@ const toggleTranslation = (event: MouseEvent) => {
   
   // 触发自定义事件
   if (isTranslating.value) {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-started'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-started'));
   } else {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-ended'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-ended'));
   }
   
   if (floatingBall.value?.matches(':hover')) {
@@ -303,9 +304,9 @@ const handleExternalToggle = () => {
   
   // 触发自定义事件
   if (isTranslating.value) {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-started'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-started'));
   } else {
-    document.dispatchEvent(new CustomEvent('fluentread-translation-ended'));
+    document.dispatchEvent(new CustomEvent('versevibe-translation-ended'));
   }
   
   // 通知父组件
@@ -333,7 +334,7 @@ onMounted(() => {
   document.addEventListener('mousemove', handleMouseMove);
   
   // 监听自定义事件
-  document.addEventListener('fluentread-toggle-translation', handleExternalToggle);
+  document.addEventListener('versevibe-toggle-translation', handleExternalToggle);
   
   // 使组件暴露给父组件
   if (floatingBall.value) {
@@ -350,7 +351,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousemove', handleMouseMove);
   
   // 移除自定义事件监听
-  document.removeEventListener('fluentread-toggle-translation', handleExternalToggle);
+  document.removeEventListener('versevibe-toggle-translation', handleExternalToggle);
 });
 
 watch(() => props.position, (newPosition) => {
@@ -364,7 +365,7 @@ watch(() => props.position, (newPosition) => {
 </script>
 
 <style scoped>
-.fr-floating-ball {
+.vv-widget-main {
   position: fixed;
   z-index: 9999;
   transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -377,7 +378,7 @@ watch(() => props.position, (newPosition) => {
 .floating-ball-icon {
   width: 34px;
   height: 34px;
-  background-color: #ffffff;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f8fbff 55%, #eef3fa 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -392,13 +393,15 @@ watch(() => props.position, (newPosition) => {
 }
 
 .imt-fb-logo-img-big-bg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin: 0;
-  padding: 3px;
-  background-color: #ED6D8F;
-  border-radius: 50%;
-  margin: 0 3px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  margin: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
 }
 
 .floating-ball-expanded .floating-ball-icon {
@@ -585,13 +588,13 @@ watch(() => props.position, (newPosition) => {
   transform: rotate(45deg) translate(-0.75px, -0.75px);
 }
 
-.fr-floating-ball[data-position="left"] {
+.vv-widget-main[data-position="left"] {
   left: 0;
   right: auto;
   transform: translateX(-50%);
 }
 
-.fr-floating-ball[data-position="right"] {
+.vv-widget-main[data-position="right"] {
   right: 0;
   left: auto;
   transform: translateX(50%);
@@ -601,12 +604,12 @@ watch(() => props.position, (newPosition) => {
   transform: translateX(0) !important;
 }
 
-.fr-floating-ball.dragging {
+.vv-widget-main.dragging {
   transition: none;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.fr-floating-ball.dragging .floating-ball-icon {
+.vv-widget-main.dragging .floating-ball-icon {
   border-color: #4caf50;
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }

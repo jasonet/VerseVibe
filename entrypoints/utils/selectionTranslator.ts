@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import SelectionTranslator from '@/components/SelectionTranslator.vue';
 import { config } from '@/entrypoints/utils/config';
 import { storage } from '@wxt-dev/storage';
+import { mountVueWithTrustedTypesBypass } from '@/entrypoints/utils/trustedTypes';
 
 let selectionTranslatorInstance: any = null;
 let app: any = null;
@@ -17,14 +18,21 @@ export function mountSelectionTranslator() {
 
   // 创建容器元素
   const container = document.createElement('div');
-  container.id = 'fluent-read-selection-translator-container';
+  container.id = 'versevibe-selection-translator-container';
   document.body.appendChild(container);
 
   // 创建Vue应用实例
   app = createApp(SelectionTranslator);
 
   // 挂载应用
-  selectionTranslatorInstance = app.mount(container);
+  const mounted = mountVueWithTrustedTypesBypass(() => app.mount(container));
+  if (!mounted) {
+    app.unmount();
+    app = null;
+    container.remove();
+    return;
+  }
+  selectionTranslatorInstance = mounted;
 
   return selectionTranslatorInstance;
 }
@@ -35,13 +43,13 @@ export function mountSelectionTranslator() {
 export function unmountSelectionTranslator() {
   if (selectionTranslatorInstance && app) {
     // 获取容器
-    const container = document.getElementById('fluent-read-selection-translator-container');
-    
+    const container = document.getElementById('versevibe-selection-translator-container');
+
     // 卸载Vue应用
     app.unmount();
     selectionTranslatorInstance = null;
     app = null;
-    
+
     // 移除容器
     if (container) {
       container.remove();
@@ -60,7 +68,7 @@ export function toggleSelectionTranslator() {
     config.disableSelectionTranslator = false;
     mountSelectionTranslator();
   }
-  
+
   // 保存配置到存储
   saveConfig();
 }

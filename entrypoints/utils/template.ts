@@ -1,6 +1,6 @@
 // 消息模板工具
-import {customModelString, defaultOption, services} from "./option";
-import {config} from "@/entrypoints/utils/config";
+import { customModelString, defaultOption, services } from "./option";
+import { config } from "@/entrypoints/utils/config";
 
 // openai 格式的消息模板（通用模板）
 export function commonMsgTemplate(origin: string) {
@@ -18,8 +18,8 @@ export function commonMsgTemplate(origin: string) {
         'model': model,
         "temperature": 1.0,
         'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': user},
+            { 'role': 'system', 'content': system },
+            { 'role': 'user', 'content': user },
         ]
     })
 }
@@ -39,8 +39,8 @@ export function deepseekMsgTemplate(origin: string) {
     const payload: any = {
         'model': model,
         'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': user},
+            { 'role': 'system', 'content': system },
+            { 'role': 'user', 'content': user },
         ]
     };
 
@@ -59,7 +59,7 @@ export function geminiMsgTemplate(origin: string) {
 
     return JSON.stringify({
         "contents": [
-            {"role": "user", "parts": [{"text": user}]},
+            { "role": "user", "parts": [{ "text": user }] },
         ]
     })
 }
@@ -81,7 +81,7 @@ export function claudeMsgTemplate(origin: string) {
         stream: false,
         system: system,
         messages: [
-            {role: "user", content: user},
+            { role: "user", content: user },
         ]
     })
 }
@@ -98,27 +98,27 @@ export function tongyiMsgTemplate(origin: string) {
             "model": model,
             "enable_thinking": false,
             "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                { "role": "system", "content": system },
+                { "role": "user", "content": user },
             ]
         })
     }
     // 翻译模型qwen-mt-plus和qwen-mt-turbo的格式和通用的不同
     const mtModelTemplate = () => {
         const langMap = [
-            {value: "zh-Hans", target: "zh"},
-            {value: "en"},
-            {value: "ja"},
-            {value: "ko"},
-            {value: "fr"},
-            {value: "ru"},
+            { value: "zh-Hans", target: "zh" },
+            { value: "en" },
+            { value: "ja" },
+            { value: "ko" },
+            { value: "fr" },
+            { value: "ru" },
         ]
         let targetItem = langMap.find(i => i.value === config.to) || langMap[0]
         let targetLang = targetItem.target || targetItem.value
         return JSON.stringify({
             "model": model,
             "messages": [
-                {"role": "user", "content": origin},
+                { "role": "user", "content": origin },
             ],
             "translation_options": {
                 "source_lang": "auto",
@@ -139,7 +139,7 @@ export function yiyanMsgTemplate(origin: string) {
         'temperature': 0.7,
         'disable_search': true, // 禁用搜索
         'messages': [
-            {"role": "user", "content": user},
+            { "role": "user", "content": user },
         ],
     })
 }
@@ -155,8 +155,8 @@ export function minimaxTemplate(origin: string) {
         stream: false,
         temperature: 0.7,
         messages: [
-            {role: 'system', content: system},
-            {role: 'user', content: user},
+            { role: 'system', content: system },
+            { role: 'user', content: user },
         ]
     })
 }
@@ -169,7 +169,7 @@ export function cozeTemplate(origin: string) {
 
     return JSON.stringify({
         bot_id: config.robot_id[config.service],
-        user: "FluentRead",
+        user: "VerseVibe",
         query: system + user,
         stream: false
     });

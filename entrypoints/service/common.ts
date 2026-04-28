@@ -1,7 +1,7 @@
-import {method, urls} from "../utils/constant";
-import {commonMsgTemplate} from "../utils/template";
-import {config} from "@/entrypoints/utils/config";
-import {contentPostHandler} from "@/entrypoints/utils/check";
+import { method, urls } from "../utils/constant";
+import { commonMsgTemplate } from "../utils/template";
+import { config } from "@/entrypoints/utils/config";
+import { contentPostHandler } from "@/entrypoints/utils/check";
 import { services } from "../utils/option";
 
 async function common(message: any) {
@@ -12,11 +12,11 @@ async function common(message: any) {
             'Authorization': `Bearer ${config.token[config.service]}`
         });
 
-        if(config.service === services.openrouter){
+        if (config.service === services.openrouter) {
             headers.append('HTTP-Referer', 'https://fluent.thinkstu.com');
-            headers.append('X-Title', 'FluentRead');
+            headers.append('X-Title', 'VerseVibe');
         }
-                
+
         const url = config.proxy[config.service] || urls[config.service];
 
         const resp = await fetch(url, {
@@ -32,7 +32,7 @@ async function common(message: any) {
         const result = await resp.json();
         return contentPostHandler(result.choices[0].message.content);
     } catch (error) {
-        console.error('API调用失败:', error);
+        console.log('[VerseVibe] 调用翻译服务:', service);
         throw error;
     }
 }

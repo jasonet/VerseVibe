@@ -80,7 +80,7 @@ const regex = {
     verifyDomain: /To verify ownership of (.*), navigate to your DNS provider and add a TXT record with this value:/,
     autoSavedRegex: /Auto-saved (\d{2}):(\d{2}):(\d{2})/,
     // 辅助变量
-    typeMap: {'Test': '测试', 'Provided': '提供', 'Compile': '编译'},
+    typeMap: { 'Test': '测试', 'Provided': '提供', 'Compile': '编译' },
 }
 
 // 精确翻译特例适配
@@ -226,10 +226,10 @@ let LLMFormat = {
             'model': option,
             "temperature": 0.3,
             'messages': [
-                {'role': 'system', 'content': chatMgs.getSystemMsg()},
-                {'role': 'user', 'content': chatMgs.getUserMsg('hello')},
-                {'role': "assistant", 'content': '你好'},
-                {'role': 'user', 'content': origin}
+                { 'role': 'system', 'content': chatMgs.getSystemMsg() },
+                { 'role': 'user', 'content': chatMgs.getUserMsg('hello') },
+                { 'role': "assistant", 'content': '你好' },
+                { 'role': 'user', 'content': origin }
             ]
         })
     },
@@ -239,8 +239,8 @@ let LLMFormat = {
             "stream": false,
             "temperature": 0.1,
             'messages': [
-                {'role': 'system', 'content': chatMgs.getSystemMsg()},
-                {'role': 'user', 'content': chatMgs.getUserMsg(origin)},
+                { 'role': 'system', 'content': chatMgs.getSystemMsg() },
+                { 'role': 'user', 'content': chatMgs.getUserMsg(origin) },
             ]
         })
     }
@@ -354,8 +354,8 @@ const langManager = {
     hi: 'hi',         // 印地语
     per: 'fa',        // 波斯语
     // from、to 源语言、目标语言
-    from: {auto: '自动检测'},
-    to: {'zh-Hans': '简体中文', 'en': '英语',},
+    from: { auto: '自动检测' },
+    to: { 'zh-Hans': '简体中文', 'en': '英语', },
     // 解析语言种类
     parseLanguage(language) {
         return langManager[language] || language || 'en';
@@ -376,7 +376,7 @@ const langManager = {
 // 快捷键
 const shortcutManager = {
     currentShortcut: null,
-    hotkeyOptions: {Control: 'Control', Alt: 'Alt', Shift: 'Shift', '`': '反引号键'},
+    hotkeyOptions: { Control: 'Control', Alt: 'Alt', Shift: 'Shift', '`': '反引号键' },
     hotkeyPressed: false,
 }
 // 自定义 GPT地址
@@ -421,25 +421,25 @@ const settingManager = {
         // 页面 dom
         const dom = `
   <div style="font-size: 1em;" xmlns="http://www.w3.org/1999/html">
-    <label class="instant-setting-label">快捷键<select id="fluent-read-hotkey" class="instant-setting-common">${this.generateOptions(shortcutManager.hotkeyOptions, util.getValue('hotkey'))}</select></label>
-    <label class="instant-setting-label">翻译源语言<select id="fluent-read-from" class="instant-setting-common">${this.generateOptions(langManager.from, langManager.getFrom())}</select></label>
-    <label class="instant-setting-label">翻译目标语言<select id="fluent-read-to" class="instant-setting-common">${this.generateOptions(langManager.to, langManager.getTo())}</select></label>
-    <label class="instant-setting-label">翻译服务<select id="fluent-read-model" class="instant-setting-select">${this.generateOptions(transModelName, util.getValue('model'))}</select></label>
+    <label class="instant-setting-label">快捷键<select id="verse-vibe-hotkey" class="instant-setting-common">${this.generateOptions(shortcutManager.hotkeyOptions, util.getValue('hotkey'))}</select></label>
+    <label class="instant-setting-label">翻译源语言<select id="verse-vibe-from" class="instant-setting-common">${this.generateOptions(langManager.from, langManager.getFrom())}</select></label>
+    <label class="instant-setting-label">翻译目标语言<select id="verse-vibe-to" class="instant-setting-common">${this.generateOptions(langManager.to, langManager.getTo())}</select></label>
+    <label class="instant-setting-label">翻译服务<select id="verse-vibe-model" class="instant-setting-select">${this.generateOptions(transModelName, util.getValue('model'))}</select></label>
     
     <!--支持 ollama 等自定义模型名称-->
-    <label class="instant-setting-label" id="fluent-read-custom-type-label" style="display: none;">
-    <span class="fluent-read-tooltip">自定义模型类型
-            <span class="fluent-read-tooltiptext">
+    <label class="instant-setting-label" id="verse-vibe-custom-type-label" style="display: none;">
+    <span class="verse-vibe-tooltip">自定义模型类型
+            <span class="verse-vibe-tooltiptext">
             请填写模型类型全称，如：gemma:7b、llama2:7b
             </span>
         </span>
-    <input type="text" class="instant-setting-input" id="fluent-read-custom-type" value="${optionsManager.getOption(util.getValue('model'))}" ></label>
+    <input type="text" class="instant-setting-input" id="verse-vibe-custom-type" value="${optionsManager.getOption(util.getValue('model'))}" ></label>
     
-    <label class="instant-setting-label" id="fluent-read-option-label" style="display: none;">模型类型<select id="fluent-read-option" class="instant-setting-select"></select></label> 
+    <label class="instant-setting-label" id="verse-vibe-option-label" style="display: none;">模型类型<select id="verse-vibe-option" class="instant-setting-select"></select></label> 
     <!-- custom 输入框-->
-    <label class="instant-setting-label" id="fluent-read-custom-label" style="display: none;">
-        <span class="fluent-read-tooltip">自定义 GPT 地址
-            <span class="fluent-read-tooltiptext">
+    <label class="instant-setting-label" id="verse-vibe-custom-label" style="display: none;">
+        <span class="verse-vibe-tooltip">自定义 GPT 地址
+            <span class="verse-vibe-tooltiptext">
             1、支持 OpenAI 官方地址，如：https://api.openai.com/v1/chat/completions
             </br>
             2、支持 Cloudflare 代理，如：https://gateway.ai.cloudflare.com/.../openai/chat/completions
@@ -451,102 +451,102 @@ const settingManager = {
             5、由于浏览器安全限制，如需支持其他代理，请于 GitHub 提 issue.
             </span>
         </span>
-        <input type="text" class="instant-setting-input" id="fluent-read-custom" value="${customGPT.getGPTUrl()}" >
+        <input type="text" class="instant-setting-input" id="verse-vibe-custom" value="${customGPT.getGPTUrl()}" >
     </label>
     <!-- 令牌区域 -->
-    <label class="instant-setting-label" id="fluent-read-token-label" style="display: none;">token令牌<input type="text" class="instant-setting-input" id="fluent-read-token" value="" ></label>
-    <label class="instant-setting-label" id="fluent-read-ak-label" style="display: none;">ak令牌<input type="text" class="instant-setting-input" id="fluent-read-ak" value="" ></label>
-    <label class="instant-setting-label" id="fluent-read-sk-label" style="display: none;">sk令牌<input type="text" class="instant-setting-input" id="fluent-read-sk" value="" ></label>
+    <label class="instant-setting-label" id="verse-vibe-token-label" style="display: none;">token令牌<input type="text" class="instant-setting-input" id="verse-vibe-token" value="" ></label>
+    <label class="instant-setting-label" id="verse-vibe-ak-label" style="display: none;">ak令牌<input type="text" class="instant-setting-input" id="verse-vibe-ak" value="" ></label>
+    <label class="instant-setting-label" id="verse-vibe-sk-label" style="display: none;">sk令牌<input type="text" class="instant-setting-input" id="verse-vibe-sk" value="" ></label>
     <!-- 添加的输入区域 -->
-    <label class="instant-setting-label" id="fluent-read-system-label" style="display: none;">
-        <span class="fluent-read-tooltip">system角色设定<span class="fluent-read-tooltiptext">模型角色设定，如：你是一名专业的翻译家</span></span>
-        <textarea class="instant-setting-textarea" id="fluent-read-system-message">${chatMgs.getSystemMsg()}</textarea>
+    <label class="instant-setting-label" id="verse-vibe-system-label" style="display: none;">
+        <span class="verse-vibe-tooltip">system角色设定<span class="verse-vibe-tooltiptext">模型角色设定，如：你是一名专业的翻译家</span></span>
+        <textarea class="instant-setting-textarea" id="verse-vibe-system-message">${chatMgs.getSystemMsg()}</textarea>
     </label>
-    <label class="instant-setting-label" id="fluent-read-user-label" style="display: none;">
-        <span class="fluent-read-tooltip">user消息模板<span class="fluent-read-tooltiptext">用户对话内容，如：请你翻译 Hello</br>注意：{{text}} 是你需要翻译的原文，不可缺少。</span></span>
-        <textarea class="instant-setting-textarea" id="fluent-read-user-message">${chatMgs.getOriginUserMsg()}</textarea>
+    <label class="instant-setting-label" id="verse-vibe-user-label" style="display: none;">
+        <span class="verse-vibe-tooltip">user消息模板<span class="verse-vibe-tooltiptext">用户对话内容，如：请你翻译 Hello</br>注意：{{text}} 是你需要翻译的原文，不可缺少。</span></span>
+        <textarea class="instant-setting-textarea" id="verse-vibe-user-message">${chatMgs.getOriginUserMsg()}</textarea>
     </label>
   </div>`;
         Swal.fire({
-                title: '设置中心',
-                html: dom,
-                showCancelButton: true,
-                confirmButtonText: '保存并刷新页面',
-                cancelButtonText: '取消',
-                customClass: toastClass
-            },
+            title: '设置中心',
+            html: dom,
+            showCancelButton: true,
+            confirmButtonText: '保存并刷新页面',
+            cancelButtonText: '取消',
+            customClass: toastClass
+        },
         ).then(async (result) => {
-                if (result.isConfirmed) {
-                    let model = util.getElementValue('fluent-read-model');
+            if (result.isConfirmed) {
+                let model = util.getElementValue('verse-vibe-model');
 
-                    // 0、设置自定义 GPT 地址
-                    if ([transModel.openai, transModel.ollama].includes(model)) {
-                        let ok = customGPT.setGPTUrl(model, util.getElementValue('fluent-read-custom'));
-                        if (!ok) {
-                            toast.fire({
-                                icon: 'error',
-                                title: '自定义地址不合法，请检查后重试！'
-                            });
-                            return
-                        }
+                // 0、设置自定义 GPT 地址
+                if ([transModel.openai, transModel.ollama].includes(model)) {
+                    let ok = customGPT.setGPTUrl(model, util.getElementValue('verse-vibe-custom'));
+                    if (!ok) {
+                        toast.fire({
+                            icon: 'error',
+                            title: '自定义地址不合法，请检查后重试！'
+                        });
+                        return
                     }
-
-                    // 1、设置语言
-                    util.setValue('from', util.getElementValue('fluent-read-from'));
-                    util.setValue('to', util.getElementValue('fluent-read-to'));
-                    // 2、设置快捷键
-                    util.setValue('hotkey', util.getElementValue('fluent-read-hotkey'));
-                    // 3、设置翻译服务
-                    util.setValue('model', model);
-                    // 4、设置模型类型
-                    if (model === transModel.ollama) {
-                        optionsManager.setOption(model, util.getElementValue('fluent-read-custom-type'));
-                    } else {
-                        optionsManager.setOption(model, util.getElementValue('fluent-read-option'));
-                    }
-                    // 5、存储 token
-                    let token = util.getElementValue('fluent-read-token');
-                    let ak = util.getElementValue('fluent-read-ak');
-                    let sk = util.getElementValue('fluent-read-sk');
-                    switch (model) {
-                        case transModel.yiyan:
-                            tokenManager.setToken(model, {ak: ak, sk: sk});
-                            break;
-                        case transModel.zhipu:
-                            tokenManager.setToken(model, {apikey: token});
-                            break;
-                        default:
-                            tokenManager.setToken(model, token);
-                    }
-                    // 6、设置 chatGPT 消息模板
-                    chatMgs.setSystemMsg(util.getElementValue('fluent-read-system-message'));
-                    chatMgs.setUserMsg(util.getElementValue('fluent-read-user-message'));
-
-                    toast.fire({icon: 'success', title: '设置成功！'});
-                    history.go(0); // 刷新页面
                 }
+
+                // 1、设置语言
+                util.setValue('from', util.getElementValue('verse-vibe-from'));
+                util.setValue('to', util.getElementValue('verse-vibe-to'));
+                // 2、设置快捷键
+                util.setValue('hotkey', util.getElementValue('verse-vibe-hotkey'));
+                // 3、设置翻译服务
+                util.setValue('model', model);
+                // 4、设置模型类型
+                if (model === transModel.ollama) {
+                    optionsManager.setOption(model, util.getElementValue('verse-vibe-custom-type'));
+                } else {
+                    optionsManager.setOption(model, util.getElementValue('verse-vibe-option'));
+                }
+                // 5、存储 token
+                let token = util.getElementValue('verse-vibe-token');
+                let ak = util.getElementValue('verse-vibe-ak');
+                let sk = util.getElementValue('verse-vibe-sk');
+                switch (model) {
+                    case transModel.yiyan:
+                        tokenManager.setToken(model, { ak: ak, sk: sk });
+                        break;
+                    case transModel.zhipu:
+                        tokenManager.setToken(model, { apikey: token });
+                        break;
+                    default:
+                        tokenManager.setToken(model, token);
+                }
+                // 6、设置 chatGPT 消息模板
+                chatMgs.setSystemMsg(util.getElementValue('verse-vibe-system-message'));
+                chatMgs.setUserMsg(util.getElementValue('verse-vibe-user-message'));
+
+                toast.fire({ icon: 'success', title: '设置成功！' });
+                history.go(0); // 刷新页面
             }
+        }
         )
         // 设置中心打开时需判断是否展示 token 选项
-        let model = util.getElementValue('fluent-read-model');
+        let model = util.getElementValue('verse-vibe-model');
         if (LLM.has(model) || model === transModel.deepL) {
             this.showHidden(model);
         }
         // 监听“翻译服务”选择框
-        document.getElementById('fluent-read-model').addEventListener('change', e => {
+        document.getElementById('verse-vibe-model').addEventListener('change', e => {
             const model = e.currentTarget.value;
             this.showHidden(model);
         });
     },
     showHidden(model) {
         // label 是最外层的标签
-        const tokenLabel = document.getElementById('fluent-read-token-label');
-        const akLabel = document.getElementById('fluent-read-ak-label');
-        const skLabel = document.getElementById('fluent-read-sk-label');
+        const tokenLabel = document.getElementById('verse-vibe-token-label');
+        const akLabel = document.getElementById('verse-vibe-ak-label');
+        const skLabel = document.getElementById('verse-vibe-sk-label');
 
-        const token = document.getElementById('fluent-read-token');
-        const ak = document.getElementById('fluent-read-ak');
-        const sk = document.getElementById('fluent-read-sk');
+        const token = document.getElementById('verse-vibe-token');
+        const ak = document.getElementById('verse-vibe-ak');
+        const sk = document.getElementById('verse-vibe-sk');
 
         // 获取存储的 token 对象
         const tokenObject = tokenManager.getToken(model)
@@ -573,15 +573,15 @@ const settingManager = {
     // 批量设置元素的 display 样式
     setDisplayStyle(flex, none) {
         // 消息模版
-        const systemMsgLabel = document.getElementById('fluent-read-system-label');
-        const userMsgLabel = document.getElementById('fluent-read-user-label');
+        const systemMsgLabel = document.getElementById('verse-vibe-system-label');
+        const userMsgLabel = document.getElementById('verse-vibe-user-label');
         // 自定义 GPT 地址框
-        const customLabel = document.getElementById('fluent-read-custom-label');
-        const optionLabel = document.getElementById('fluent-read-option-label');
-        const customTypeLabel = document.getElementById('fluent-read-custom-type-label');
+        const customLabel = document.getElementById('verse-vibe-custom-label');
+        const optionLabel = document.getElementById('verse-vibe-option-label');
+        const customTypeLabel = document.getElementById('verse-vibe-custom-type-label');
 
         // 1、如果 flex 为空，则设置所有元素的 display 为 none，返回 / 如果是 DeepL
-        let model = util.getElementValue('fluent-read-model');
+        let model = util.getElementValue('verse-vibe-model');
         if (flex.length === 0 || model === transModel.deepL) {
             optionLabel.style.display = "none";
             systemMsgLabel.style.display = "none";
@@ -595,7 +595,7 @@ const settingManager = {
         // 2、正常逻辑，更新选项、按需要显示元素
 
         customLabel.style.display = [transModel.openai, transModel.ollama].includes(model) ? "flex" : "none";  // 判断是否显示自定义 GPT 地址输入框
-        document.getElementById('fluent-read-custom').value = customGPT.getGPTUrl(model);  // 设置自定义 GPT 地址
+        document.getElementById('verse-vibe-custom').value = customGPT.getGPTUrl(model);  // 设置自定义 GPT 地址
 
         flex.forEach(element => element.style.display = "flex");
         none.forEach(element => element.style.display = "none");
@@ -607,9 +607,9 @@ const settingManager = {
             optionLabel.style.display = "none"
             customTypeLabel.style.display = "flex"
             flex.forEach(element => element.style.display = "none");
-            document.getElementById('fluent-read-custom-type').value = optionsManager.getCustomOption(model);
+            document.getElementById('verse-vibe-custom-type').value = optionsManager.getCustomOption(model);
         } else {
-            const optionSelect = document.getElementById('fluent-read-option');
+            const optionSelect = document.getElementById('verse-vibe-option');
             optionSelect.innerHTML = settingManager.generateOptions(optionsManager[model], optionsManager.getOption(model));
             optionLabel.style.display = "flex"
             customTypeLabel.style.display = "none"
@@ -631,7 +631,7 @@ const settingManager = {
             if (result.isConfirmed) {
                 util.setValue('hotkey', result.value);
                 setShortcut(result.value);
-                toast.fire({icon: 'success', title: '快捷键设置成功！'});
+                toast.fire({ icon: 'success', title: '快捷键设置成功！' });
                 history.go(0); // 刷新页面
             }
         });
@@ -660,7 +660,7 @@ const settingManager = {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 langManager.setFromTo(langManager.getFrom(), result.value);
-                toast.fire({icon: 'success', title: args.notion + '语言设置成功！'});
+                toast.fire({ icon: 'success', title: args.notion + '语言设置成功！' });
                 history.go(0); // 刷新页面
             }
         });
@@ -725,7 +725,7 @@ const settingManager = {
                 }
             });
         });
-        observer.observe(document.body, {childList: true, subtree: true});
+        observer.observe(document.body, { childList: true, subtree: true });
         // 2、手动开启一次解析 DOM 树
         handleDOMUpdate(document.body);
     });
@@ -788,7 +788,7 @@ function handler(mouseX, mouseY, time, noSkip = true) {
                 if (fn) {
                     fn(node, outerHTMLCache);    // 兼容函数
                 } else {
-                    node.outerHTML = safeFluentRead ? safeFluentRead.createHTML(outerHTMLCache) : outerHTMLCache;
+                    node.outerHTML = safeVerseVibe ? safeVerseVibe.createHTML(outerHTMLCache) : outerHTMLCache;
                 }
                 delayRemoveCache(outerHTMLCache);
             }, 250);
@@ -814,8 +814,8 @@ const getTransNodeCompat = new Map([
         if (node.tagName.toLowerCase() === 'div' && node.classList.contains('im-description')) return true
     },
         "www.aozora.gr.jp", node => {
-        if (node.tagName.toLowerCase() === 'div' && node.classList.contains('main_text')) return true
-    },
+            if (node.tagName.toLowerCase() === 'div' && node.classList.contains('main_text')) return true
+        },
     ],
 ]);
 
@@ -1035,7 +1035,7 @@ function microsoft(origin) {
                 method: POST,
                 url: "https://api-edge.cognitive.microsofttranslator.com/translate?from=" + from + "&to=" + langManager.getTo() + "&api-version=3.0&includeSentenceLength=true&textType=html",
                 headers: LLMFormat.getStdHeader(jwtString),
-                data: JSON.stringify([{Text: origin}]),
+                data: JSON.stringify([{ Text: origin }]),
                 onload: resp => {
                     try {
                         let resultJson = JSON.parse(resp.responseText);
@@ -1182,7 +1182,7 @@ function ollama(origin) {
         GM_xmlhttpRequest({
             method: POST,
             url: customGPT.getGPTUrl(),
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             data: LLMFormat.getOllamaData(origin, option),
             onload: resp => {
                 try {
@@ -1216,20 +1216,20 @@ function gemini(origin) {
         GM_xmlhttpRequest({
             method: POST,
             url: "https://generativelanguage.googleapis.com/v1beta/models/" + option + ":generateContent?key=" + token,
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             data: JSON.stringify({
                 "contents": [
                     {
                         "role": "user",
-                        "parts": [{"text": chatMgs.getSystemMsg() + chatMgs.getUserMsg("hello")}]
+                        "parts": [{ "text": chatMgs.getSystemMsg() + chatMgs.getUserMsg("hello") }]
                     },
                     {
                         "role": "model",
-                        "parts": [{"text": "你好"}]
+                        "parts": [{ "text": "你好" }]
                     },
                     {
                         "role": "user",
-                        "parts": [{"text": origin}]
+                        "parts": [{ "text": origin }]
                     }]
             }),
             onload: response => {
@@ -1289,15 +1289,15 @@ function yiyan(origin) {
             GM_xmlhttpRequest({
                 method: POST,
                 url: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/' + option + '?access_token=' + token,
-                headers: {"Content-Type": "application/json"},
+                headers: { "Content-Type": "application/json" },
                 system: chatMgs.getSystemMsg(),
                 data: JSON.stringify({
                     'temperature': 0.3, // 随机度
                     'disable_search': true, // 禁用搜索
                     'messages': [
-                        {"role": "user", "content": chatMgs.getUserMsg("hello")},
-                        {"role": "assistant", "content": "你好"},
-                        {"role": "user", "content": origin}
+                        { "role": "user", "content": chatMgs.getUserMsg("hello") },
+                        { "role": "assistant", "content": "你好" },
+                        { "role": "user", "content": origin }
                     ],
                 }),
                 onload: resp => {
@@ -1372,10 +1372,10 @@ function tongyi(origin) {
                 "model": option,
                 "input": {
                     "messages": [
-                        {"role": "system", "content": chatMgs.getSystemMsg()},
-                        {"role": "user", "content": chatMgs.getUserMsg("hello")},
-                        {"role": "assistant", "content": "你好"},
-                        {"role": "user", "content": origin}
+                        { "role": "system", "content": chatMgs.getSystemMsg() },
+                        { "role": "user", "content": chatMgs.getUserMsg("hello") },
+                        { "role": "assistant", "content": "你好" },
+                        { "role": "user", "content": origin }
                     ]
                 },
                 "parameters": {}
@@ -1435,14 +1435,14 @@ function generateToken(apiKey) {
     let duration = 3600000 * 24; // 生成的 token 默认24小时后过期
 
     const [key, secret] = apiKey.split('.');
-    let token = generateJWT(secret, {alg: "HS256", sign_type: "SIGN", typ: "JWT"}, {
+    let token = generateJWT(secret, { alg: "HS256", sign_type: "SIGN", typ: "JWT" }, {
         api_key: key,
         exp: Math.floor(Date.now() / 1000) + (duration / 1000),
         timestamp: Math.floor(Date.now() / 1000)
     });
     if (!token) return  // 失败则提前返回
     // 存储
-    tokenManager.setToken(transModel.zhipu, {apikey: apiKey, token: token, expiration: Date.now() + duration});
+    tokenManager.setToken(transModel.zhipu, { apikey: apiKey, token: token, expiration: Date.now() + duration });
 
     return token;
 }
@@ -1691,18 +1691,18 @@ function initApplication() {
     localStorageManager.clearLocalStorageIfNewSession()
     // 初始化菜单栏配置
     let commonConfig = [
-        {name: 'hotkey', value: 'Control'},
-        {name: 'from', value: 'auto'},
-        {name: 'to', value: 'zh-Hans'},
-        {name: 'model', value: transModel.microsoft}
+        { name: 'hotkey', value: 'Control' },
+        { name: 'from', value: 'auto' },
+        { name: 'to', value: 'zh-Hans' },
+        { name: 'model', value: transModel.microsoft }
     ]
     let modelConfig = [
-        {openai: "gpt-3.5-turbo"},
-        {yiyan: "completions"},
-        {tongyi: "qwen-turbo"},
-        {zhipu: "glm-3-turbo"},
-        {moonshot: "moonshot-v1-8"},
-        {gemini: "gemini-pro"},
+        { openai: "gpt-3.5-turbo" },
+        { yiyan: "completions" },
+        { tongyi: "qwen-turbo" },
+        { zhipu: "glm-3-turbo" },
+        { moonshot: "moonshot-v1-8" },
+        { gemini: "gemini-pro" },
     ]
     commonConfig.forEach(v => !util.getValue(v.name) ? util.setValue(v.name, v.value) : null);
     modelConfig.forEach(option => {
@@ -1772,9 +1772,9 @@ function initApplication() {
     .retry-error-wrapper {display: inline-flex;align-items: center;}
     .retry-error-button, .retry-error-tip {color: #428ADF;text-decoration: underline;text-underline-offset: 0.2em;margin-left: 0.2em;font-size: 1em;cursor: pointer;}
     /* 工具提示 */
-    .fluent-read-tooltip { position: relative; display: inline-block; }
-    .fluent-read-tooltip .fluent-read-tooltiptext { visibility: hidden; width: 25em; background-color: black; color: #fff; text-align: left; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 100%; left: 50%; margin-left: -60px; opacity: 0; transition: opacity 0.6s; font-size: 14px; }
-    .fluent-read-tooltip:hover .fluent-read-tooltiptext { visibility: visible; opacity: 1; }
+    .versevibe-tooltip { position: relative; display: inline-block; }
+    .versevibe-tooltip .versevibe-tooltiptext { visibility: hidden; width: 25em; background-color: black; color: #fff; text-align: left; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 100%; left: 50%; margin-left: -60px; opacity: 0; transition: opacity 0.6s; font-size: 14px; }
+    .versevibe-tooltip:hover .versevibe-tooltiptext { visibility: visible; opacity: 1; }
     
      /* 适配移动端 */
     @media (max-width: 600px) {
@@ -1789,7 +1789,7 @@ function initApplication() {
             width: 60% !important; /* 调整宽度以适应屏幕 */
         }
     
-        .fluent-read-tooltip .fluent-read-tooltiptext {
+        .versevibe-tooltip .versevibe-tooltiptext {
             width: 18em; /* 调整工具提示宽度 */
             font-size: 12px; /* 调整工具提示字体大小 */
         }
@@ -1851,7 +1851,7 @@ function observeDOM() {
     GM_xmlhttpRequest({
         method: POST,
         url: read,
-        data: JSON.stringify({page: url.origin}),   // 请求参数
+        data: JSON.stringify({ page: url.origin }),   // 请求参数
         onload: function (response) {
             console.log("新的 read 请求：", url.host);
 
@@ -1887,7 +1887,7 @@ function parseDfs(node, respMap) {
             }
             break;
         // 2、文本节点
-        case  Node.TEXT_NODE:
+        case Node.TEXT_NODE:
             let fn = adapterFnMap[url.host];    // 根据 host 获取 adapter 函数，判断是否需要特殊处理
             isEmpty(fn) ? processNode(node, textType.textContent, respMap) : fn(node, respMap);
             return; // 文本节点无子节点，return
@@ -2027,7 +2027,7 @@ function procDockerhub(node, respMap) {
         if (timeMatch) {
             let [_, quantity, unit, isPlural] = timeMatch;
             quantity = (quantity === 'a' || quantity === 'an') ? ' 1' : ` ${quantity}`; // 将 'a' 或 'an' 转换为 '1'
-            const unitMap = {'minute': '分钟', 'hour': '小时', 'day': '天', 'month': '月',};  // 单位转换
+            const unitMap = { 'minute': '分钟', 'hour': '小时', 'day': '天', 'month': '月', };  // 单位转换
             unit = unitMap[unit] || unit;
             node.textContent = `${quantity} ${unit}之前`;
             return;

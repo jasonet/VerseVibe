@@ -9,7 +9,8 @@ export default defineConfig({
   base: '/',
   
   head: [
-    ['link', { rel: 'icon', href: '/FluentRead/logo.png' }]
+    // 文档站点 favicon 与插件保持同一套图标风格
+    ['link', { rel: 'icon', href: '/icon/tree-32.png' }]
   ],
   
   vite: {
@@ -45,7 +46,8 @@ export default defineConfig({
   },
   
   themeConfig: {
-    logo: '/logo.png',
+    // 文档站点左上角 Logo，统一为插件的树形图标
+    logo: '/icon/tree-128.png',
     nav: [
       { text: '首页', link: '/' },
       { text: '文档指南', link: '/guide/' },

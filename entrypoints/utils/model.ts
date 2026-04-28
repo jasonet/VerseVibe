@@ -1,5 +1,34 @@
 import { defaultOption, services } from "./option";
 
+/**
+ * 根据当前浏览器返回首装时的默认翻译服务：
+ *  - Edge → 微软翻译
+ *  - 其他（Chrome / Brave / Chromium 等） → Google 翻译
+ * 仅在用户尚未保存过 config 时生效；用户主动切换后，
+ * 选择会被持久化到 storage（local:config），下次按用户的选择加载。
+ */
+function detectDefaultTranslationService(): string {
+    try {
+        if (typeof navigator === 'undefined') return services.google;
+        // userAgentData 优先（更可靠，未来 UA string 可能被冻结）
+        const uaData = (navigator as any).userAgentData;
+        if (uaData?.brands?.length) {
+            const isEdge = uaData.brands.some((b: { brand: string }) =>
+                /Microsoft Edge/i.test(b.brand)
+            );
+            if (isEdge) return services.microsoft;
+        }
+        // 回退到 UA string：Edge 的 UA 同时含 "Chrome/" 与 "Edg/"
+        const ua = navigator.userAgent || '';
+        if (/Edg\//.test(ua) || /Edge\//.test(ua) || /EdgA\//.test(ua)) {
+            return services.microsoft;
+        }
+        return services.google;
+    } catch {
+        return services.google;
+    }
+}
+
 interface IMapping {
     [key: string]: string;
 }
@@ -15,7 +44,7 @@ export class Config {
     from: string;
     to: string;
     hotkey: string;
-    style: number;
+    style: number | string;
     display: number = 1;
     service: string;
     token: IMapping;
@@ -53,6 +82,14 @@ export class Config {
     translationStatus: boolean; // 是否启用全文翻译进度面板
     inputBoxTranslationTrigger: string; // 输入框翻译触发方式
     inputBoxTranslationTarget: string; // 输入框翻译目标语言
+    minFontSize: number; // 最小中文字号
+    forceChineseHeiFont: boolean; // 中文字体强制黑体
+    flickrDownloadMenu: boolean; // Flickr 大图下载菜单
+    linkedinWideUi: boolean; // LinkedIn 宽幅 UI
+    linkedinWideScale: string; // LinkedIn 宽幅尺寸档位: normal | 1.5x | 2x | 3x | full
+    linkedinAutoHidePromotedMedia: boolean; // LinkedIn feed 自动隐藏推广帖媒体
+    skipTranslateHeader: boolean; // 不翻译页头（默认开启，全文翻译时跳过）
+    skipTranslateFooter: boolean; // 不翻译页尾（默认开启，全文翻译时跳过）
 
     constructor() {
         this.on = true;
@@ -62,7 +99,9 @@ export class Config {
         this.style = defaultOption.style;
         this.display = defaultOption.display;
         this.hotkey = defaultOption.hotkey;
-        this.service = defaultOption.service;
+        // 根据浏览器自动选默认翻译服务（Chrome→Google / Edge→Microsoft）；
+        // 用户切换后由 storage 中的 local:config 覆盖此默认值。
+        this.service = detectDefaultTranslationService();
         this.token = {};
         this.ak = '';
         this.sk = '';
@@ -81,7 +120,7 @@ export class Config {
         this.useCache = true; // 默认开启缓存
         this.disableFloatingBall = false; // 默认启用悬浮球
         this.floatingBallPosition = 'right'; // 默认在右侧
-        this.floatingBallHotkey = 'Alt+T'; // 默认快捷键为 Alt+T
+        this.floatingBallHotkey = 'Alt+A'; // 默认快捷键为 Alt+A
         this.customFloatingBallHotkey = ''; // 自定义快捷键为空
         this.customHotkey = ''; // 自定义鼠标悬浮快捷键为空
         this.disableSelectionTranslator = false; // 默认不禁用划词翻译
@@ -94,10 +133,18 @@ export class Config {
         this.tencentSecretId = ''; // 腾讯云 Secret ID
         this.tencentSecretKey = ''; // 腾讯云 Secret Key
         this.azureOpenaiEndpoint = ''; // Azure OpenAI 端点地址
-        this.animations = true; // 默认启用动画
-        this.translationStatus = true; // 默认启用翻译进度面板
+        this.animations = false; // 默认关闭动画效果
+        this.translationStatus = false; // 默认关闭翻译进度面板
         this.inputBoxTranslationTrigger = 'disabled'; // 默认关闭输入框翻译
         this.inputBoxTranslationTarget = 'en'; // 默认翻译成英文
+        this.minFontSize = defaultOption.minFontSize; // 默认最小字号
+        this.forceChineseHeiFont = defaultOption.forceChineseHeiFont; // 默认中文强制黑体
+        this.flickrDownloadMenu = defaultOption.flickrDownloadMenu; // 默认启用 Flickr 大图下载菜单
+        this.linkedinWideUi = defaultOption.linkedinWideUi; // 默认启用 LinkedIn 宽幅 UI
+        this.linkedinWideScale = defaultOption.linkedinWideScale; // LinkedIn 宽幅尺寸默认 1.5x
+        this.linkedinAutoHidePromotedMedia = defaultOption.linkedinAutoHidePromotedMedia; // 默认自动隐藏推广帖媒体
+        this.skipTranslateHeader = true; // 默认不翻译页头
+        this.skipTranslateFooter = true; // 默认不翻译页尾
     }
 }
 

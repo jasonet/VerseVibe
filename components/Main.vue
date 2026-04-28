@@ -1,10 +1,11 @@
 <template>
-  <!-- 开关 -->
-  <el-row class="margin-bottom margin-left-2em">
+  <!-- 基础设置区块（全页布局下左侧选「基础设置」时显示） -->
+  <div v-show="section !== 'advanced'" class="main-section main-basic">
+<!-- 插件状态 -->
+  <el-row class="margin-bottom margin-left-2em settings-row">
     <el-col :span="20" class="lightblue rounded-corner">
       <span class="popup-text popup-vertical-left">插件状态</span>
     </el-col>
-
     <el-col :span="4" class="flex-end">
       <el-switch v-model="config.on" inline-prompt active-text="开" inactive-text="关" @change="handlePluginStateChange" />
     </el-col>
@@ -16,60 +17,6 @@
   </div>
 
   <div v-show="config.on">
-    <!--    翻译模式-->
-    <el-row class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <span class="popup-text popup-vertical-left">翻译模式</span>
-      </el-col>
-      <el-col :span="12">
-        <el-select v-model="config.display" placeholder="请选择翻译模式">
-          <el-option class="select-left" v-for="item in options.display" :key="item.value" :label="item.label"
-            :value="item.value" />
-        </el-select>
-      </el-col>
-    </el-row>
-
-    <!--    译文样式选择器-->
-    <el-row v-show="config.display === 1" class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="选择双语模式下译文的显示样式，提供多种美观的效果" placement="top-start"
-          :show-after="500">
-          <span class="popup-text popup-vertical-left">译文样式<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <el-select v-model="config.style" placeholder="请选择译文显示样式">
-          <el-option-group v-for="group in styleGroups" :key="group.value" :label="group.label">
-            <el-option v-for="item in group.options" :key="item.value" :label="item.label" :value="item.value"
-              :class="item.class" />
-          </el-option-group>
-        </el-select>
-      </el-col>
-    </el-row>
-
-    <!-- 翻译服务 -->
-    <el-row class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="机器翻译：快速稳定，适合日常使用；AI翻译：更自然流畅，需要配置令牌" placement="top-start"
-          :show-after="500">
-          <span class="popup-text popup-vertical-left">翻译服务<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <b>
-          <el-select v-model="config.service" placeholder="请选择翻译服务">
-            <el-option class="select-left" v-for="item in compute.filteredServices" :key="item.value"
-              :label="item.label" :value="item.value" :disabled="item.disabled"
-              :class="{ 'select-divider': item.disabled }" />
-          </el-select>
-        </b>
-      </el-col>
-    </el-row>
-
     <!-- 目标语言 -->
     <el-row class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
@@ -83,111 +30,181 @@
       </el-col>
     </el-row>
 
-
-
-    <!-- 鼠标悬浮快捷键 -->
-    <el-row class="margin-bottom margin-left-2em" :class="{ 'custom-hotkey-row': config.hotkey === 'custom' }">
-      <el-col :span="14" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="按住指定快捷键并悬停在文本上进行翻译" placement="top-start" :show-after="500">
-        <span class="popup-text popup-vertical-left">
-          鼠标悬浮快捷键
-          <el-icon class="icon-margin">
-            <ChatDotRound />
-          </el-icon>
-        </span>
-        </el-tooltip>
+    <!--    翻译模式-->
+    <el-row class="margin-bottom margin-left-2em">
+      <el-col :span="12" class="lightblue rounded-corner">
+        <span class="popup-text popup-vertical-left">翻译模式</span>
       </el-col>
-      <el-col :span="10" class="flex-end">
-        <div class="hotkey-config">
-          <el-select 
-            v-model="config.hotkey" 
-            placeholder="请选择快捷键" 
-            size="small" 
-            style="width: 100%"
-            @change="handleMouseHotkeyChange"
-          >
-            <el-option v-for="item in options.keys" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" :class="{ 'select-divider': item.disabled }" />
-          </el-select>
-          
-          <!-- 自定义快捷键显示（选择自定义时总是显示） -->
-          <div v-if="config.hotkey === 'custom'" class="custom-hotkey-display">
-            <span class="hotkey-text" v-if="config.customHotkey">
-              {{ getCustomMouseHotkeyDisplayName() }}
-            </span>
-            <span class="hotkey-text placeholder-text" v-else>
-              点击设置自定义快捷键
-            </span>
-            <el-button size="small" type="text" @click="openCustomMouseHotkeyDialog" class="edit-button">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
-
-    <!-- 全文翻译快捷键选择 -->
-    <el-row v-if="config.on" class="margin-bottom margin-left-2em margin-top-1em" :class="{ 'custom-hotkey-row': config.floatingBallHotkey === 'custom' }">
-      <el-col :span="14" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="（测试版）设置快捷键以便快速切换全文翻译状态，无需鼠标点击悬浮球" placement="top-start" :show-after="500">
-        <span class="popup-text popup-vertical-left">
-          <!-- <span class="new-feature-badge">新</span> -->
-          全文翻译快捷键
-          <el-icon class="icon-margin">
-            <ChatDotRound />
-          </el-icon>
-        </span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="10" class="flex-end">
-        <div class="hotkey-config">
-          <el-select 
-            v-model="config.floatingBallHotkey" 
-            placeholder="选择快捷键" 
-            size="small" 
-            style="width: 100%"
-            @change="handleHotkeyChange"
-          >
-            <el-option v-for="item in options.floatingBallHotkeys" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          
-          <!-- 自定义快捷键显示（选择自定义时总是显示） -->
-          <div v-if="config.floatingBallHotkey === 'custom'" class="custom-hotkey-display">
-            <span class="hotkey-text" v-if="config.customFloatingBallHotkey">
-              {{ getCustomHotkeyDisplayName() }}
-            </span>
-            <span class="hotkey-text placeholder-text" v-else>
-              点击设置自定义快捷键
-            </span>
-            <el-button size="small" type="text" @click="openCustomHotkeyDialog" class="edit-button">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
-
-
-    <!-- 划词翻译模式选择 -->
-    <el-row v-if="config.on" class="margin-bottom margin-left-2em margin-top-1em">
-      <el-col :span="14" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="选中文本后显示红点，鼠标移到红点上查看翻译结果。可选择关闭、双语显示或只显示译文" placement="top-start" :show-after="500">
-      <span class="popup-text popup-vertical-left">
-        <!-- <span class="new-feature-badge">新</span> -->
-        划词翻译
-        <el-icon class="icon-margin">
-          <ChatDotRound />
-        </el-icon>
-      </span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="10" class="flex-end">
-        <el-select v-model="config.selectionTranslatorMode" placeholder="选择模式" size="small" style="width: 100%">
-          <el-option label="关闭" value="disabled" />
-          <el-option label="双语显示" value="bilingual" />
-          <el-option label="只显示译文" value="translation-only" />
+      <el-col :span="12">
+        <el-select v-model="config.display" placeholder="请选择翻译模式">
+          <el-option class="select-left" v-for="item in options.display" :key="item.value" :label="item.label"
+            :value="item.value" />
         </el-select>
       </el-col>
     </el-row>
+
+    <!-- 翻译选项 Alt+A（原"高级选项"，紧凑排版） -->
+    <section v-if="section === 'all'" id="section-advanced" class="settings-block advanced-inline margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">翻译选项 Alt+A</span>
+      </div>
+      <MainAdvancedBody
+        group="main"
+        :config="config"
+        :compute="compute"
+        :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox"
+        :exportData="exportData"
+        :showImportBox="showImportBox"
+        :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate"
+        :handleExport="handleExport"
+        :handleImport="handleImport"
+        :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+
+      <!-- 鼠标悬浮快捷键 -->
+      <el-row class="adv-row" :class="{ 'custom-hotkey-row': config.hotkey === 'custom' }">
+        <el-col :span="14" class="lightblue rounded-corner">
+          <el-tooltip class="box-item" effect="dark" content="按住指定快捷键并悬停在文本上进行翻译" placement="top-start" :show-after="500">
+            <span class="popup-text popup-vertical-left">
+              鼠标悬浮快捷键
+              <el-icon class="icon-margin"><ChatDotRound /></el-icon>
+            </span>
+          </el-tooltip>
+        </el-col>
+        <el-col :span="10" class="flex-end">
+          <div class="hotkey-config">
+            <el-select v-model="config.hotkey" placeholder="请选择快捷键" size="small" style="width: 100%" @change="handleMouseHotkeyChange">
+              <el-option v-for="item in options.keys" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" :class="{ 'select-divider': item.disabled }" />
+            </el-select>
+            <div v-if="config.hotkey === 'custom'" class="custom-hotkey-display">
+              <span class="hotkey-text" v-if="config.customHotkey">{{ getCustomMouseHotkeyDisplayName() }}</span>
+              <span class="hotkey-text placeholder-text" v-else>点击设置自定义快捷键</span>
+              <el-button size="small" type="text" @click="openCustomMouseHotkeyDialog" class="edit-button">
+                <el-icon><Edit /></el-icon>
+              </el-button>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+
+      <!-- 全文翻译快捷键 -->
+      <el-row v-if="config.on" class="adv-row" :class="{ 'custom-hotkey-row': config.floatingBallHotkey === 'custom' }">
+        <el-col :span="14" class="lightblue rounded-corner">
+          <el-tooltip class="box-item" effect="dark" content="（测试版）设置快捷键以便快速切换全文翻译状态，无需鼠标点击悬浮球" placement="top-start" :show-after="500">
+            <span class="popup-text popup-vertical-left">
+              全文翻译快捷键
+              <el-icon class="icon-margin"><ChatDotRound /></el-icon>
+            </span>
+          </el-tooltip>
+        </el-col>
+        <el-col :span="10" class="flex-end">
+          <div class="hotkey-config">
+            <el-select v-model="config.floatingBallHotkey" placeholder="选择快捷键" size="small" style="width: 100%" @change="handleHotkeyChange">
+              <el-option v-for="item in options.floatingBallHotkeys" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+            <div v-if="config.floatingBallHotkey === 'custom'" class="custom-hotkey-display">
+              <span class="hotkey-text" v-if="config.customFloatingBallHotkey">{{ getCustomHotkeyDisplayName() }}</span>
+              <span class="hotkey-text placeholder-text" v-else>点击设置自定义快捷键</span>
+              <el-button size="small" type="text" @click="openCustomHotkeyDialog" class="edit-button">
+                <el-icon><Edit /></el-icon>
+              </el-button>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+
+      <!-- 划词翻译模式 -->
+      <el-row v-if="config.on" class="adv-row">
+        <el-col :span="14" class="lightblue rounded-corner">
+          <el-tooltip class="box-item" effect="dark" content="选中文本后显示红点，鼠标移到红点上查看翻译结果。可选择关闭、双语显示或只显示译文" placement="top-start" :show-after="500">
+            <span class="popup-text popup-vertical-left">
+              划词翻译
+              <el-icon class="icon-margin"><ChatDotRound /></el-icon>
+            </span>
+          </el-tooltip>
+        </el-col>
+        <el-col :span="10" class="flex-end">
+          <el-select v-model="config.selectionTranslatorMode" placeholder="选择模式" size="small" style="width: 100%">
+            <el-option label="关闭" value="disabled" />
+            <el-option label="双语显示" value="bilingual" />
+            <el-option label="只显示译文" value="translation-only" />
+          </el-select>
+        </el-col>
+      </el-row>
+    </section>
+
+    <!--    译文样式选择器-->
+    <section id="section-style" v-show="config.display === 1" class="settings-block margin-bottom margin-left-2em">
+    <el-row class="margin-bottom">
+      <el-col :span="24">
+        <div class="section-header">
+          <el-tooltip class="box-item" effect="dark" content="选择双语模式下译文的显示样式，提供多种美观的效果" placement="top-start"
+            :show-after="500">
+            <span class="popup-text popup-vertical-left">译文样式<el-icon class="icon-margin">
+                <ChatDotRound />
+              </el-icon></span>
+          </el-tooltip>
+        </div>
+        <div class="style-selector">
+          <div v-for="group in styleGroups" :key="group.value" class="style-group-section">
+            <div class="group-title">{{ group.label }}</div>
+            <div class="style-cards-grid">
+              <div 
+                v-for="item in group.options" 
+                :key="item.value"
+                @click="config.style = item.value"
+                :class="['style-card', { 'selected': config.style === item.value }]"
+              >
+                <div class="style-preview">
+                  <span :class="['style-text', item.class]">{{ item.label }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    </section>
+
+    <!-- 翻译服务 -->
+    <section id="section-service" class="settings-block margin-bottom margin-left-2em">
+    <el-row class="margin-bottom">
+      <el-col :span="24">
+        <div class="section-header">
+          <el-tooltip class="box-item" effect="dark" content="机器翻译：快速稳定，适合日常使用；AI翻译：更自然流畅，需要配置令牌" placement="top-start"
+            :show-after="500">
+            <span class="popup-text popup-vertical-left">翻译服务<el-icon class="icon-margin">
+                <ChatDotRound />
+              </el-icon></span>
+          </el-tooltip>
+        </div>
+        <div class="service-selector">
+          <div v-for="group in serviceGroups" :key="group.label" class="service-group-section">
+            <div class="group-title">{{ group.label }}</div>
+            <div class="service-cards-grid">
+              <div 
+                v-for="item in group.services" 
+                :key="item.value"
+                @click="config.service = item.value"
+                :class="['service-card', { 'selected': config.service === item.value }]"
+              >
+                <div class="service-name">{{ item.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    </section>
 
     <!-- token -->
     <el-row v-show="compute.showToken" class="margin-bottom margin-left-2em">
@@ -326,6 +343,24 @@
       </el-col>
     </el-row>
 
+    <!-- Chrome 内置 AI 模型管理 -->
+    <el-row v-show="compute.showChromeTranslator" class="margin-bottom margin-left-2em">
+      <el-col :span="24">
+        <div class="section-header">
+           <el-tooltip class="box-item" effect="dark" content="管理 Chrome 内置 AI 翻译模型。首次使用或模型未下载时，需在此处手动下载。" placement="top-start" :show-after="500">
+            <span class="popup-text popup-vertical-left">AI 模型状态<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+          </el-tooltip>
+        </div>
+        <div style="margin-top: 10px; padding: 10px; background-color: var(--el-fill-color-light); border-radius: 8px;">
+          <div style="margin-bottom: 10px; font-size: 14px;">
+            <span :style="{ color: chromeAIStatusColor }">{{ chromeAIStatusText }}</span>
+          </div>
+          <el-button type="primary" size="small" @click="checkChromeAIStatus" :loading="checkingChromeAI">检查状态</el-button>
+          <el-button type="success" size="small" @click="downloadChromeAIModel" :loading="downloadingChromeAI" v-if="chromeAINeedsDownload">下载模型</el-button>
+        </div>
+      </el-col>
+    </el-row>
+
     <!--  Coze需显示 robot_id -->
     <el-row v-show="compute.showRobotId" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
@@ -342,8 +377,8 @@
     </el-row>
 
     <!-- 本地大模型配置 -->
-    <el-row v-show="compute.showCustom" class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
+    <el-row v-show="compute.showCustom" class="margin-bottom margin-left-2em custom-interface-row">
+      <el-col :span="12" class="custom-interface-label rounded-corner">
         <el-tooltip class="box-item" effect="dark" content="目前仅支持OpenAI格式的请求接口，如http://localhost:3000/v1/chat/completions，其中 localhost:11434 可更换为任意值。
                      ollama 配置请参考：https://fluent.thinkstu.com/guide/faq.html" placement="top-start" :show-after="500">
           <span class="popup-text popup-vertical-left">自定义接口<el-icon class="icon-margin">
@@ -352,7 +387,7 @@
         </el-tooltip>
       </el-col>
       <el-col :span="12">
-        <el-input v-model="config.custom" placeholder="请输入自定义接口地址" />
+        <el-input v-model="config.custom" placeholder="请输入自定义接口地址" class="custom-interface-input" />
       </el-col>
     </el-row>
 
@@ -397,247 +432,150 @@
         <el-input v-model="config.customModel[config.service]" placeholder="例如：gemma:7b" />
       </el-col>
     </el-row>
+  </div>
 
-    <!-- 高级选项-->
-    <el-collapse class="margin-left-2em margin-bottom">
-      <el-collapse-item title="高级选项">
+    <div v-if="section === 'advanced'" class="advanced-standalone">
+      <section class="settings-block margin-left-2em margin-bottom">
+        <div class="section-header">
+          <span class="popup-text popup-vertical-left">翻译选项 Alt+A</span>
+        </div>
+        <MainAdvancedBody
+          group="main"
+          :config="config" :compute="compute" :options="options"
+          :floatingBallEnabled="floatingBallEnabled"
+          :showExportBox="showExportBox" :exportData="exportData"
+          :showImportBox="showImportBox" :importData="importData"
+          :showConfigManagement="true"
+          @update:config="mergeConfig"
+          @update:floatingBallEnabled="applyFloatingBallEnabled"
+          @update:exportData="(v) => exportData = v"
+          @update:importData="(v) => importData = v"
+          :resetTemplate="resetTemplate" :handleExport="handleExport"
+          :handleImport="handleImport" :saveImport="saveImport"
+          :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+        />
+      </section>
+      <section class="settings-block margin-left-2em margin-bottom">
+        <div class="section-header">
+          <span class="popup-text popup-vertical-left">Flickr优化</span>
+        </div>
+        <MainAdvancedBody
+          group="flickr"
+          :config="config" :compute="compute" :options="options"
+          :floatingBallEnabled="floatingBallEnabled"
+          :showExportBox="showExportBox" :exportData="exportData"
+          :showImportBox="showImportBox" :importData="importData"
+          :showConfigManagement="false"
+          @update:config="mergeConfig"
+          @update:floatingBallEnabled="applyFloatingBallEnabled"
+          @update:exportData="(v) => exportData = v"
+          @update:importData="(v) => importData = v"
+          :resetTemplate="resetTemplate" :handleExport="handleExport"
+          :handleImport="handleImport" :saveImport="saveImport"
+          :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+        />
+      </section>
+      <section class="settings-block margin-left-2em margin-bottom">
+        <div class="section-header">
+          <span class="popup-text popup-vertical-left">Linkedin优化</span>
+        </div>
+        <MainAdvancedBody
+          group="linkedin"
+          :config="config" :compute="compute" :options="options"
+          :floatingBallEnabled="floatingBallEnabled"
+          :showExportBox="showExportBox" :exportData="exportData"
+          :showImportBox="showImportBox" :importData="importData"
+          :showConfigManagement="false"
+          @update:config="mergeConfig"
+          @update:floatingBallEnabled="applyFloatingBallEnabled"
+          @update:exportData="(v) => exportData = v"
+          @update:importData="(v) => importData = v"
+          :resetTemplate="resetTemplate" :handleExport="handleExport"
+          :handleImport="handleImport" :saveImport="saveImport"
+          :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+        />
+      </section>
+    </div>
 
-        <!-- 主题设置 -->
-        <el-row class="margin-bottom margin-left-2em margin-top-2em">
-          <el-col :span="12" class="lightblue rounded-corner">
-            <span class="popup-text popup-vertical-left">主题设置</span>
-          </el-col>
-          <el-col :span="12">
-            <el-select v-model="config.theme" placeholder="请选择主题模式">
-              <el-option class="select-left" v-for="item in options.theme" :key="item.value" :label="item.label"
-                         :value="item.value" />
-            </el-select>
-          </el-col>
-        </el-row>
+    <!-- Flickr优化（移至配置管理之前） -->
+    <section v-if="section === 'all'" id="section-flickr" class="settings-block margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">Flickr优化</span>
+      </div>
+      <MainAdvancedBody
+        group="flickr"
+        :config="config" :compute="compute" :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox" :exportData="exportData"
+        :showImportBox="showImportBox" :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate" :handleExport="handleExport"
+        :handleImport="handleImport" :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+    </section>
 
-        <!-- 缓存开关 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="20" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark" content="开启缓存可以提高翻译速度，减少重复请求，但可能导致翻译结果不是最新的" placement="top-start" :show-after="500">
-        <span class="popup-text popup-vertical-left">缓存翻译结果<el-icon class="icon-margin">
-            <ChatDotRound />
-          </el-icon></span>
-            </el-tooltip>
-          </el-col>
+    <!-- Linkedin优化（移至配置管理之前） -->
+    <section v-if="section === 'all'" id="section-linkedin" class="settings-block margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">Linkedin优化</span>
+      </div>
+      <MainAdvancedBody
+        group="linkedin"
+        :config="config" :compute="compute" :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox" :exportData="exportData"
+        :showImportBox="showImportBox" :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate" :handleExport="handleExport"
+        :handleImport="handleImport" :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+    </section>
 
-          <el-col :span="4" class="flex-end">
-            <el-switch v-model="config.useCache" inline-prompt active-text="启用" inactive-text="禁用"/>
-          </el-col>
-        </el-row>
-
-        <!-- 悬浮球开关 -->
-      <el-row v-if="config.on" class="margin-bottom margin-left-2em margin-top-1em">
-        <el-col :span="20" class="lightblue rounded-corner">
-          <el-tooltip class="box-item" effect="dark" content="（测试版）控制是否显示屏幕边缘的即时翻译悬浮球，用于对整个网页进行翻译" placement="top-start" :show-after="500">
-          <span class="popup-text popup-vertical-left">
-            <!-- <span class="new-feature-badge">新</span> -->
-            全文翻译悬浮球
-            <el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon>
-          </span>
-          </el-tooltip>
-        </el-col>
-
-        <el-col :span="4" class="flex-end">
-          <el-switch v-model="floatingBallEnabled" inline-prompt active-text="启用" inactive-text="禁用" />
+    <section v-if="section === 'all'" class="settings-block margin-bottom margin-left-2em">
+      <div class="config-mgmt-header">
+        <span class="config-mgmt-title">配置管理</span>
+        <span class="config-mgmt-actions">
+          <el-button type="primary" size="small" @click="handleExport">
+            <el-icon><Download /></el-icon>导出
+          </el-button>
+          <el-button type="success" size="small" @click="handleImport">
+            <el-icon><Upload /></el-icon>导入
+          </el-button>
+        </span>
+      </div>
+      <el-row v-if="showExportBox" class="margin-bottom">
+        <el-col :span="24">
+          <el-input v-model="exportData" type="textarea" :rows="8" readonly />
         </el-col>
       </el-row>
+      <el-row v-if="showImportBox" class="margin-bottom">
+        <el-col :span="24">
+          <el-input v-model="importData" type="textarea" :rows="8" placeholder="请在此处粘贴您的JSON配置" />
+          <div style="margin-top: 10px; text-align: right;">
+            <el-button @click="saveImport">保存</el-button>
+          </div>
+        </el-col>
+      </el-row>
+    </section>
 
-
-        <!-- 翻译进度面板 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="20" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark"
-                        content="翻译进度面板（默认关）：关闭后将不再显示右下角的全文翻译进度面板，适合移动端或希望更少打扰的用户。"
-                        placement="top-start" :show-after="500">
-          <span class="popup-text popup-vertical-left">翻译进度面板<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="4" class="flex-end">
-          <el-switch v-model="config.translationStatus" inline-prompt active-text="启动" inactive-text="禁用" />
-          </el-col>
-        </el-row>
-
-        <!-- 禁用动画设置 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="20" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark"
-                        content="动画效果（默认开）：禁用后将关闭加载/悬浮等动画，以节省GPU资源和电量。适合低配置设备或希望节省资源的用户。"
-                        placement="top-start" :show-after="500">
-              <span class="popup-text popup-vertical-left">动画效果<el-icon class="icon-margin">
-                  <ChatDotRound />
-                </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="4" class="flex-end">
-            <el-switch v-model="config.animations" inline-prompt active-text="启动" inactive-text="禁用" />
-          </el-col>
-        </el-row>
-
-        <!-- 输入框翻译功能 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="12" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark"
-                        content="输入框翻译：在任何文本输入框中使用指定方式触发翻译当前输入的内容。"
-                        placement="top-start" :show-after="500">
-              <span class="popup-text popup-vertical-left">输入框翻译<el-icon class="icon-margin">
-                  <ChatDotRound />
-                </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-select v-model="config.inputBoxTranslationTrigger" placeholder="请选择触发方式">
-              <el-option class="select-left" v-for="item in options.inputBoxTranslationTrigger" :key="item.value" 
-                         :label="item.label" :value="item.value" />
-            </el-select>
-          </el-col>
-        </el-row>
-
-        <!-- 输入框翻译目标语言 -->
-        <el-row v-if="config.inputBoxTranslationTrigger !== 'disabled'" class="margin-bottom margin-left-2em">
-          <el-col :span="12" class="lightblue rounded-corner">
-            <span class="popup-text popup-vertical-left">翻译目标语言</span>
-          </el-col>
-          <el-col :span="12">
-            <el-select v-model="config.inputBoxTranslationTarget" placeholder="请选择目标语言">
-              <el-option class="select-left" v-for="item in options.inputBoxTranslationTarget" :key="item.value" 
-                         :label="item.label" :value="item.value" />
-            </el-select>
-          </el-col>
-        </el-row>
-
-        <!-- 翻译并发数 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="12" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark" content="控制同时进行的最大翻译任务数，数值越高翻译速度越快，但可能占用更多系统资源" placement="top-start"
-                        :show-after="500">
-          <span class="popup-text popup-vertical-left">翻译并发数<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="12">
-            <el-input-number
-                v-model="config.maxConcurrentTranslations"
-                :min="1"
-                :max="100"
-                :step="1"
-                style="width: 100%"
-                @change="handleConcurrentChange"
-                controls-position="right"
-            />
-          </el-col>
-        </el-row>
-
-        <!-- 使用代理转发 -->
-        <el-row v-show="compute.showProxy" class="margin-bottom margin-left-2em">
-          <el-col :span="8" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark" content="使用代理可以解决网络无法访问的问题，如不熟悉代理设置请留空！" placement="top-start"
-                        :show-after="500">
-              <span class="popup-text popup-vertical-left">代理地址<el-icon class="icon-margin">
-                  <ChatDotRound />
-                </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="16">
-            <el-input v-model="config.proxy[config.service]" placeholder="默认不使用代理" />
-          </el-col>
-        </el-row>
-
-        <!-- 角色和模板 -->
-        <el-row v-show="compute.showAI" class="margin-bottom margin-left-2em">
-          <el-col :span="8" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark" content="以系统身份 system 发送的对话，常用于指定 AI 要扮演的角色"
-              placement="top-start" :show-after="500">
-              <span class="popup-text popup-vertical-left">system<el-icon class="icon-margin">
-                  <ChatDotRound />
-                </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="16">
-            <el-input type="textarea" v-model="config.system_role[config.service]" maxlength="8192"
-              placeholder="system message " />
-          </el-col>
-        </el-row>
-        <el-row v-show="compute.showAI" class="margin-bottom margin-left-2em">
-          <el-col :span="8" class="lightblue rounded-corner">
-            <el-tooltip class="box-item" effect="dark"
-              content="以用户身份 user 发送的对话，其中{{to}}表示目标语言，{{origin}}表示待翻译的文本内容，两者不可缺少。"
-              placement="top-start" :show-after="500">
-              <span class="popup-text popup-vertical-left">user<el-icon class="icon-margin">
-                  <ChatDotRound />
-                </el-icon></span>
-            </el-tooltip>
-          </el-col>
-          <el-col :span="16">
-            <el-input type="textarea" v-model="config.user_role[config.service]" maxlength="8192"
-              placeholder="user message template" />
-          </el-col>
-        </el-row>
-        <!-- 恢夏默认模板按钮 -->
-        <el-row v-show="compute.showAI" class="margin-bottom margin-left-2em">
-          <el-col :span="24" style="text-align: right;">
-            <el-button type="primary" link @click="resetTemplate">
-              <el-icon>
-                <Refresh />
-              </el-icon>
-              恢复默认模板
-            </el-button>
-          </el-col>
-        </el-row>
-
-        <!-- 配置导入导出 -->
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="24">
-            <el-divider content-position="center">配置管理</el-divider>
-          </el-col>
-        </el-row>
-        <el-row class="margin-bottom margin-left-2em">
-          <el-col :span="12">
-            <el-button type="primary" @click="handleExport">
-              <el-icon>
-                <Download />
-              </el-icon>
-              导出配置
-            </el-button>
-          </el-col>
-          <el-col :span="12">
-            <el-button type="success" @click="handleImport">
-              <el-icon>
-                <Upload />
-              </el-icon>
-              导入配置
-            </el-button>
-          </el-col>
-        </el-row>
-
-        <!-- 导出配置 -->
-        <el-row v-if="showExportBox" class="margin-bottom margin-left-2em">
-          <el-col :span="24">
-            <el-input v-model="exportData" type="textarea" :rows="8" readonly />
-          </el-col>
-        </el-row>
-
-        <!-- 导入配置 -->
-        <el-row v-if="showImportBox" class="margin-bottom margin-left-2em">
-          <el-col :span="24">
-            <el-input v-model="importData" type="textarea" :rows="8" placeholder="请在此处粘贴您的JSON配置" />
-            <div style="margin-top: 10px; text-align: right;">
-              <el-button @click="saveImport">保存</el-button>
-            </div>
-          </el-col>
-        </el-row>
-      </el-collapse-item>
-    </el-collapse>
-    <!--    -->
+    <!-- 部分设置需刷新页面后生效 -->
+    <div v-if="showRefreshTip" class="refresh-tip margin-left-2em margin-bottom">
+      <span class="refresh-tip-text">部分设置已更改，刷新浏览的页面后生效</span>
+      <el-button type="primary" size="small" class="refresh-button" @click="refreshPage">
+        <el-icon><Refresh /></el-icon>
+        刷新页面
+      </el-button>
+    </div>
   </div>
 
   <!-- 自定义快捷键对话框 -->
@@ -664,7 +602,10 @@
 
 // Main 处理配置信息
 import { computed, ref, watch, onUnmounted } from 'vue'
-import { models, options, servicesType, defaultOption } from "../entrypoints/utils/option";
+import { models, options, servicesType, defaultOption, services } from "../entrypoints/utils/option";
+import MainAdvancedBody from './MainAdvancedBody.vue';
+
+withDefaults(defineProps<{ section?: 'basic' | 'advanced' | 'all' }>(), { section: 'all' });
 import { Config } from "@/entrypoints/utils/model";
 import { storage } from '@wxt-dev/storage';
 import { ChatDotRound, Refresh, Edit, Upload, Download } from '@element-plus/icons-vue'
@@ -697,11 +638,22 @@ let config = ref(new Config());
 // 从 storage 中获取本地配置
 storage.getItem('local:config').then((value: any) => {
   if (typeof value === 'string' && value) {
-    const parsedConfig = JSON.parse(value);
-    Object.assign(config.value, parsedConfig);
+    try {
+      const parsedConfig = JSON.parse(value);
+      Object.assign(config.value, parsedConfig);
+    } catch (error) {
+      console.warn('[VerseVibe] Main: 解析配置失败，使用默认配置', error);
+    }
   }
   // 初始应用主题
   updateTheme(config.value.theme || 'auto');
+}).catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (message.toLowerCase().includes('context invalidated')) {
+    console.warn('[VerseVibe] Main: 扩展上下文已失效，跳过读取配置');
+    return;
+  }
+  console.warn('[VerseVibe] Main: 读取配置失败:', message);
 });
 
 // 监听 storage 中 'local:config' 的变化
@@ -710,9 +662,25 @@ storage.getItem('local:config').then((value: any) => {
 storage.watch('local:config', (newValue: any, oldValue: any) => {
   // 检查 newValue 是否为非空字符串
   if (typeof newValue === 'string' && newValue) {
-    // 将新的配置值解析为对象,并合并到当前的 config.value 中
-    // 这样可以保持所有页面的配置同步
-    Object.assign(config.value, JSON.parse(newValue));
+    try {
+      const incoming = JSON.parse(newValue);
+
+      // 避免「翻译次数」等运行时字段在设置页中频繁跳动:
+      // 当 settings.html 打开期间,忽略对这些字段的外部更新,
+      // 以当前页面内的值为准,防止表单 UI 突然刷新影响体验。
+      const runtimeOnlyKeys: Array<keyof Config> = ['count'];
+      for (const key of runtimeOnlyKeys) {
+        if (key in config.value) {
+          incoming[key] = (config.value as any)[key];
+        }
+      }
+
+      // 将新的配置值解析为对象,并合并到当前的 config.value 中
+      // 这样可以保持大部分配置在多页面之间同步
+      Object.assign(config.value, incoming);
+    } catch (e) {
+      console.error('Failed to merge config update from storage.watch:', e);
+    }
   }
 });
 
@@ -721,7 +689,11 @@ storage.watch('local:config', (newValue: any, oldValue: any) => {
 // deep: true 表示深度监听对象内部属性的变化
 watch(config, (newValue: any, oldValue: any) => {
   // TODO 监听配置变化，显示刷新提示
-  storage.setItem('local:config', JSON.stringify(newValue));
+  storage.setItem('local:config', JSON.stringify(newValue)).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (message.toLowerCase().includes('context invalidated')) return;
+    console.warn('[VerseVibe] Main: 保存配置失败:', message);
+  });
 }, { deep: true });
 
 // 计算属性
@@ -760,7 +732,80 @@ let compute = ref({
   showNewAPI: computed(() => servicesType.isNewApi(config.value.service)),
   // 14、是否显示Azure OpenAI端点配置
   showAzureOpenaiEndpoint: computed(() => servicesType.isAzureOpenai(config.value.service)),
+  // 15、是否显示 Chrome AI 配置
+  showChromeTranslator: computed(() => config.value.service === services.chromeTranslator),
 })
+
+// Chrome AI 状态管理
+const checkingChromeAI = ref(false);
+const downloadingChromeAI = ref(false);
+const chromeAIStatusText = ref('点击检查状态...');
+const chromeAIStatusColor = ref('var(--el-text-color-regular)');
+const chromeAINeedsDownload = ref(false);
+
+const checkChromeAIStatus = async () => {
+    checkingChromeAI.value = true;
+    try {
+        if (!('translation' in self && 'canTranslate' in (self as any).translation)) {
+             chromeAIStatusText.value = '当前浏览器不支持 Chrome Translation API';
+             chromeAIStatusColor.value = 'red';
+             chromeAINeedsDownload.value = false;
+             return;
+        }
+        
+        const options = {
+            sourceLanguage: 'en',
+            targetLanguage: 'zh' // 默认检测英译中，或根据当前 config.to 动态调整
+        };
+        
+        const availability = await (self as any).translation.canTranslate(options);
+        
+        if (availability === 'no') {
+            chromeAIStatusText.value = '模型不可用 (Availability: no)';
+             chromeAIStatusColor.value = 'red';
+             chromeAINeedsDownload.value = false;
+        } else if (availability === 'readily') {
+             chromeAIStatusText.value = '模型就绪，可直接使用';
+             chromeAIStatusColor.value = 'green';
+             chromeAINeedsDownload.value = false;
+        } else if (availability === 'after-download') {
+             chromeAIStatusText.value = '模型需要下载 (需用户手势触发)';
+             chromeAIStatusColor.value = 'orange';
+             chromeAINeedsDownload.value = true;
+        }
+        
+    } catch (error) {
+        console.error('检查 Chrome AI 状态失败:', error);
+        chromeAIStatusText.value = '检查失败: ' + (error instanceof Error ? error.message : String(error));
+        chromeAIStatusColor.value = 'red';
+    } finally {
+        checkingChromeAI.value = false;
+    }
+};
+
+const downloadChromeAIModel = async () => {
+    downloadingChromeAI.value = true;
+    try {
+         const options = {
+            sourceLanguage: 'en',
+            targetLanguage: 'zh'
+        };
+        // 触发下载
+        await (self as any).translation.createTranslator(options);
+        
+        ElMessage.success('模型下载/初始化成功！');
+        // 重新检查状态
+        await checkChromeAIStatus();
+        
+    } catch (error) {
+        console.error('下载 Chrome AI 模型失败:', error);
+        ElMessage.error('下载失败: ' + (error instanceof Error ? error.message : String(error)));
+         chromeAIStatusText.value = '下载失败: ' + (error instanceof Error ? error.message : String(error));
+         chromeAIStatusColor.value = 'red';
+    } finally {
+        downloadingChromeAI.value = false;
+    }
+};
 
 // 监听主题变化
 watch(() => config.value.theme, (newTheme) => {
@@ -786,6 +831,36 @@ const styleGroups = computed(() => {
     ...group,
     options: options.styles.filter(item => !item.disabled && item.group === group.value)
   }));
+});
+
+// 计算翻译服务分组
+const serviceGroups = computed(() => {
+  const allServices = compute.value.filteredServices;
+  const groups = [];
+  let currentGroup: any = null;
+  
+  for (const item of allServices) {
+    if (item.disabled) {
+      // 这是分组标题
+      if (currentGroup && currentGroup.services.length > 0) {
+        groups.push(currentGroup);
+      }
+      currentGroup = {
+        label: item.label,
+        services: []
+      };
+    } else if (currentGroup) {
+      // 添加到当前分组
+      currentGroup.services.push(item);
+    }
+  }
+  
+  // 添加最后一个分组
+  if (currentGroup && currentGroup.services.length > 0) {
+    groups.push(currentGroup);
+  }
+  
+  return groups;
 });
 
 // 恢复默认模板
@@ -832,6 +907,17 @@ const floatingBallEnabled = computed({
   }
 });
 
+// MainAdvancedBody 通过 emit 更新 config 时合并到 ref
+function mergeConfig(patch: Record<string, any>) {
+  if (!patch || typeof patch !== 'object') return;
+  Object.assign(config.value, patch);
+}
+
+// MainAdvancedBody 通过 emit 更新悬浮球开关时应用（与 computed setter 一致）
+function applyFloatingBallEnabled(value: boolean) {
+  floatingBallEnabled.value = value;
+}
+
 // 监听划词翻译模式变化
 watch(() => config.value.selectionTranslatorMode, (newMode) => {
   // 向所有激活的标签页发送消息
@@ -851,6 +937,15 @@ watch(() => config.value.selectionTranslatorMode, (newMode) => {
 
 // 监听开关变化
 const handleSwitchChange = () => {
+  showRefreshTip.value = true;
+};
+
+// 处理翻译服务变化
+const handleServiceChange = (value: string) => {
+  console.log('Service changed to:', value);
+  // 确保值已更新
+  config.value.service = value;
+  // 触发刷新提示
   showRefreshTip.value = true;
 };
 
@@ -958,7 +1053,7 @@ const handleCustomHotkeyConfirm = (hotkey: string) => {
 const handleCustomHotkeyCancel = () => {
   // 如果没有自定义快捷键，回退到默认选项
   if (!config.value.customFloatingBallHotkey) {
-    config.value.floatingBallHotkey = 'Alt+T';
+    config.value.floatingBallHotkey = 'Alt+A';
   }
 };
 
@@ -1037,10 +1132,10 @@ const handleConcurrentChange = (currentValue: number | undefined, oldValue: numb
     config.value.maxConcurrentTranslations = 6;
     return;
   }
-  
-  // 显示设置已更新的提示
+  // 写入 config，触发 watch 保存到 storage，并更新界面
+  config.value.maxConcurrentTranslations = currentValue;
+  // 显示刷新提示（内容页需刷新后新并发数才在队列中生效）
   showRefreshTip.value = true;
-  
   ElMessage({
     message: `并发数量已更新为 ${currentValue}`,
     type: 'success',
@@ -1051,12 +1146,22 @@ const handleConcurrentChange = (currentValue: number | undefined, oldValue: numb
 // 显示刷新提示
 const showRefreshTip = ref(false);
 
-// 刷新页面
+// 刷新页面：优先刷新内容页；若当前为设置/弹窗页则刷新同窗口下第一个内容页
 const refreshPage = async () => {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  if (tabs[0]?.id) {
-    browser.tabs.reload(tabs[0].id);
-    showRefreshTip.value = false; // 刷新后隐藏提示
+  const extensionOrigin = browser.runtime.getURL('').replace(/\/$/, '');
+  const isExtensionPage = (url: string | undefined) => !!url && url.startsWith(extensionOrigin);
+  const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+  let tabToReload = activeTab;
+  if (activeTab?.id && isExtensionPage(activeTab.url)) {
+    const windowTabs = await browser.tabs.query({ currentWindow: true });
+    const contentTab = windowTabs.find(t => t.id && !isExtensionPage(t.url));
+    if (contentTab?.id) tabToReload = contentTab;
+  }
+  if (tabToReload?.id) {
+    await browser.tabs.reload(tabToReload.id);
+    showRefreshTip.value = false;
+  } else {
+    ElMessage({ message: '请切换到要刷新的网页后再点击刷新', type: 'info', duration: 2000 });
   }
 };
 
@@ -1153,7 +1258,6 @@ const saveImport = async () => {
     });
   }
 };
-
 
 // 切换导出配置显示
 const toggleExportConfig = async () => {
@@ -1338,7 +1442,7 @@ const validateConfig = (configData: any): boolean => {
 .select-divider {
   background: #f2f6fc;
   color: #409eff;
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 12px;
   cursor: default;
   font-weight: 500;
@@ -1363,13 +1467,114 @@ const validateConfig = (configData: any): boolean => {
   width: 100%;
 }
 
+/* 统一紧凑行间距（不缩小字号） */
 .margin-bottom {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+}
+
+.adv-row {
+  margin-bottom: 6px;
+}
+
+/* 段落小标题与卡片之间也统一 */
+:deep(.settings-block .group-title) {
+  margin-bottom: 4px;
+}
+
+/* 自定义接口：橙色高亮 */
+.custom-interface-row {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 153, 0, 0.10), rgba(255, 102, 0, 0.05));
+  border: 1px solid rgba(255, 153, 0, 0.35);
+}
+.custom-interface-label {
+  background: rgba(255, 153, 0, 0.15) !important;
+  color: #d35400;
+}
+:deep(.custom-interface-input .el-input__wrapper) {
+  box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.55) inset !important;
+  background-color: #fff8ed !important;
+}
+
+/* 配置管理：标题与按钮同行 */
+.config-mgmt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.config-mgmt-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+.config-mgmt-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+.config-mgmt-actions .el-icon {
+  margin-right: 4px;
 }
 
 .margin-left-2em {
   margin-left: 1em;
   margin-right: 1em;
+}
+
+/* 设置内导航菜单：插件状态上一行，专业菜单样式 */
+.settings-section-menu {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.settings-section-menu__item {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  text-align: center;
+  color: var(--el-text-color-regular);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+
+.settings-section-menu__item:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-blank);
+}
+
+.settings-section-menu__item:active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+/* 设置区块卡片化，更清晰分层 */
+.settings-block {
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-block .section-header {
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.settings-row {
+  align-items: center;
 }
 
 .margin-top-2em {
@@ -1397,7 +1602,20 @@ const validateConfig = (configData: any): boolean => {
 }
 
 .refresh-tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
   margin: 0 1em;
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 8px;
+}
+
+.refresh-tip-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
 }
 
 .refresh-button {
@@ -1462,7 +1680,7 @@ const validateConfig = (configData: any): boolean => {
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-7);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   height: 32px;
   width: 100%;
   box-sizing: border-box;
@@ -1473,7 +1691,7 @@ const validateConfig = (configData: any): boolean => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-weight: 600;
   color: var(--el-color-primary);
-  font-size: 13px;
+  font-size: 15px;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -1576,7 +1794,7 @@ const validateConfig = (configData: any): boolean => {
   padding: 2px 6px;
   background: var(--el-color-primary);
   color: white;
-  font-size: 10px;
+  font-size: 12px;
   border-radius: 10px;
   font-weight: 500;
   margin-left: 6px;
@@ -1595,8 +1813,263 @@ const validateConfig = (configData: any): boolean => {
 
 .error-text {
   color: var(--el-color-danger);
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
   line-height: 1.4;
 }
+
+/* 翻译服务单选组样式 */
+.section-header {
+  margin-bottom: 12px;
+}
+
+/* Translation service selector styles */
+.service-selector {
+  width: 100%;
+}
+
+.service-group-section {
+  margin-bottom: 12px;
+}
+
+.service-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.service-card {
+  border: 2px solid var(--el-border-color);
+  border-radius: 6px;
+  padding: 6px 4px;
+  cursor: pointer;
+  background: var(--el-bg-color);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 36px;
+}
+
+.service-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-fill-color-light);
+}
+
+.service-card.selected {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.12);
+}
+
+.service-name {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+/* 译文样式卡片选择器样式 */
+.style-selector {
+  width: 100%;
+}
+
+.style-group-section {
+  margin-bottom: 10px;
+}
+
+.style-group-section:last-child {
+  margin-bottom: 0;
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  margin-bottom: 4px;
+  padding-left: 4px;
+}
+
+.style-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.style-card {
+  border: 2px solid var(--el-border-color);
+  border-radius: 6px;
+  padding: 3px 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--el-bg-color);
+}
+
+.style-card:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.style-card.selected {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+
+.style-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 3px;
+  min-height: auto;
+}
+
+.style-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  text-align: center;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Translation style classes for preview */
+.verse-vibe-display-dimmed {
+  opacity: 0.7;
+}
+
+.verse-vibe-display-solid-underline {
+  border-bottom: 2px solid #409EFF;
+}
+
+.verse-vibe-display-dot-underline {
+  border-bottom: 2px dotted #409EFF;
+}
+
+.verse-vibe-display-learning-mode {
+  background: linear-gradient(transparent 60%, gold 40%);
+}
+
+.verse-vibe-display-transparent-mode {
+  opacity: 0.85;
+}
+
+.verse-vibe-display-card-mode {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.verse-vibe-display-marker {
+  background: #FFEB3B;
+  padding: 0 4px;
+}
+
+.verse-vibe-display-quote {
+  border-left: 4px solid #409EFF;
+  padding-left: 8px;
+  font-style: italic;
+}
+
+.verse-vibe-display-bold {
+  font-weight: 700;
+}
+
+.verse-vibe-display-lightyellow {
+  background-color: rgba(255, 235, 59, 0.2);
+}
+
+.verse-vibe-display-lightblue {
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+.verse-vibe-display-lightgray {
+  background-color: rgba(158, 158, 158, 0.1);
+}
+
+.verse-vibe-display-italic {
+  font-style: italic;
+}
+
+.verse-vibe-display-border {
+  border: 1px solid #409EFF;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.verse-vibe-display-text-shadow {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.verse-vibe-display-modern-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin: 4px 0;
+}
+
+.verse-vibe-display-wavy {
+  text-decoration: wavy underline #409EFF;
+  text-underline-offset: 4px;
+}
+
+.verse-vibe-display-wavy-red {
+  text-decoration: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 4'%3E%3Cpath fill='none' stroke='%23f56c6c' stroke-width='1.5' stroke-linecap='round' d='M0 3 Q5 0 10 3 T20 3'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: bottom;
+  background-size: 20px 4px;
+  padding-bottom: 3px;
+}
+
+.verse-vibe-display-highlight-fade {
+  background: linear-gradient(104deg, rgba(64, 158, 255, 0) 0.9%, rgba(64, 158, 255, 0.1) 2.4%, rgba(64, 158, 255, 0.15) 5.8%, rgba(64, 158, 255, 0.1) 93%, rgba(64, 158, 255, 0.1) 96%);
+  padding: 0.5em 0.8em;
+  border-radius: 4px;
+}
+
+.verse-vibe-display-elegant {
+  font-family: Georgia, serif;
+  color: #666;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+.verse-vibe-display-focus {
+  background: linear-gradient(to right, transparent, rgba(64, 158, 255, 0.1) 4%, rgba(64, 158, 255, 0.1) 96%, transparent);
+  padding: 4px 12px;
+  border-radius: 3px;
+}
+
+.verse-vibe-display-paper {
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  border: 1px solid #eee;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.verse-vibe-display-clean {
+  border-bottom: 1px solid #e4e7ed;
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+}
+
+.verse-vibe-display-tech {
+  font-family: 'Consolas', monospace;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #eee;
+}
+
 </style>

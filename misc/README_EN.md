@@ -1,4 +1,4 @@
-# FluentRead(Open Immersive Translate)
+# VerseVibe(Open Immersive Translate)
 
 > [中文](https://github.com/Bistutu/FluentRead/blob/main/README.md) | English
 
@@ -32,7 +32,7 @@ A revolutionary open-source browser translation plugin that provides everyone wi
 
 ## 📖 Documentation
 
-Please visit [FluentRead Official Documentation](https://fluent.thinkstu.com/) for detailed:
+Please visit [VerseVibe Official Documentation](https://fluent.thinkstu.com/) for detailed:
 - Feature Introduction
 - Configuration Guide
 - User Tutorial
