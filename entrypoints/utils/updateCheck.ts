@@ -5,7 +5,7 @@ import { storage } from '@wxt-dev/storage';
  *
  * 思路：插件代码托管在 GitHub 私密仓库（不公开），但私密仓库无法被插件匿名读取，
  * 因此「版本清单 + 安装包」改由公网静态服务器 qdaa.com 托管：
- *   - 版本清单：https://qdaa.com/ext/version.json
+ *   - 版本清单：https://qdaa.com/version.json
  *   - 安装包：  https://qdaa.com/ext/VerseVibe.zip
  *
  * version.json 结构：
@@ -21,7 +21,7 @@ import { storage } from '@wxt-dev/storage';
  * 设置页读取该信息后展示「发现新版本 → 下载升级」横幅。
  */
 
-export const UPDATE_VERSION_URL = 'https://qdaa.com/ext/version.json';
+export const UPDATE_VERSION_URL = 'https://qdaa.com/version.json';
 export const UPDATE_FALLBACK_ZIP = 'https://qdaa.com/ext/VerseVibe.zip';
 export const UPDATE_INFO_KEY = 'local:updateInfo';
 const UPDATE_ALARM_NAME = 'versevibe-update-check';
