@@ -1,4 +1,7 @@
-import { handleTranslation, autoTranslateEnglishPage, restoreOriginalContent } from "./main/trans";
+// ⚠️ 必须放在所有会引入 Vue 的 import 之前：在 Vue 模块求值前隐藏 trustedTypes，
+// 避免 GitHub 等严格 Trusted Types 站点报 "Creating a TrustedTypePolicy named 'vue'" CSP 违规。
+import "@/entrypoints/utils/disableTrustedTypes";
+import { handleTranslation, autoTranslateEnglishPage, restoreOriginalContent, restyleExistingTranslations } from "./main/trans";
 import { cache } from "./utils/cache";
 import { constants } from "@/entrypoints/utils/constant";
 import { getCenterPoint } from "@/entrypoints/utils/common";
@@ -27,11 +30,38 @@ const LINKEDIN_PROMOTED_MARKER_CLASS = 'versevibe-promoted-marker';
 const LINKEDIN_PROMOTED_MARKER_TEXT = '此处省略一行';
 const LINKEDIN_DIALOG_MINIMAL_CLASS = 'versevibe-linkedin-dialog-minimal';
 const LINKEDIN_DIALOG_MINIMAL_STYLE_ID = 'versevibe-linkedin-dialog-minimal-style';
+const LINKEDIN_DIALOG_FULLSCREEN_CLASS = 'versevibe-linkedin-dialog-fullscreen';
+const LINKEDIN_DIALOG_FULLSCREEN_STYLE_ID = 'versevibe-linkedin-dialog-fullscreen-style';
+const LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR = 'data-vv-ld-fullscreen';
+// 标记“最大图片 → 浮层根”这条真实祖先链，用于逐层解除宽高上限/裁切。
+const LINKEDIN_MEDIA_MARK_ATTR = 'data-vv-ld-media';
+// 方案 C：弹层内「全屏看图」浮动按钮
+const LINKEDIN_VIEWER_BTN_ID = 'versevibe-linkedin-viewer-btn';
 let linkedinWideRouteTimer: number | null = null;
 let linkedinPromotedObserver: MutationObserver | null = null;
 let linkedinPromotedTimer: number | null = null;
 let linkedinDialogGuardBound = false;
 let linkedinDialogGuardHandler: ((event: MouseEvent) => void) | null = null;
+let linkedinDialogFullscreenObserver: MutationObserver | null = null;
+let linkedinDialogFullscreenSyncTimer: number | null = null;
+
+// ===== GitHub 仓库首页：README 横排到文件列表左侧（左栏 2 行 → 2 列）=====
+const GITHUB_README_LEFT_STYLE_ID = 'versevibe-github-readme-left-style';
+const GITHUB_README_LEFT_CLASS = 'versevibe-github-readme-left';
+const GITHUB_README_ATTR = 'data-vv-gh-readme';   // README 区外框
+const GITHUB_FILES_ATTR = 'data-vv-gh-files';     // 文件表格区
+const GITHUB_FULLWIDTH_ATTR = 'data-vv-gh-fullwidth'; // 页面布局容器去掉 max-width，整页 100% 自适应
+const GITHUB_ORIG_WIDTH_ATTR = 'data-vv-gh-ow';        // 记录 Primer Content 原始 data-width，便于复原
+let githubRouteTimer: number | null = null;
+let githubObserver: MutationObserver | null = null;
+let githubSyncTimer: number | null = null;
+
+// ===== Reddit 评论页：左侧正文贴列阅读优化（放大正文字号）=====
+const REDDIT_MAIN_ATTR = 'data-vv-reddit-main';   // 左侧正文贴列容器标记
+const REDDIT_ORIG_FS_ATTR = 'data-vv-reddit-orig'; // 记录文本元素原始字号（px），避免反复放大抖动
+let redditRouteTimer: number | null = null;
+let redditObserver: MutationObserver | null = null;
+let redditSyncTimer: number | null = null;
 
 function isLinkedinWidePath(pathname: string): boolean {
     return pathname.startsWith('/feed') || pathname.startsWith('/posts');
@@ -346,6 +376,596 @@ function syncLinkedinDialogMinimalMode() {
     if (styleEl) styleEl.remove();
 }
 
+/**
+ * 宽幅 UI 开启时，把 LinkedIn feed 帖子详情/媒体浮层全屏化：
+ * 图片吃满可用空间最大化，原生的右侧评论栏保持不变。
+ * 纯加法（放大/取消宽度上限），不做 display:none，避免误伤评论区。
+ */
+function ensureLinkedinDialogFullscreenStyle() {
+    if (document.getElementById(LINKEDIN_DIALOG_FULLSCREEN_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = LINKEDIN_DIALOG_FULLSCREEN_STYLE_ID;
+    const A = `[${LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR}="1"]`;
+    style.textContent = `
+/* 被 JS 标记的浮层（原生 <dialog> 或回退盒子）铺满整屏 */
+${A} {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+}
+
+/* 浮层内逐层撑满，让内部两栏（媒体 + 右侧评论）有空间展开 */
+${A} > div,
+${A} > div > div,
+${A} > div > div > div {
+  max-height: none !important;
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 取消正文媒体容器的宽度/高度上限，让图片吃满可用空间 */
+${A} figure,
+${A} picture,
+${A} [class*="update-components-image"],
+${A} [class*="feed-shared-image"],
+${A} [class*="image-viewer"],
+${A} [class*="media-viewer"] {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* 图片/视频按比例吃满可用高度（仅作用于媒体容器内，避免影响头像/图标） */
+${A} figure img,
+${A} figure > a img,
+${A} picture img,
+${A} [class*="update-components-image"] img,
+${A} [class*="feed-shared-image"] img,
+${A} [class*="image-viewer"] img,
+${A} [class*="media-viewer"] img,
+${A} video {
+  width: 100% !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: 100vh !important;
+  object-fit: contain !important;
+}
+
+/* 被标记隐藏的容器在浮层内强制恢复，避免点开帖子后图片被藏起来 */
+${A} [data-versevibe-hidden-media="1"] {
+  display: revert !important;
+  visibility: visible !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+}
+
+/* 浮层内媒体强制可见（不改 display，避免误伤作者自定义样式的头像/图标） */
+${A} figure,
+${A} picture,
+${A} figure img,
+${A} picture img,
+${A} video,
+${A} [class*="update-components-image"],
+${A} [class*="feed-shared-image"],
+${A} [class*="update-components-linkedin-video"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* —— 沿“最大图片→浮层根”链路逐层解除宽高上限（由 JS 标记 data-vv-ld-media）——
+   解决深层 grid/flex 轨道把媒体列卡在固定宽度、以及多层 overflow:hidden 裁切的问题。
+   注意：评论滚动容器(overflow:scroll/auto)由 JS 跳过，不在此处改 overflow。 */
+[${LINKEDIN_MEDIA_MARK_ATTR}] {
+  max-width: none !important;
+  max-height: none !important;
+}
+/* 媒体元素本身：完整可见且尽量大（等比 contain，吃满可用高度） */
+[${LINKEDIN_MEDIA_MARK_ATTR}="media"] {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 95vh !important;
+  object-fit: contain !important;
+}
+`;
+    document.head.appendChild(style);
+}
+
+function clearLinkedinFullscreenMarks() {
+    document
+        .querySelectorAll(`[${LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR}]`)
+        .forEach((el) => el.removeAttribute(LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR));
+}
+
+/** 清除媒体链标记，并还原我们临时改写的 inline overflow（恢复类名原值）。 */
+function clearLinkedinMediaMarks() {
+    document.querySelectorAll<HTMLElement>(`[${LINKEDIN_MEDIA_MARK_ATTR}]`).forEach((el) => {
+        el.removeAttribute(LINKEDIN_MEDIA_MARK_ATTR);
+        // 仅清空我们写过的 inline overflow，让类名/UA 值重新生效
+        if (el.style.overflow) el.style.overflow = '';
+    });
+}
+
+/**
+ * 标记“浮层内最大图片 → 浮层根”这条真实祖先链：
+ * - 每一层打上 data-vv-ld-media，让 CSS 解除其 max-width/max-height；
+ * - 媒体元素自身标 "media"，由 CSS 做 contain + 95vh 最大化；
+ * - 对“非滚动”的 overflow:hidden/clip 祖先临时设为 visible（解除裁切），
+ *   但保留 overflow:scroll/auto（评论滚动容器）不动，避免破坏评论滚动。
+ */
+function markLinkedinMediaChain(box: HTMLElement) {
+    clearLinkedinMediaMarks();
+    let media: HTMLElement | null = null;
+    let bestArea = 0;
+    box.querySelectorAll<HTMLElement>('img, video').forEach((m) => {
+        const r = m.getBoundingClientRect();
+        if (r.width < 120 || r.height < 120) return;
+        const area = r.width * r.height;
+        if (area > bestArea) {
+            bestArea = area;
+            media = m;
+        }
+    });
+    if (!media) return;
+    (media as HTMLElement).setAttribute(LINKEDIN_MEDIA_MARK_ATTR, 'media');
+    let n: HTMLElement | null = (media as HTMLElement).parentElement;
+    let depth = 0;
+    while (n && depth < 40) {
+        n.setAttribute(LINKEDIN_MEDIA_MARK_ATTR, '1');
+        const cs = getComputedStyle(n);
+        const ox = cs.overflowX;
+        const oy = cs.overflowY;
+        const clips = ox === 'hidden' || ox === 'clip' || oy === 'hidden' || oy === 'clip';
+        const scrolls =
+            ox === 'scroll' || ox === 'auto' || oy === 'scroll' || oy === 'auto';
+        // 只解开“纯裁切”的层；评论滚动容器(含 scroll/auto)保持原样
+        if (clips && !scrolls) n.style.overflow = 'visible';
+        if (n === box) break;
+        n = n.parentElement;
+        depth++;
+    }
+}
+
+/* —————————————————————————————————————————————
+ * 方案 C：弹层内「全屏看图」按钮 + 帖子图片/正文抓取
+ * 把图片 src / 正文 / 原帖链接写入 storage.local，新开 imageviewer.html 全屏呈现。
+ * 一旦拿到 src，渲染就完全脱离 LinkedIn 多变的 DOM —— 稳定性来自这一层解耦。
+ * ————————————————————————————————————————————— */
+
+/** 解析 <img> 的最佳（最大）URL：优先 srcset 里宽度描述最大的候选。 */
+function resolveBestImgUrl(img: HTMLImageElement): string {
+    const srcset = img.getAttribute('srcset') || '';
+    if (srcset) {
+        let bestUrl = '';
+        let bestW = -1;
+        srcset.split(',').forEach((part) => {
+            const seg = part.trim();
+            if (!seg) return;
+            const sp = seg.split(/\s+/);
+            const url = sp[0];
+            const desc = sp[1] || '';
+            const w = desc.endsWith('w') ? parseInt(desc, 10) : 0;
+            if (w > bestW) {
+                bestW = w;
+                bestUrl = url;
+            }
+        });
+        if (bestUrl) return bestUrl;
+    }
+    return img.currentSrc || img.src || '';
+}
+
+/** 抓取浮层内该帖的内容图片（排除头像/图标）、正文与原帖链接。 */
+function gatherLinkedinPostMedia(box: HTMLElement): {
+    images: string[];
+    text: string;
+    url: string;
+    title: string;
+} {
+    const seen = new Set<string>();
+    const images: string[] = [];
+    box.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+        const r = img.getBoundingClientRect();
+        const nw = img.naturalWidth || 0;
+        const nh = img.naturalHeight || 0;
+        // 内容图：渲染足够大，或原图足够大（轮播中未显示的图渲染尺寸可能为 0）
+        const bigRendered = r.width >= 200 && r.height >= 150;
+        const bigNatural = nw >= 400 && nh >= 300;
+        if (!bigRendered && !bigNatural) return;
+        const url = resolveBestImgUrl(img);
+        if (!url || url.startsWith('data:')) return;
+        // 过滤明显的头像（LinkedIn 头像 URL 常含 profile-displayphoto / EntityPhoto）
+        if (/displayphoto|EntityPhoto|profile-framedphoto/i.test(url)) return;
+        if (seen.has(url)) return;
+        seen.add(url);
+        images.push(url);
+    });
+
+    // 正文：取浮层内 DOM 顺序最靠前的“较长文本块”（帖子正文在评论之前）
+    let text = '';
+    const textNodes = box.querySelectorAll<HTMLElement>('span, p, div');
+    for (const el of Array.from(textNodes)) {
+        // 只看直接文本，避免把整棵子树（含评论）卷进来
+        const direct = Array.from(el.childNodes)
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent || '')
+            .join(' ')
+            .trim();
+        if (direct.length >= 60) {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+                text = (el.innerText || direct).trim();
+                break;
+            }
+        }
+    }
+
+    // 原帖链接：浮层内指向帖子的 permalink，找不到则用当前地址
+    let url = '';
+    const a = box.querySelector<HTMLAnchorElement>(
+        'a[href*="/feed/update/"], a[href*="/posts/"]',
+    );
+    if (a && a.href) url = a.href;
+    if (!url) url = window.location.href;
+
+    const title = (text.split('\n')[0] || '').slice(0, 80) || 'LinkedIn 帖子';
+    return { images, text, url, title };
+}
+
+async function openLinkedinImageViewer() {
+    const box = document.querySelector<HTMLElement>(
+        `[${LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR}="1"]`,
+    );
+    if (!box) return;
+    const payload = gatherLinkedinPostMedia(box);
+    const key = `vv_viewer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    try {
+        await browser.storage.local.set({ [key]: payload });
+        await browser.runtime.sendMessage({ type: 'openImageViewer', key });
+    } catch (e) {
+        console.warn('[VerseVibe] 打开全屏看图失败', e);
+    }
+}
+
+/**
+ * 在浮层存在时注入「全屏看图」按钮。
+ * 关键：LinkedIn 帖子详情浮层是原生 <dialog>（showModal），处于浏览器“顶层(top layer)”，
+ * 会盖在所有普通 DOM 之上（z-index 再大也没用）。因此这里用 Popover API
+ * （popover 属性 + showPopover）让按钮同样进入顶层，盖在 <dialog> 之上。
+ */
+function ensureLinkedinViewerButton() {
+    let btn = document.getElementById(LINKEDIN_VIEWER_BTN_ID) as HTMLButtonElement | null;
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = LINKEDIN_VIEWER_BTN_ID;
+        btn.type = 'button';
+        btn.textContent = '⤢ 全屏看图';
+        btn.title = 'VerseVibe：在新标签页最大化查看本帖图片';
+        // 进入顶层，盖过原生 <dialog>
+        btn.setAttribute('popover', 'manual');
+        Object.assign(btn.style, {
+            // 覆盖 popover UA 默认的居中定位（inset:0; margin:auto）
+            position: 'fixed',
+            inset: 'auto',
+            top: 'auto',
+            left: '24px',
+            bottom: '24px',
+            right: 'auto',
+            margin: '0',
+            zIndex: '2147483647',
+            padding: '9px 16px',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#fff',
+            background: 'rgba(20,20,22,.88)',
+            border: '1px solid rgba(255,255,255,.2)',
+            borderRadius: '999px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0,0,0,.45)',
+            backdropFilter: 'blur(4px)',
+            overflow: 'visible',
+            width: 'auto',
+            height: 'auto',
+        } as CSSStyleDeclaration);
+        btn.addEventListener('mouseenter', () => {
+            btn!.style.background = 'rgba(45,45,50,.96)';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn!.style.background = 'rgba(20,20,22,.88)';
+        });
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void openLinkedinImageViewer();
+        });
+        document.body.appendChild(btn);
+    }
+    // 确保处于“已弹出”状态（顶层）；popover 未显示时 matches(':popover-open') 为 false
+    try {
+        if (!btn.matches(':popover-open')) btn.showPopover();
+    } catch {
+        // 浏览器不支持 Popover 时退回普通 fixed（仍可能被 dialog 顶层遮挡，但不报错）
+    }
+}
+
+function removeLinkedinViewerButton() {
+    const btn = document.getElementById(LINKEDIN_VIEWER_BTN_ID) as HTMLButtonElement | null;
+    if (!btn) return;
+    try {
+        if (btn.matches(':popover-open')) btn.hidePopover();
+    } catch {}
+    btn.remove();
+}
+
+/** 元素的“前景层级”评分：取自身到根路径上最大的 z-index，弹层通常 z-index 很高。 */
+function linkedinFrontScore(el: HTMLElement): number {
+    let n: HTMLElement | null = el;
+    let z = 0;
+    let depth = 0;
+    while (n && depth < 24) {
+        const v = parseInt(getComputedStyle(n).zIndex, 10);
+        if (!Number.isNaN(v)) z = Math.max(z, v);
+        n = n.parentElement;
+        depth++;
+    }
+    return z;
+}
+
+/** 在“当前置顶浮层”里定位评论区元素（避开背后 feed 里的评论框）。 */
+function findLinkedinDialogCommentAnchor(): HTMLElement | null {
+    const vh = window.innerHeight;
+    const selectors = [
+        '[class*="comments-comment-box"]',
+        '[class*="comment-texteditor"]',
+        '[class*="comments-comment-list"]',
+        '[class*="social-detail"]',
+        '[class*="comments-comments-list"]',
+        '[aria-label*="omment"]',
+        '[placeholder*="omment"]',
+    ];
+    const found: HTMLElement[] = [];
+    selectors.forEach((s) => {
+        document.querySelectorAll<HTMLElement>(s).forEach((el) => {
+            const r = el.getBoundingClientRect();
+            // 必须在视口内且有尺寸（排除被滚走/隐藏的 feed 评论框）
+            if (r.width > 60 && r.height > 20 && r.bottom > 0 && r.top < vh) found.push(el);
+        });
+    });
+    if (!found.length) return null;
+    // 取前景层级最高的那个（置顶浮层的评论区）
+    let best = found[0];
+    let bestZ = linkedinFrontScore(best);
+    for (let i = 1; i < found.length; i++) {
+        const z = linkedinFrontScore(found[i]);
+        if (z > bestZ) {
+            bestZ = z;
+            best = found[i];
+        }
+    }
+    return best;
+}
+
+function linkedinElHasLargeMedia(el: HTMLElement): boolean {
+    const media = el.querySelectorAll<HTMLElement>('img, video, figure, [class*="update-components-image"], [class*="feed-shared-image"]');
+    for (const m of Array.from(media)) {
+        const r = m.getBoundingClientRect();
+        if (r.width >= 200 && r.height >= 120) return true;
+    }
+    return false;
+}
+
+/** 判断元素当前是否可见（非 display:none / visibility:hidden / opacity:0）。 */
+function linkedinElVisible(el: HTMLElement): boolean {
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
+}
+
+/**
+ * 帖子详情浮层在新版 LinkedIn DOM 里是原生 <dialog> 元素（类名全部哈希化、
+ * 每次刷新都变，但语义标签 <dialog> 稳定）。优先直接命中它。
+ * 取“可见、尺寸够大、不是全屏遮罩”的最大 <dialog>。
+ */
+function findLinkedinDialogElement(): HTMLElement | null {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const dialogs = document.querySelectorAll<HTMLElement>('dialog');
+    let best: HTMLElement | null = null;
+    let bestArea = 0;
+    dialogs.forEach((el) => {
+        // 原生 dialog 关闭时无 open 属性、不渲染
+        if (el.tagName.toLowerCase() === 'dialog' && !(el as HTMLDialogElement).open) {
+            // 部分实现用 [open] 控制；没有 open 属性的就跳过
+            if (!el.hasAttribute('open')) return;
+        }
+        if (!linkedinElVisible(el)) return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 320 || r.height < 240) return;
+        // 排除铺满整屏的暗色遮罩（一般不是 dialog，但稳妥起见）
+        if (r.left <= 2 && r.top <= 2 && r.width >= vw * 0.98 && r.height >= vh * 0.98) return;
+        const area = r.width * r.height;
+        if (area > bestArea) {
+            bestArea = area;
+            best = el;
+        }
+    });
+    return best;
+}
+
+/**
+ * 找到当前打开的“帖子/媒体浮层”最外层白色弹窗盒子。
+ * 策略：① 优先命中原生 <dialog>（新版帖子详情浮层即为此）；
+ * ② 回退：在置顶浮层内定位评论区并向上回溯到包含大图的白色卡片；
+ * ③ 兜底：最大的非遮罩浮层盒子。完全不依赖易变的 id/类名。
+ */
+function findLinkedinOverlayBox(): HTMLElement | null {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // 全屏暗色遮罩：贴着左上角且几乎铺满视口
+    const isBackdrop = (r: DOMRect) =>
+        r.left <= 2 && r.top <= 2 && r.width >= vw * 0.98 && r.height >= vh * 0.98;
+
+    // ① 原生 <dialog>：新版帖子详情浮层
+    const dialog = findLinkedinDialogElement();
+    if (dialog) return dialog;
+
+    const anchor = findLinkedinDialogCommentAnchor();
+    if (anchor) {
+        let best: HTMLElement | null = null;
+        let n: HTMLElement | null = anchor;
+        let depth = 0;
+        while (n && n !== document.body && n !== document.documentElement && depth < 24) {
+            const r = n.getBoundingClientRect();
+            if (
+                r.width >= 320 &&
+                r.height >= 240 &&
+                !isBackdrop(r) &&
+                linkedinElHasLargeMedia(n)
+            ) {
+                best = n; // 继续上溯，保留最外层符合条件的卡片
+            }
+            n = n.parentElement;
+            depth++;
+        }
+        if (best) return best;
+    }
+
+    // 兜底：没找到评论区时，退回到“最大的非遮罩浮层盒子”
+    const candidates = document.querySelectorAll<HTMLElement>(
+        [
+            '[role="dialog"]',
+            '[aria-modal="true"]',
+            '.artdeco-modal',
+            '[class*="media-viewer"]',
+            '[class*="image-viewer"]',
+            '[class*="lightbox"]',
+        ].join(','),
+    );
+    let fallback: HTMLElement | null = null;
+    let bestArea = 0;
+    candidates.forEach((el) => {
+        if (el.classList.contains('artdeco-modal-overlay')) return;
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 320 || r.height < 240) return;
+        if (isBackdrop(r)) return;
+        const area = r.width * r.height;
+        if (area > bestArea) {
+            bestArea = area;
+            fallback = el;
+        }
+    });
+    return fallback;
+}
+
+function syncLinkedinDialogFullscreen() {
+    if (window.self !== window.top) return;
+    if (!window.location.hostname.includes('linkedin.com')) return;
+
+    const enabled =
+        config.linkedinWideUi !== false && isLinkedinWidePath(window.location.pathname);
+
+    if (!enabled) {
+        document.documentElement.classList.remove(LINKEDIN_DIALOG_FULLSCREEN_CLASS);
+        clearLinkedinFullscreenMarks();
+        clearLinkedinMediaMarks();
+        removeLinkedinViewerButton();
+        return;
+    }
+
+    // 粘性：已标记的盒子只要还在 DOM 内且仍可见，就保持不变，
+    // 避免它被全屏后命中“背景遮罩”过滤条件而来回切换。
+    // 原生 <dialog> 关闭后会被移除/隐藏，粘性自然失效。
+    const current = document.querySelector<HTMLElement>(
+        `[${LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR}="1"]`,
+    );
+    if (
+        current &&
+        document.documentElement.contains(current) &&
+        linkedinElVisible(current) &&
+        (current.tagName.toLowerCase() !== 'dialog' ||
+            (current as HTMLDialogElement).open ||
+            current.hasAttribute('open'))
+    ) {
+        ensureLinkedinDialogFullscreenStyle();
+        document.documentElement.classList.add(LINKEDIN_DIALOG_FULLSCREEN_CLASS);
+        // 浮层内容会随评论加载/切图动态变化，每次同步都重标媒体链
+        markLinkedinMediaChain(current);
+        ensureLinkedinViewerButton();
+        return;
+    }
+
+    const box = findLinkedinOverlayBox();
+    if (box) {
+        ensureLinkedinDialogFullscreenStyle();
+        document.documentElement.classList.add(LINKEDIN_DIALOG_FULLSCREEN_CLASS);
+        // 只保留当前盒子的标记
+        document
+            .querySelectorAll(`[${LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR}]`)
+            .forEach((el) => {
+                if (el !== box) el.removeAttribute(LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR);
+            });
+        box.setAttribute(LINKEDIN_DIALOG_FULLSCREEN_MARK_ATTR, '1');
+        markLinkedinMediaChain(box);
+        ensureLinkedinViewerButton();
+    } else {
+        document.documentElement.classList.remove(LINKEDIN_DIALOG_FULLSCREEN_CLASS);
+        clearLinkedinFullscreenMarks();
+        clearLinkedinMediaMarks();
+        removeLinkedinViewerButton();
+    }
+}
+
+function scheduleLinkedinDialogFullscreenSync() {
+    if (linkedinDialogFullscreenSyncTimer != null) return;
+    linkedinDialogFullscreenSyncTimer = window.setTimeout(() => {
+        linkedinDialogFullscreenSyncTimer = null;
+        try { syncLinkedinDialogFullscreen(); } catch {}
+    }, 80);
+}
+
+function setupLinkedinDialogFullscreenWatcher() {
+    if (window.self !== window.top) return;
+    if (!window.location.hostname.includes('linkedin.com')) return;
+
+    syncLinkedinDialogFullscreen();
+
+    if (!linkedinDialogFullscreenObserver) {
+        linkedinDialogFullscreenObserver = new MutationObserver(() => {
+            scheduleLinkedinDialogFullscreenSync();
+        });
+        linkedinDialogFullscreenObserver.observe(document.body, { childList: true, subtree: true });
+    }
+}
+
+function cleanupLinkedinDialogFullscreenWatcher() {
+    if (linkedinDialogFullscreenObserver) {
+        linkedinDialogFullscreenObserver.disconnect();
+        linkedinDialogFullscreenObserver = null;
+    }
+    if (linkedinDialogFullscreenSyncTimer != null) {
+        window.clearTimeout(linkedinDialogFullscreenSyncTimer);
+        linkedinDialogFullscreenSyncTimer = null;
+    }
+    document.documentElement.classList.remove(LINKEDIN_DIALOG_FULLSCREEN_CLASS);
+    clearLinkedinFullscreenMarks();
+    clearLinkedinMediaMarks();
+    removeLinkedinViewerButton();
+}
+
 function setupLinkedinDialogGuard() {
     if (linkedinDialogGuardBound) return;
     if (window.self !== window.top) return;
@@ -374,12 +994,14 @@ function setupLinkedinDialogGuard() {
             syncLinkedinPromotedHideScope();
             revealMarkedMediaInDialog();
             syncLinkedinDialogMinimalMode();
+            syncLinkedinDialogFullscreen();
         }, 0);
 
         window.setTimeout(() => {
             syncLinkedinPromotedHideScope();
             revealMarkedMediaInDialog();
             syncLinkedinDialogMinimalMode();
+            syncLinkedinDialogFullscreen();
         }, 120);
     };
 
@@ -808,6 +1430,12 @@ function applyLinkedinWideUi() {
     setupLinkedinPromotedAutoHideWatcher();
     setupLinkedinDialogGuard();
     setupLinkedinFeedAntiAutoRefresh();
+
+    if (enabled) {
+        setupLinkedinDialogFullscreenWatcher();
+    } else {
+        cleanupLinkedinDialogFullscreenWatcher();
+    }
 }
 
 function setupLinkedinWideUiWatcher() {
@@ -835,6 +1463,471 @@ function cleanupLinkedinWideUiWatcher() {
     removeLinkedinWideStyle();
     clearLinkedinWideInlineWidth();
     cleanupLinkedinPromotedAutoHideWatcher();
+    cleanupLinkedinDialogFullscreenWatcher();
+}
+
+/* ============================================================
+ * GitHub 仓库首页布局优化
+ * 在 github.com/{owner}/{repo}（恰好两级路径）的项目首页，
+ * 把左栏“文件列表(上) + README(下)”改为“README(左) + 文件列表(右)”横排，
+ * 整页由 2 列变 3 列（README | 文件列表 | About 侧栏）。
+ *
+ * 实现：只对左栏 prc-PageLayout-Content 内、同时包含“文件表格”和“README”
+ * 的那个公共父容器（OverviewContent-module__Box_11）做 flex 横排，
+ * README 子项用 order:-1 移到左侧。纯 CSS + 标记属性，不挪动 DOM 节点，
+ * 避免 GitHub React/Turbo 重渲染把改动冲掉。选择器基于稳定的模块前缀。
+ * ============================================================ */
+
+/** 仅匹配仓库首页：恰好 /{owner}/{repo} 两级，且首段不是 GitHub 保留路由。 */
+function isGithubRepoOverviewPath(pathname: string): boolean {
+    const segs = pathname.split('/').filter(Boolean);
+    if (segs.length !== 2) return false;
+    const reserved = new Set([
+        'settings', 'marketplace', 'explore', 'notifications', 'orgs', 'sponsors',
+        'features', 'about', 'pricing', 'team', 'enterprise', 'login', 'join',
+        'new', 'codespaces', 'search', 'topics', 'collections', 'trending',
+        'apps', 'organizations', 'account', 'dashboard', 'stars', 'watching',
+        'issues', 'pulls', 'explore',
+    ]);
+    if (reserved.has(segs[0].toLowerCase())) return false;
+    return true;
+}
+
+function ensureGithubReadmeLeftStyle() {
+    if (document.getElementById(GITHUB_README_LEFT_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = GITHUB_README_LEFT_STYLE_ID;
+    style.textContent = `
+/* 整页 100% 自适应：去掉 GitHub 页面布局容器（Primer PageLayout / container-xl）
+   的 max-width 限制，让“README | 文件列表 | About”三列铺满整个视口宽度。
+   仅去掉 max-width（不强加 width:100%，以免干扰 flex 子项的弹性计算）。
+   Primer Content 区另外通过把 data-width 改成 "full" 来原生放开（见 JS）。 */
+[${GITHUB_FULLWIDTH_ATTR}] {
+  max-width: none !important;
+}
+/* 公共父容器横排：README 在左、文件列表在右 */
+.${GITHUB_README_LEFT_CLASS} {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+/* README 区：移到左侧，独占剩余宽度 100% 自适应铺满 */
+.${GITHUB_README_LEFT_CLASS} > [${GITHUB_README_ATTR}] {
+  order: -1 !important;
+  flex: 1 1 0 !important;       /* 唯一会增长的列：吃掉文件列表之外的全部宽度 */
+  min-width: 320px !important;
+  width: auto !important;
+  margin-top: 0 !important;
+}
+/* README 内部 markdown 正文：去掉自身 max-width 限制，撑满整列 */
+.${GITHUB_README_LEFT_CLASS} > [${GITHUB_README_ATTR}] .markdown-body,
+.${GITHUB_README_LEFT_CLASS} > [${GITHUB_README_ATTR}] [class*="SharedMarkdownContent"],
+.${GITHUB_README_LEFT_CLASS} > [${GITHUB_README_ATTR}] article {
+  max-width: none !important;
+  width: 100% !important;
+}
+/* 文件列表区：右侧，接近 GitHub 原生宽度（略加大），不增长（把多余空间让给 README） */
+.${GITHUB_README_LEFT_CLASS} > [${GITHUB_FILES_ATTR}] {
+  flex: 0 1 480px !important;
+  min-width: 360px !important;
+}
+`;
+    document.head.appendChild(style);
+}
+
+function clearGithubReadmeLeftMarks() {
+    document.documentElement
+        .querySelectorAll(`[${GITHUB_README_ATTR}], [${GITHUB_FILES_ATTR}], [${GITHUB_FULLWIDTH_ATTR}]`)
+        .forEach((el) => {
+            el.removeAttribute(GITHUB_README_ATTR);
+            el.removeAttribute(GITHUB_FILES_ATTR);
+            el.removeAttribute(GITHUB_FULLWIDTH_ATTR);
+        });
+    // 复原被改过的 Primer Content data-width
+    document.documentElement
+        .querySelectorAll(`[${GITHUB_ORIG_WIDTH_ATTR}]`)
+        .forEach((el) => {
+            const orig = el.getAttribute(GITHUB_ORIG_WIDTH_ATTR) || '';
+            if (orig) el.setAttribute('data-width', orig);
+            el.removeAttribute(GITHUB_ORIG_WIDTH_ATTR);
+        });
+    document
+        .querySelectorAll(`.${GITHUB_README_LEFT_CLASS}`)
+        .forEach((el) => el.classList.remove(GITHUB_README_LEFT_CLASS));
+}
+
+/**
+ * 定位“可横排的一组”：从 README 正文（.markdown-body）向上爬，
+ * 找到第一层「其上一个兄弟节点里含 <table>（=文件列表区）」的祖先。
+ * 该祖先即 README 直接子框，其 parentElement 是公共父，上一个兄弟是文件表格区。
+ * 这样无需依赖会变的模块 hash，且自带正确性校验。
+ * 返回 [公共父, README框, 文件表格框] 或 null。
+ */
+function findGithubReadmeGroup(): [HTMLElement, HTMLElement, HTMLElement] | null {
+    const md = document.querySelector<HTMLElement>(
+        '[class*="DirectoryRichtextContent-module__SharedMarkdownContent"], #readme, article.markdown-body.entry-content',
+    );
+    if (!md) return null;
+    let a: HTMLElement | null = md;
+    let depth = 0;
+    while (a && a.parentElement && depth < 14) {
+        const prev = a.previousElementSibling as HTMLElement | null;
+        if (prev && prev.querySelector('table')) {
+            const container = a.parentElement;
+            // 限定在左栏主内容里，避免误命中右侧 About 侧栏
+            if (container.closest('[class*="prc-PageLayout-Content"]')) {
+                return [container, a, prev];
+            }
+        }
+        a = a.parentElement;
+        depth++;
+    }
+    return null;
+}
+
+/**
+ * 从 README 横排组容器向上，标记所有「限制了页面最大宽度」的布局容器：
+ * Primer PageLayout 的 Root/Wrapper（含 max-width 的就是 Wrapper）以及经典
+ * .container-xl/lg/md。标记后由 CSS 去掉其 max-width 并撑到 100%，
+ * 让三列铺满整个视口。只走 container 的祖先链，不影响页头等其它容器。
+ */
+function markGithubFullWidthAncestors(fromEl: HTMLElement) {
+    let a: HTMLElement | null = fromEl;
+    let depth = 0;
+    while (a && a !== document.body && depth < 20) {
+        const cls = typeof a.className === 'string' ? a.className : '';
+        // 同时放开外层 Wrapper/Root 与左侧主内容区 Content/ContentWrapper 的 max-width，
+        // 这样左侧主内容（README+文件列表）才能一直撑到右侧 About 侧栏前，整页真正 100%。
+        // About 侧栏是 Content 的兄弟节点（Pane），不在此祖先链上，故不受影响。
+        if (
+            /prc-PageLayout-(PageLayoutWrapper|PageLayoutRoot|Content)/.test(cls) ||
+            a.classList.contains('container-xl') ||
+            a.classList.contains('container-lg') ||
+            a.classList.contains('container-md')
+        ) {
+            a.setAttribute(GITHUB_FULLWIDTH_ATTR, '1');
+        }
+        // Primer PageLayout.Content 区用 data-width 控制 max-width：
+        //   :where([data-width=large]){max-width:1012px} 等。
+        // 直接把它改成 "full"（:where([data-width=full]){max-width:100%}），
+        // 用 Primer 原生规则放开，最稳妥（不依赖我们的 CSS 覆盖优先级）。
+        // 仅作用于真正带 data-width 的 Content 区（ContentWrapper 没有该属性）。
+        if (
+            /prc-PageLayout-Content/.test(cls) &&
+            a.hasAttribute('data-width') &&
+            a.getAttribute('data-width') !== 'full'
+        ) {
+            if (!a.hasAttribute(GITHUB_ORIG_WIDTH_ATTR)) {
+                a.setAttribute(GITHUB_ORIG_WIDTH_ATTR, a.getAttribute('data-width') || '');
+            }
+            a.setAttribute('data-width', 'full');
+        }
+        a = a.parentElement;
+        depth++;
+    }
+}
+
+function applyGithubReadmeLeft() {
+    if (window.self !== window.top) return;
+    if (!/(^|\.)github\.com$/i.test(window.location.hostname)) return;
+
+    const enabled =
+        (config as any).githubReadmeLeft !== false &&
+        isGithubRepoOverviewPath(window.location.pathname);
+
+    if (!enabled) {
+        clearGithubReadmeLeftMarks();
+        return;
+    }
+
+    const group = findGithubReadmeGroup();
+    if (!group) {
+        // README/文件区尚未渲染（React 异步），等待 observer 再次触发
+        clearGithubReadmeLeftMarks();
+        return;
+    }
+    const [container, readmeBox, filesBox] = group;
+
+    ensureGithubReadmeLeftStyle();
+    // 先清旧标记，再标当前一组（应对仓库间 Turbo 切换）
+    clearGithubReadmeLeftMarks();
+    container.classList.add(GITHUB_README_LEFT_CLASS);
+    readmeBox.setAttribute(GITHUB_README_ATTR, '1');
+    filesBox.setAttribute(GITHUB_FILES_ATTR, '1');
+    // 去掉外层布局容器的 max-width，让整页三列 100% 自适应
+    markGithubFullWidthAncestors(container);
+}
+
+function scheduleGithubReadmeLeftSync() {
+    if (githubSyncTimer != null) return;
+    githubSyncTimer = window.setTimeout(() => {
+        githubSyncTimer = null;
+        try { applyGithubReadmeLeft(); } catch {}
+    }, 120);
+}
+
+function setupGithubReadmeLeftWatcher() {
+    if (window.self !== window.top) return;
+    if (!/(^|\.)github\.com$/i.test(window.location.hostname)) return;
+
+    applyGithubReadmeLeft();
+
+    if (!githubObserver) {
+        githubObserver = new MutationObserver(() => scheduleGithubReadmeLeftSync());
+        githubObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    // GitHub 是 Turbo SPA：路径变化不重载，轮询 pathname 重新应用
+    if (githubRouteTimer == null) {
+        let lastPath = window.location.pathname;
+        githubRouteTimer = window.setInterval(() => {
+            if (window.location.pathname !== lastPath) {
+                lastPath = window.location.pathname;
+                clearGithubReadmeLeftMarks();
+                applyGithubReadmeLeft();
+            }
+        }, 500);
+    }
+}
+
+function cleanupGithubReadmeLeftWatcher() {
+    if (githubObserver) {
+        githubObserver.disconnect();
+        githubObserver = null;
+    }
+    if (githubRouteTimer != null) {
+        window.clearInterval(githubRouteTimer);
+        githubRouteTimer = null;
+    }
+    if (githubSyncTimer != null) {
+        window.clearTimeout(githubSyncTimer);
+        githubSyncTimer = null;
+    }
+    clearGithubReadmeLeftMarks();
+    document.getElementById(GITHUB_README_LEFT_STYLE_ID)?.remove();
+}
+
+/* ============================================================
+ * Reddit：左侧主内容列阅读优化（评论页 + feed 列表页，同一套配置）
+ * 覆盖页面：评论页（/r/{sub}/comments/...）、子版块/首页/用户页 feed 列表。
+ * 这些页面都分左右两列：左列是正文贴+评论 或 帖子列表，右列是社区/推荐侧栏。
+ * 本功能只优化左侧主内容列，把其中偏小的正文/评论/标题文本放大到用户设置的
+ * 「最小字号」，方便阅读。
+ *
+ * 实现：feed 页用 <shreddit-feed>，评论页用“正文贴向上找到含评论树的祖先”，
+ * 仅对其内部的 markdown 正文块 / 帖子标题做“按需放大”：只在当前字号小于下限时
+ * 提升，并记录原始字号避免抖动，不动比下限大的文本。
+ * Reddit 是 shreddit Web Components + SPA，内容懒加载，用 MutationObserver
+ * + 路由轮询持续重应用。纯按需 inline 字号，不挪动 DOM。
+ * ============================================================ */
+
+/**
+ * 匹配需要优化的页面：
+ *  - 首页 feed（/）
+ *  - 子版块 feed / 评论页 / 用户页（/r/... 、/user/... 、/u/...）
+ * 即贴文列表区或正文贴列所在的页面，统一用同一套最小字号配置。
+ */
+function isRedditOptimizePath(pathname: string): boolean {
+    if (pathname === '/' || pathname === '') return true;
+    return /^\/(r|user|u)\//i.test(pathname);
+}
+
+/**
+ * 定位左侧主内容列（正文/帖子列表所在列，天然排除右侧社区/推荐侧栏）：
+ *  1) feed 页（子版块/首页/用户页）：帖子列表在 <shreddit-feed> 内，直接用它。
+ *  2) 评论页：从 <shreddit-post> 向上爬，找到第一层同时包含评论树的祖先。
+ *  3) 兜底：主内容区 <main> / #main-content。
+ */
+function findRedditMainColumn(): HTMLElement | null {
+    // feed 页：帖子列表容器（本身就只含贴文，不含右侧栏）
+    const feed = document.querySelector<HTMLElement>('shreddit-feed');
+    if (feed) return feed;
+
+    // 评论页：从正文贴向上找到含评论树的祖先
+    const post = document.querySelector<HTMLElement>('shreddit-post');
+    if (post) {
+        let a: HTMLElement | null = post.parentElement;
+        let depth = 0;
+        while (a && a !== document.body && depth < 16) {
+            if (a.querySelector('shreddit-comment-tree, #comment-tree, shreddit-comment')) {
+                return a;
+            }
+            a = a.parentElement;
+            depth++;
+        }
+        return post;
+    }
+
+    // 兜底：主内容区
+    return document.querySelector<HTMLElement>('main#main-content, #main-content, main');
+}
+
+/** 把左主内容列内偏小的正文/评论/标题文本，按需放大到 minSize（只升不降，记录原始字号防抖动）。 */
+function applyRedditMinFont(container: HTMLElement, minSize: number) {
+    const blocks = container.querySelectorAll<HTMLElement>(
+        '.md, [id$="-post-rtjson-content"], [id$="-comment-rtjson-content"], a[slot="title"], [id^="post-title-"]',
+    );
+    blocks.forEach((node) => {
+        let orig: number;
+        const stored = node.getAttribute(REDDIT_ORIG_FS_ATTR);
+        if (stored != null) {
+            orig = parseFloat(stored);
+        } else {
+            // 首次遇到：在尚未改动前记录原始字号（必须是 px 才可靠比较）
+            const fs = window.getComputedStyle(node).fontSize || '';
+            if (!fs.endsWith('px')) return;
+            orig = parseFloat(fs);
+            if (Number.isNaN(orig) || !orig) return;
+            node.setAttribute(REDDIT_ORIG_FS_ATTR, String(orig));
+        }
+        if (Number.isNaN(orig) || !orig) return;
+        if (orig < minSize) {
+            node.style.fontSize = `${minSize}px`;
+        } else {
+            // 原始就比下限大：不改（清掉可能残留的 inline）
+            node.style.fontSize = '';
+        }
+    });
+}
+
+function clearRedditMainMarks() {
+    document
+        .querySelectorAll<HTMLElement>(`[${REDDIT_MAIN_ATTR}]`)
+        .forEach((el) => el.removeAttribute(REDDIT_MAIN_ATTR));
+    document
+        .querySelectorAll<HTMLElement>(`[${REDDIT_ORIG_FS_ATTR}]`)
+        .forEach((el) => {
+            el.style.fontSize = '';
+            el.removeAttribute(REDDIT_ORIG_FS_ATTR);
+        });
+}
+
+function applyRedditMainColumn() {
+    if (window.self !== window.top) return;
+    if (!/(^|\.)reddit\.com$/i.test(window.location.hostname)) return;
+
+    const enabled =
+        (config as any).redditMainOptimize !== false &&
+        isRedditOptimizePath(window.location.pathname);
+
+    if (!enabled) {
+        clearRedditMainMarks();
+        return;
+    }
+
+    const column = findRedditMainColumn();
+    if (!column) {
+        // 正文尚未渲染（shreddit 异步），等待 observer 再次触发
+        return;
+    }
+
+    let minSize = Number((config as any).redditMinFontSize);
+    if (!Number.isFinite(minSize) || minSize <= 0) minSize = 16;
+
+    column.setAttribute(REDDIT_MAIN_ATTR, '1');
+    applyRedditMinFont(column, minSize);
+}
+
+function scheduleRedditMainSync() {
+    if (redditSyncTimer != null) return;
+    redditSyncTimer = window.setTimeout(() => {
+        redditSyncTimer = null;
+        try { applyRedditMainColumn(); } catch {}
+    }, 150);
+}
+
+function setupRedditMainWatcher() {
+    if (window.self !== window.top) return;
+    if (!/(^|\.)reddit\.com$/i.test(window.location.hostname)) return;
+
+    applyRedditMainColumn();
+
+    if (!redditObserver) {
+        redditObserver = new MutationObserver(() => scheduleRedditMainSync());
+        redditObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    // Reddit 是 SPA：路径变化不重载，轮询 pathname 重新应用
+    if (redditRouteTimer == null) {
+        let lastPath = window.location.pathname;
+        redditRouteTimer = window.setInterval(() => {
+            if (window.location.pathname !== lastPath) {
+                lastPath = window.location.pathname;
+                clearRedditMainMarks();
+                applyRedditMainColumn();
+            }
+        }, 500);
+    }
+}
+
+function cleanupRedditMainWatcher() {
+    if (redditObserver) {
+        redditObserver.disconnect();
+        redditObserver = null;
+    }
+    if (redditRouteTimer != null) {
+        window.clearInterval(redditRouteTimer);
+        redditRouteTimer = null;
+    }
+    if (redditSyncTimer != null) {
+        window.clearTimeout(redditSyncTimer);
+        redditSyncTimer = null;
+    }
+    clearRedditMainMarks();
+}
+
+/**
+ * Google Docs / Slides / Sheets 等基于 canvas 渲染的页面无法做 DOM 翻译。
+ * 检测到 docs.google.com/document/.../edit 形式的 URL，给出可点击的横幅，
+ * 引导用户改用 /preview 视图。
+ */
+const GOOGLE_DOCS_BANNER_ID = 'versevibe-gdocs-canvas-banner';
+
+function setupGoogleDocsCanvasNotice() {
+    if (window.self !== window.top) return;
+    if (!/(^|\.)docs\.google\.com$/i.test(window.location.hostname)) return;
+    // 只针对编辑视图：/document|spreadsheets|presentation/d/<id>/edit
+    const m = window.location.pathname.match(
+        /^\/(document|spreadsheets|presentation)\/d\/([^/]+)\/edit/i,
+    );
+    if (!m) return;
+
+    const kind = m[1];
+    const docId = m[2];
+    const previewUrl =
+        window.location.origin +
+        '/' + kind + '/d/' + docId + '/preview' + window.location.search;
+
+    const inject = () => {
+        if (document.getElementById(GOOGLE_DOCS_BANNER_ID)) return;
+        const banner = document.createElement('div');
+        banner.id = GOOGLE_DOCS_BANNER_ID;
+        banner.style.cssText = [
+            'position:fixed', 'top:12px', 'left:50%',
+            'transform:translateX(-50%)', 'z-index:2147483600',
+            'background:#fff7e6', 'color:#7a4d00',
+            'border:1px solid #f0b860', 'border-radius:8px',
+            'padding:8px 12px', 'font-size:13px', 'line-height:1.4',
+            'box-shadow:0 4px 14px rgba(0,0,0,.12)',
+            'font-family:-apple-system,Segoe UI,Roboto,sans-serif',
+            'display:flex', 'align-items:center', 'gap:10px',
+            'max-width:560px',
+        ].join(';');
+        banner.innerHTML =
+            '<span>Google Docs 编辑视图为 canvas 渲染，无法翻译正文。</span>' +
+            '<a id="' + GOOGLE_DOCS_BANNER_ID + '-go" href="' + previewUrl +
+            '" style="background:#ffb84d;color:#000;padding:4px 10px;' +
+            'border-radius:6px;text-decoration:none;font-weight:600;">' +
+            '切换到预览视图</a>' +
+            '<span id="' + GOOGLE_DOCS_BANNER_ID + '-close" ' +
+            'style="cursor:pointer;opacity:.6;padding:0 4px;font-size:16px;">×</span>';
+        document.body.appendChild(banner);
+        document.getElementById(GOOGLE_DOCS_BANNER_ID + '-close')
+            ?.addEventListener('click', () => banner.remove());
+    };
+
+    if (document.body) inject();
+    else document.addEventListener('DOMContentLoaded', inject, { once: true });
 }
 
 function setupFlickrDownloadHotkey() {
@@ -862,9 +1955,19 @@ function setupFlickrDownloadHotkey() {
     }, true);
 }
 
+// 设置/更新译文字号缩放的 CSS 变量（译文 font-size 用 calc(base * var(--vv-trans-scale))）
+function applyTranslationFontScaleVar(scale: unknown) {
+    const s = typeof scale === 'number' && scale > 0 ? scale : 1;
+    try {
+        document.documentElement.style.setProperty('--vv-trans-scale', String(s));
+    } catch {
+        // 某些极端环境下 documentElement 不可用，忽略
+    }
+}
+
 export default defineContentScript({
     matches: ['<all_urls>'],  // 匹配所有页面
-    all_frames: true,
+    allFrames: true,  // 必须 camelCase；WXT 不识别 all_frames，会被静默丢弃
     runAt: 'document_end',  // 在页面加载完成后运行
     async main() {
         console.log('[VerseVibe] Content script started. URL:', window.location.href);
@@ -879,9 +1982,44 @@ export default defineContentScript({
 
         // 注入特定网站的兼容性样式
         injectSiteSpecificStyles();
+
+        // 译文字号缩放：用 CSS 变量驱动译文 font-size（calc(base * var(--vv-trans-scale))），
+        // 设置页放大/缩小时改变此变量即可让整页译文实时生效（所有 frame 都监听）。
+        // 用独立的「上次已应用」追踪变量判断字号/样式是否变化，避免依赖共享 config 状态：
+        // config.ts 中另有一个全局 storage.watch 会先 Object.assign 更新 config，
+        // 若在此处对比 config.style 会因执行顺序而恒为相等，导致永远不触发重排。
+        let lastTransFontScale: unknown = (config as any).translationFontScale;
+        let lastTransStyle: unknown = (config as any).style;
+        applyTranslationFontScaleVar(lastTransFontScale);
+        storage.watch('local:config', (newValue: any) => {
+            try {
+                const parsed = typeof newValue === 'string' && newValue.trim() ? JSON.parse(newValue) : newValue;
+                if (!parsed) return;
+                // 译文字号缩放：改变 CSS 变量即可让整页译文实时放大/缩小
+                if (typeof parsed.translationFontScale !== 'undefined' && parsed.translationFontScale !== lastTransFontScale) {
+                    lastTransFontScale = parsed.translationFontScale;
+                    (config as any).translationFontScale = parsed.translationFontScale;
+                    applyTranslationFontScaleVar(parsed.translationFontScale);
+                }
+                // 译文样式实时切换：更新共享 config.style（翻译中新节点立即采用新样式），
+                // 并对已翻译节点重新套用样式 class，无需重新翻译。
+                if (typeof parsed.style !== 'undefined' && parsed.style !== lastTransStyle) {
+                    lastTransStyle = parsed.style;
+                    (config as any).style = parsed.style;
+                    restyleExistingTranslations();
+                }
+            } catch {
+                // 忽略解析失败
+            }
+        });
+        // Google Docs 等基于 canvas 渲染的文档：DOM 中没有正文文本节点，
+        // 任何 DOM 翻译扩展都无法工作。检测到后给出可点击的指引横幅。
+        setupGoogleDocsCanvasNotice();
         setupFlickrDownloadHotkey();
         setupLinkedinWideUiWatcher();
         applyLinkedinWideUi();
+        setupGithubReadmeLeftWatcher();
+        setupRedditMainWatcher();
 
         // 添加手动翻译事件监听器
         setupManualTranslationTriggers();
@@ -900,6 +2038,19 @@ export default defineContentScript({
                 } else {
                     restoreOriginalContent();
                 }
+            }
+        });
+
+        // 跨 iframe 翻译桥接：top 帧的悬浮球只能翻译 top 帧 DOM。
+        // 对于 Google Docs /preview、嵌入式预览等场景，正文在 iframe 里，
+        // 这里监听 postMessage，由 top 广播命令进入子 iframe 触发翻译。
+        window.addEventListener('message', (ev: MessageEvent) => {
+            const data = ev.data as any;
+            if (!data || typeof data !== 'object' || data.__versevibe !== true) return;
+            if (data.action === 'start') {
+                autoTranslateEnglishPage();
+            } else if (data.action === 'stop') {
+                restoreOriginalContent();
             }
         });
         // 添加自动翻译事件监听器
@@ -933,6 +2084,11 @@ export default defineContentScript({
                         unmountTranslationStatusComponent();
                     }
                     applyLinkedinWideUi();
+                    applyGithubReadmeLeft();
+                    // Reddit 配置变更（开关 / 最小字号）即时重应用；
+                    // 关闭时 applyRedditMainColumn 内部会清掉已放大的 inline 字号
+                    clearRedditMainMarks();
+                    applyRedditMainColumn();
                 } catch {
                     if (translationStatusMountedRef) unmountTranslationStatusComponent();
                 }
@@ -1374,7 +2530,7 @@ function setupFloatingBallHotkey() {
 
     // 添加全局键盘事件监听
     let hotkeysPressed = new Set<string>();
-    let lastKeyDownTime = 0; // 用于防止按键事件重复触发
+    let lastTriggerTime = 0; // 用于防止快捷键在极短时间内重复触发（如系统按键重复）
 
     // 开发环境标志
     // @ts-ignore
@@ -1409,10 +2565,12 @@ function setupFloatingBallHotkey() {
 
     // 监听按键按下事件
     document.addEventListener('keydown', (event) => {
-        // 防止事件重复触发（某些浏览器可能会重复触发keydown事件）
-        const now = Date.now();
-        if (now - lastKeyDownTime < 50) return;
-        lastKeyDownTime = now;
+        // 注意：这里不能对 keydown 做时间防抖式的提前 return，
+        // 否则会丢弃「组合键」中后到的那一个按键。
+        // 物理按下 Alt+A 时，Alt 与 A 两个 keydown 间隔通常 > 几十毫秒；
+        // 但键盘宏 / 录制的快捷方式会以极快速度连续派发 Alt-down、A-down，
+        // 若在此处按时间间隔丢弃事件，A 永远不会被记入 hotkeysPressed，导致无法匹配。
+        // 重复触发的防抖改为在「命中快捷键、真正派发动作」处进行（见下方 lastTriggerTime）。
 
         // 在 Mac 上禁止 cmd 键参与快捷键
         if (isMac && event.metaKey) {
@@ -1487,6 +2645,12 @@ function setupFloatingBallHotkey() {
             if (target && isInputElement(target)) {
                 return;
             }
+
+            // 防止系统按键重复 / 宏多次派发导致的连续触发：
+            // 仅在真正命中快捷键时做时间防抖，不影响组合键的按键累积。
+            const now = Date.now();
+            if (now - lastTriggerTime < 300) return;
+            lastTriggerTime = now;
 
             // 阻止默认行为（避免页面自身的快捷键抢占），但不阻断事件传播，
             // 让挂在 window 上的其他快捷键逻辑（如键盘选项）也能收到事件。
@@ -1563,8 +2727,16 @@ function setupFloatingBallHotkey() {
 
 // 注册自动翻译事件
 function autoTranslationEvent() {
-    // 自动翻译英文页面
-    autoTranslateEnglishPage();
+    // 自动翻译英文页面。
+    // 翻译动作只需等待「网页结构（DOM）解析完毕」即可开始，
+    // 无需等待浏览器把图片 / 多媒体等子资源 100% 加载完成（即不等待 window 'load'）。
+    if (document.readyState === 'loading') {
+        // 理论上内容脚本 runAt: 'document_end' 时 DOM 已解析完毕，
+        // 这里仅作兜底：若仍处于解析阶段，等到 DOMContentLoaded 立即翻译。
+        document.addEventListener('DOMContentLoaded', () => autoTranslateEnglishPage(), { once: true });
+    } else {
+        autoTranslateEnglishPage();
+    }
 }
 
 // 清除所有翻译的函数

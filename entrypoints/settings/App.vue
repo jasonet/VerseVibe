@@ -1,5 +1,16 @@
 <template>
   <div class="settings-app" :class="{ 'full-layout': fullLayout }">
+    <div v-if="updateInfo && updateInfo.updateAvailable" class="update-banner">
+      <span class="update-banner-icon">🎉</span>
+      <span class="update-banner-text">
+        发现新版本 <b>V{{ updateInfo.latestVersion }}</b>（当前 V{{ updateInfo.currentVersion }}）
+        <template v-if="updateInfo.notes">— {{ updateInfo.notes }}</template>
+      </span>
+      <a class="update-banner-btn" :href="updateInfo.zip" download="VerseVibe.zip" target="_blank" rel="noopener">下载升级包</a>
+      <el-tooltip content="解压后到 chrome://extensions 重新加载已解压的扩展即可" placement="bottom">
+        <span class="update-banner-help">如何升级？</span>
+      </el-tooltip>
+    </div>
     <template v-if="!fullLayout">
       <el-container class="compact-container">
         <el-header class="custom-padding">
@@ -58,17 +69,43 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import Header from '../../components/Header.vue';
 import Main from '../../components/Main.vue';
 import Footer from '../../components/Footer.vue';
 import { Refresh, Setting } from '@element-plus/icons-vue';
+import { storage } from '@wxt-dev/storage';
+import { UPDATE_INFO_KEY, type UpdateInfo } from '../utils/updateCheck';
 import '../../styles/theme.css';
 import 'element-plus/theme-chalk/base.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
 
 const version = process.env.VUE_APP_VERSION ?? '0.0.0';
 const fullLayout = ref(true);
+const updateInfo = ref<UpdateInfo | null>(null);
+
+onMounted(async () => {
+  try {
+    updateInfo.value = await storage.getItem<UpdateInfo>(UPDATE_INFO_KEY);
+  } catch (error) {
+    console.warn('[VerseVibe] 读取更新信息失败:', error);
+  }
+  // 监听后台检查结果的变化，实时更新横幅
+  try {
+    storage.watch<UpdateInfo>(UPDATE_INFO_KEY, (next) => {
+      updateInfo.value = next ?? null;
+    });
+  } catch {
+    // ignore
+  }
+  // 打开设置页时主动触发一次检查（后台返回最新结果）
+  try {
+    const res: any = await browser.runtime.sendMessage({ type: 'checkUpdateNow' });
+    if (res?.info) updateInfo.value = res.info;
+  } catch {
+    // background 未就绪时忽略，已有 storage 值兜底
+  }
+});
 
 function reloadExtension() {
   try {
@@ -82,6 +119,54 @@ function reloadExtension() {
 <style scoped>
 .settings-app {
   min-height: 100vh;
+}
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #fff7ed, #ffedd5);
+  border-bottom: 1px solid #fdba74;
+  color: #7c2d12;
+  font-size: 13px;
+}
+
+.update-banner-icon {
+  font-size: 16px;
+}
+
+.update-banner-text {
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.update-banner-btn {
+  flex: 0 0 auto;
+  padding: 5px 14px;
+  border-radius: 6px;
+  background: #ea580c;
+  color: #fff !important;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.update-banner-btn:hover {
+  background: #c2410c;
+}
+
+.update-banner-help {
+  flex: 0 0 auto;
+  cursor: help;
+  text-decoration: underline dotted;
+  opacity: 0.8;
+}
+
+:global(html.dark) .update-banner {
+  background: linear-gradient(90deg, #2a1a0e, #3a2410);
+  border-bottom-color: #9a3412;
+  color: #fed7aa;
 }
 
 .compact-container {

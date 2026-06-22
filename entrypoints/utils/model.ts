@@ -88,8 +88,12 @@ export class Config {
     linkedinWideUi: boolean; // LinkedIn 宽幅 UI
     linkedinWideScale: string; // LinkedIn 宽幅尺寸档位: normal | 1.5x | 2x | 3x | full
     linkedinAutoHidePromotedMedia: boolean; // LinkedIn feed 自动隐藏推广帖媒体
+    githubReadmeLeft: boolean; // GitHub 仓库首页 README 横排到文件列表左侧
+    redditMainOptimize: boolean; // Reddit 评论页左侧正文贴列阅读优化
+    redditMinFontSize: number; // Reddit 正文贴列最小字号
     skipTranslateHeader: boolean; // 不翻译页头（默认开启，全文翻译时跳过）
     skipTranslateFooter: boolean; // 不翻译页尾（默认开启，全文翻译时跳过）
+    translationFontScale: number; // 译文字号缩放倍数（1 = 原始大小）
 
     constructor() {
         this.on = true;
@@ -142,9 +146,13 @@ export class Config {
         this.flickrDownloadMenu = defaultOption.flickrDownloadMenu; // 默认启用 Flickr 大图下载菜单
         this.linkedinWideUi = defaultOption.linkedinWideUi; // 默认启用 LinkedIn 宽幅 UI
         this.linkedinWideScale = defaultOption.linkedinWideScale; // LinkedIn 宽幅尺寸默认 1.5x
-        this.linkedinAutoHidePromotedMedia = defaultOption.linkedinAutoHidePromotedMedia; // 默认自动隐藏推广帖媒体
+        this.linkedinAutoHidePromotedMedia = defaultOption.linkedinAutoHidePromotedMedia; // 默认关闭：推广识别不可靠
+        this.githubReadmeLeft = defaultOption.githubReadmeLeft; // 默认启用：GitHub README 左移横排
+        this.redditMainOptimize = defaultOption.redditMainOptimize; // 默认启用：Reddit 正文贴列阅读优化
+        this.redditMinFontSize = defaultOption.redditMinFontSize; // Reddit 正文贴列最小字号
         this.skipTranslateHeader = true; // 默认不翻译页头
         this.skipTranslateFooter = true; // 默认不翻译页尾
+        this.translationFontScale = 1; // 译文字号缩放倍数（1 = 原始大小，可在设置页放大/缩小）
     }
 }
 

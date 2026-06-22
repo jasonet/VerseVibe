@@ -31,7 +31,7 @@ export default defineConfig({
         }
     }),
     manifest: {
-        permissions: ['storage', 'contextMenus', 'offscreen', 'downloads', 'sidePanel'],
+        permissions: ['storage', 'contextMenus', 'offscreen', 'downloads', 'sidePanel', 'alarms'],
         host_permissions: ['<all_urls>'],
         icons: {
             "16": "icon/tree-16.png",

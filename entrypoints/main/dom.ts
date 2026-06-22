@@ -23,14 +23,36 @@ const directSet = new Set([
 // 需要跳过的标签
 const skipSet = new Set([
     'html', 'body', 'script', 'style', 'noscript', 'iframe',
-    'input', 'textarea', 'select', 'button', 'code', 'pre',
+    'input', 'textarea', 'select', 'button', 'pre',
 ]);
+
+// `<code>` 单独处理：
+//  - 在 <pre> 内、多行、或编程字符密度高的视为真代码块，跳过；
+//  - 反之视为等宽样式的行内自然语言，**当成普通 inline 元素**对待
+//    （像 <span> 一样让父节点拿走它的文本一起翻译，而不是单独翻译每段）。
+function isRealCodeBlock(el: Element): boolean {
+    try {
+        if (el.closest('pre')) return true;
+        const text = (el.textContent || '');
+        if (!text) return true;
+        if (text.includes('\n')) return true;
+        const codeChars = (text.match(/[{}();=<>]/g) || []).length;
+        if (codeChars / Math.max(text.length, 1) > 0.08) return true;
+        if (text.length > 400) return true; // 长片段更像源码
+        return false;
+    } catch {
+        return true;
+    }
+}
 
 // 内联元素集合（可以包含在其他元素内的元素）
 export const inlineSet = new Set([
     'a', 'b', 'strong', 'span', 'em', 'i', 'u', 'small', 'sub', 'sup',
     'font', 'mark', 'cite', 'q', 'abbr', 'time', 'ruby', 'bdi', 'bdo',
-    'img', 'br', 'wbr', 'svg'
+    'img', 'br', 'wbr', 'svg',
+    // <code> 仅作等宽样式（非真代码块）时，按 inline 处理：
+    // 把它的文本与父节点其他兄弟一起作为一个翻译单元，避免一段引用 / 作者署名被切碎。
+    'code', 'kbd', 'samp', 'var',
 ]);
 
 // 仅媒体容器：<picture> 或 <figure> 内主要为图片/媒体，避免整块 HTML 被当正文翻译导致图片标签露出
@@ -42,6 +64,29 @@ function isPictureOrFigureMediaOnly(el: Element): boolean {
         const hasMedia = !!el.querySelector?.('picture, img');
         const textLen = (el.textContent || '').trim().length;
         return hasMedia && textLen < 40;
+    } catch {
+        return false;
+    }
+}
+
+// 嵌入式数据脚本检测：React partial / 现代框架会在元素内放置
+// <script type="application/json"> 数据块（如 GitHub 的 Watch 按钮）。
+// 抓取这类节点会把序列化的 JSON props 当成正文翻译，产生乱码段落。
+function containsEmbeddedDataScript(el: Element): boolean {
+    try {
+        if (
+            el.querySelector?.(
+                'script[type="application/json"], script[type="application/ld+json"], script[data-target$="embeddedData"]'
+            )
+        ) {
+            return true;
+        }
+        // 可见文本以序列化 JSON 为主（以 {" 开头并包含 ": 结构）。
+        const text = (el.textContent || '').trim();
+        if (text.length > 20 && /^[\[{]\s*"/.test(text) && /"\s*:/.test(text)) {
+            return true;
+        }
+        return false;
     } catch {
         return false;
     }
@@ -66,11 +111,25 @@ function isIconOnlyContainer(el: Element): boolean {
     }
 }
 
-// 判断节点是否处于页头区域（<header> 或 [role="banner"]）
+// 判断节点是否处于「页头区域」——仅指**站点级**页头（顶部导航栏），
+// 不包括 <main>/<article> 内部的 hero/article header（这些属于正文）。
+//
+// 规则：
+//   1) [role="banner"] 永远算页头（HTML 规范明确含义）
+//   2) <header> 只有在不位于 <main>/<article> 内、且未被 <main>/<article> 嵌套时才算
+//      （如 arkaung.github.io 的 <main><header class="hero">…</header></main>，hero 是正文）
 function isInHeaderRegion(el: Element): boolean {
-    const tag = el.tagName.toLowerCase();
-    if (tag === 'header') return true;
-    return !!el.closest?.('header') || !!el.closest?.('[role="banner"]');
+    if (el.closest?.('[role="banner"]')) return true;
+
+    const headerAncestor = el.closest?.('header');
+    if (!headerAncestor) return false;
+
+    // 该 <header> 若处于 <main>/<article> 内，视为正文 header（如 hero / article header），不跳过
+    const mainOrArticle = headerAncestor.closest?.('main, article');
+    if (mainOrArticle) return false;
+
+    // 否则才视为站点级页头
+    return true;
 }
 
 // 判断节点是否处于页尾区域（<footer> 或 [role="contentinfo"]）
@@ -107,6 +166,113 @@ function isInFooterRegion(el: Element): boolean {
     return false;
 }
 
+// 布局区域翻译优先级（数值越小越先翻译）
+// 规则：页中主干 > 页中右侧 > 页中左侧 > 页头 > 页尾
+export const LayoutPriority = {
+    MAIN: 0,    // 页中主干（正文中央列）
+    RIGHT: 1,   // 页中右侧（次要栏 / 右侧 aside）
+    LEFT: 2,    // 页中左侧（导航 / 左侧 aside）
+    HEADER: 3,  // 页头
+    FOOTER: 4,  // 页尾
+} as const;
+
+// 记录每个节点所属布局区域的优先级，供翻译调度按优先级排序使用
+const layoutPriorityCache = new WeakMap<Element, number>();
+
+// 在给定选择器内取「可见面积最大且文本长度达标」的元素
+function pickLargestByText(selector: string, minTextLen: number): HTMLElement | null {
+    let best: HTMLElement | null = null;
+    let bestArea = 0;
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
+        const textLen = (el.textContent || '').trim().length;
+        if (textLen < minTextLen) continue;
+        const rect = el.getBoundingClientRect();
+        const area = rect.width * rect.height;
+        if (area > bestArea) {
+            bestArea = area;
+            best = el;
+        }
+    }
+    return best;
+}
+
+// 找出页面的「主内容容器（页中主干）」。
+// 优先 <article>（语义化正文列，文本需达一定长度），其次 [role=main]，最后 <main>。
+// 这样可避免把布局型 <main>（同时包裹正文与右侧 About 等侧栏）整体当成主干，
+// 例如 GitHub 仓库页：<main> 含 README + About 侧栏，正文实为 <article class="markdown-body">。
+function findMainContentElement(): HTMLElement | null {
+    try {
+        return pickLargestByText('article', 200)
+            || pickLargestByText('[role="main"]', 1)
+            || pickLargestByText('main', 1);
+    } catch {
+        return null;
+    }
+}
+
+// 计算单个节点所属的布局区域优先级
+function computeLayoutRegion(node: Element, mainEl: HTMLElement | null, mainRect: DOMRect | null): number {
+    // 1) 页头 / 页尾优先判定（与跳过逻辑共用同一套区域识别）
+    try {
+        if (isInHeaderRegion(node)) return LayoutPriority.HEADER;
+        if (isInFooterRegion(node)) return LayoutPriority.FOOTER;
+    } catch {
+        // ignore，继续按几何位置判定
+    }
+
+    // 2) 页中主干：位于主内容容器内部
+    if (mainEl && mainEl.contains(node)) return LayoutPriority.MAIN;
+
+    let rect: DOMRect;
+    try {
+        rect = node.getBoundingClientRect();
+    } catch {
+        return LayoutPriority.MAIN;
+    }
+    const centerX = rect.left + rect.width / 2;
+
+    // 3) 有主内容容器：以主干水平边界划分左/右
+    if (mainRect && mainRect.width > 0) {
+        if (centerX >= mainRect.right) return LayoutPriority.RIGHT;
+        if (centerX <= mainRect.left) return LayoutPriority.LEFT;
+        return LayoutPriority.MAIN; // 与主干水平区间重叠，视为主干
+    }
+
+    // 4) 无主内容容器：按视口三等分（左 1/3、中 1/3、右 1/3）
+    const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    if (vw > 0) {
+        if (centerX > (vw * 2) / 3) return LayoutPriority.RIGHT;
+        if (centerX < vw / 3) return LayoutPriority.LEFT;
+    }
+    return LayoutPriority.MAIN;
+}
+
+// 给一批节点分配布局优先级并返回按优先级（主干→右→左→页头→页尾）排好序的新数组。
+// 同一区域内保持原 DOM 顺序（稳定排序），即大致的从上到下阅读顺序。
+export function assignLayoutPriorities(nodes: Element[]): Element[] {
+    const mainEl = findMainContentElement();
+    const mainRect = mainEl ? mainEl.getBoundingClientRect() : null;
+
+    for (const node of nodes) {
+        layoutPriorityCache.set(node, computeLayoutRegion(node, mainEl, mainRect));
+    }
+
+    return nodes
+        .map((node, index) => ({ node, index }))
+        .sort((a, b) => {
+            const pa = layoutPriorityCache.get(a.node) ?? LayoutPriority.MAIN;
+            const pb = layoutPriorityCache.get(b.node) ?? LayoutPriority.MAIN;
+            if (pa !== pb) return pa - pb;
+            return a.index - b.index; // 稳定：同区域保留 DOM 顺序
+        })
+        .map((item) => item.node);
+}
+
+// 读取节点的布局优先级（未分配时按主干处理）
+export function getNodeLayoutPriority(node: Element): number {
+    return layoutPriorityCache.get(node) ?? LayoutPriority.MAIN;
+}
+
 // 传入父节点，返回所有需要翻译的 DOM 元素数组
 export function grabAllNode(rootNode: Node): Element[] {
     if (!rootNode) return [];
@@ -136,6 +302,14 @@ export function grabAllNode(rootNode: Node): Element[] {
                     node.classList?.contains('sr-only') ||
                     node.classList?.contains('notranslate')) {
                     log(`Rejected by skipSet/class`);
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                // <code>：仅当判定为真代码块时整体跳过；
+                // 普通行内 <code>（仅作等宽样式）不在此 reject，
+                // 由父节点的 inline 处理把它的文本一起翻译。
+                if (tag === 'code' && isRealCodeBlock(node)) {
+                    log(`Rejected <code> code-like`);
                     return NodeFilter.FILTER_REJECT;
                 }
 
@@ -218,7 +392,15 @@ export function grabAllNode(rootNode: Node): Element[] {
             result.push(...shadowNodes);
         }
 
-        const translateNode = grabNode(currentNode as Element | Text);
+        // 单个节点的处理若抛异常（如站点适配 selector / DOM 访问出错），
+        // 只跳过该节点，绝不让整页翻译因一个坏节点而整体中断。
+        let translateNode: any = false;
+        try {
+            translateNode = grabNode(currentNode as Element | Text);
+        } catch (err) {
+            console.warn('[VerseVibe] DOM: grabNode threw on a node, skipping it.', err);
+            translateNode = false;
+        }
         if (translateNode) {
             result.push(translateNode);
             // 跳过子节点：如果当前节点是元素且有子节点，则尝试移动到下一个兄弟节点
@@ -252,6 +434,75 @@ export function grabAllNode(rootNode: Node): Element[] {
     return Array.from(new Set(result));;
 }
 
+// 「孤儿正文」修复：某些页面（如 forgottenbytes.net/commander_keen.html）的正文是
+// 直接挂在 <body>/<main>/<article>/<section> 下的裸文本节点，彼此之间仅用 <br> 或
+// 行内元素分隔，没有 <p>/<div> 等块级包裹。这类文本的可翻译父节点会被解析成它自己
+// （孤儿），grabNode 原本直接返回 false 丢弃，导致整页正文漏翻。这里把一段连续的
+// 「裸文本 + 行内元素」run 用临时 <div> 包起来，让后续逻辑当作普通块级翻译单元处理。
+
+// run 内允许的行内节点（取 inlineSet 去掉会真正断行/独立成块的 br/img/svg/wbr）
+const orphanRunInlineTags = new Set([
+    'a', 'b', 'strong', 'span', 'em', 'i', 'u', 'small', 'sub', 'sup',
+    'font', 'mark', 'cite', 'q', 'abbr', 'time', 'ruby', 'bdi', 'bdo',
+    'code', 'kbd', 'samp', 'var',
+]);
+
+// 仅在这些容器的「直接子裸文本」上启用包裹。
+// 不含 div/label：它们走 handleFirstLineText，重复包裹会导致重复翻译；
+// 包裹后父节点变成 div，天然避免二次包裹。
+const orphanWrapContainers = new Set(['body', 'main', 'article', 'section']);
+
+function isOrphanRunInline(node: Node | null): boolean {
+    if (!node) return false;
+    if (node.nodeType === Node.TEXT_NODE) return true;
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    return orphanRunInlineTags.has((node as Element).tagName.toLowerCase());
+}
+
+// 把 textNode 所在的连续行内 run（被 <br>/块级元素截断）用临时 div 包裹后返回该 div；
+// 不满足条件（容器不符、页头页尾、文本过短/过长）时返回 null。
+function wrapOrphanTextRun(textNode: Text): HTMLElement | null {
+    try {
+        const parent = textNode.parentNode as HTMLElement | null;
+        if (!parent || parent.nodeType !== Node.ELEMENT_NODE) return null;
+        const parentTag = parent.tagName?.toLowerCase();
+        if (!parentTag || !orphanWrapContainers.has(parentTag)) return null;
+
+        // 尊重「不翻译页头/页尾」选项
+        if (config.skipTranslateHeader && isInHeaderRegion(parent)) return null;
+        if (config.skipTranslateFooter && isInFooterRegion(parent)) return null;
+
+        // 向前/向后扩展，定位这段连续行内 run 的边界
+        let start: Node = textNode;
+        while (start.previousSibling && isOrphanRunInline(start.previousSibling)) {
+            start = start.previousSibling;
+        }
+        let end: Node = textNode;
+        while (end.nextSibling && isOrphanRunInline(end.nextSibling)) {
+            end = end.nextSibling;
+        }
+
+        const runNodes: Node[] = [];
+        let cur: Node | null = start;
+        while (cur) {
+            runNodes.push(cur);
+            if (cur === end) break;
+            cur = cur.nextSibling;
+        }
+
+        const text = runNodes.map((n) => n.textContent || '').join('').trim();
+        if (text.length < 3 || text.length > 3072) return null;
+
+        const wrapper = document.createElement('div');
+        wrapper.setAttribute('data-vv-orphan-wrap', '1');
+        parent.insertBefore(wrapper, start);
+        runNodes.forEach((n) => wrapper.appendChild(n));
+        return wrapper;
+    } catch {
+        return null;
+    }
+}
+
 // 返回最终应该翻译的父节点或 false
 export function grabNode(node: any): any {
     // 空节点检查
@@ -265,6 +516,10 @@ export function grabNode(node: any): any {
                 return false;
             return parentOrSelf;
         }
+        // 孤儿正文：父节点不可翻译（如裸文本直接挂在 body/main 下），
+        // 尝试把这段行内 run 包成 div 后作为一个翻译单元，避免漏翻。
+        const wrapped = wrapOrphanTextRun(node);
+        if (wrapped) return wrapped;
         return false;
     }
 
@@ -340,6 +595,10 @@ function shouldSkipNode(node: any, tag: string): boolean {
     if (node instanceof Element && isPictureOrFigureMediaOnly(node)) {
         return true;
     }
+    // 含嵌入式 JSON 数据脚本（React partial 等），避免把序列化 props 当正文翻译
+    if (node instanceof Element && containsEmbeddedDataScript(node)) {
+        return true;
+    }
 
     // 先根据标签 / 类名 / 文本特征做快速过滤
     if (
@@ -349,6 +608,11 @@ function shouldSkipNode(node: any, tag: string): boolean {
         checkTextSize(node) ||
         isMainlyNumericContent(node)
     ) {
+        return true;
+    }
+
+    // <code>：仅当判定为真代码块时跳过
+    if (tag === 'code' && node instanceof Element && isRealCodeBlock(node)) {
         return true;
     }
 

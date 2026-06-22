@@ -114,12 +114,38 @@ export function toggleFloatingBallTranslation() {
       floatingBallInstance.$el.classList.add('vv-widget-active');
       // 开始翻译
       autoTranslateEnglishPage();
+      broadcastTranslationToIframes('start');
     } else {
       floatingBallInstance.$el.classList.remove('vv-widget-active');
       // 恢复原文
       restoreOriginalContent();
+      broadcastTranslationToIframes('stop');
     }
   }
+}
+
+/**
+ * 把翻译开/关命令递归广播给所有 iframe（用于 Google Docs /preview 等正文在 iframe 的页面）。
+ * 子 iframe 的 content script 监听 window.message 后会调用 autoTranslateEnglishPage / restoreOriginalContent。
+ */
+function broadcastTranslationToIframes(action: 'start' | 'stop') {
+  const visit = (win: Window) => {
+    let iframes: NodeListOf<HTMLIFrameElement>;
+    try {
+      iframes = win.document.querySelectorAll('iframe');
+    } catch {
+      return;
+    }
+    iframes.forEach((frame) => {
+      try {
+        frame.contentWindow?.postMessage({ __versevibe: true, action }, '*');
+      } catch {}
+      try {
+        if (frame.contentWindow) visit(frame.contentWindow);
+      } catch {}
+    });
+  };
+  try { visit(window); } catch {}
 }
 
 /**
@@ -145,10 +171,12 @@ function handleFloatingBallClick() {
       floatingBallInstance.$el.classList.add('versevibe-floating-ball-active');
       // 开始翻译
       autoTranslateEnglishPage();
+      broadcastTranslationToIframes('start');
     } else {
       floatingBallInstance.$el.classList.remove('versevibe-floating-ball-active');
       // 恢复原文
       restoreOriginalContent();
+      broadcastTranslationToIframes('stop');
     }
   }
 }

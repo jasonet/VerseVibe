@@ -96,3 +96,17 @@ web-ext.config.ts
 *.sln
 *.sw?
 .continue/
+
+# AI / agent tooling
+.claude/
+.opencode/
+.claire/
+.codegraph/
+.reasonix/
+
+# Android local config (machine-specific SDK path)
+android/local.properties
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/

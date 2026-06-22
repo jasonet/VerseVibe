@@ -128,6 +128,25 @@ DOM 操作模块，负责：
 从页面中提取需翻译的文本节点
 保留 HTML 结构（如标签、样式）
 将翻译结果按原结构写回页面
+布局分析与翻译优先级排序（见下方「整页翻译流程规则」）
+
+#### 整页翻译流程规则
+
+1. 翻译触发时机：网页结构（DOM）解析完毕即可开始翻译（内容脚本 `runAt: 'document_end'`，并在 `DOMContentLoaded` 兜底触发），**无需等待浏览器把图片 / 多媒体等子资源 100% 加载完成**（即不等待 window `load` 事件）。
+2. 布局分析：把页面抽象为「页头 / 页中 / 页尾」结构；页中作为主体，内部又可分为「左 / 中 / 右」。其中页中的中间部分称为 **页中主干**。
+   - 主内容容器识别顺序：优先 `<article>`（语义化正文列，文本长度需达标），其次 `[role="main"]`，最后 `<main>`，各自取可见面积最大者。之所以优先 `<article>` 而非 `<main>`，是因为某些站点（如 GitHub 仓库页）的 `<main>` 会同时包裹正文与右侧 About 等侧栏，若整体当作主干会把侧栏误判为主干；而正文实为 `<article class="markdown-body">`，据此可把 README 正确归为页中主干、About 归为页中右侧。
+   - 无主内容容器时，按视口左 1/3、中 1/3、右 1/3 划分左 / 中 / 右。
+   - 页头：`[role="banner"]` 或站点级 `<header>`（不含 `<main>`/`<article>` 内的 hero/article header）；页尾：`<footer>` / `[role="contentinfo"]` 或页面底部链接密集区。
+3. 翻译优先级（由高到低，替代原来的「纯 DOM 顺序翻译」）：
+   1. **页中主干**（正文中央，最高优先）
+   2. 页中右侧
+   3. 页中左侧
+   4. 页头
+   5. 页尾
+   同一区域内保持原 DOM 顺序（大致从上到下的阅读顺序）。
+4. 页头 / 页尾是否翻译由设置项 `skipTranslateHeader` / `skipTranslateFooter` 决定；关闭翻译时这两个区域会在抓取阶段被直接跳过。
+5. 实现：`dom.ts` 的 `assignLayoutPriorities()` 负责分配区域优先级并排序，翻译调度（`trans.ts` 的 `autoTranslateEnglishPage`）按该顺序通过 `IntersectionObserver` 入队，翻译队列（`translateQueue.ts`）为 FIFO，因此入队顺序即翻译顺序。
+6. 客户端渲染兜底：即使首次抓取到 0 个可翻译节点也不中止流程，仍会挂上 `MutationObserver`。这样像 GitHub 仓库页这类正文（README）、右侧（About）在脚本执行之后才由 React 客户端渲染插入的页面，后续渲染出来的内容仍能被观察并翻译。
 entrypoints/main/compat.ts
 网站适配层，负责：
 对特定网站做兼容处理（如避免破坏某些站点的脚本/样式）

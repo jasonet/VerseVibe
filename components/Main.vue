@@ -1,10 +1,10 @@
 <template>
   <!-- 基础设置区块（全页布局下左侧选「基础设置」时显示） -->
   <div v-show="section !== 'advanced'" class="main-section main-basic">
-<!-- 插件状态 -->
+<!-- 页面翻译 -->
   <el-row class="margin-bottom margin-left-2em settings-row">
     <el-col :span="20" class="lightblue rounded-corner">
-      <span class="popup-text popup-vertical-left">插件状态</span>
+      <span class="popup-text popup-vertical-left">页面翻译</span>
     </el-col>
     <el-col :span="4" class="flex-end">
       <el-switch v-model="config.on" inline-prompt active-text="开" inactive-text="关" @change="handlePluginStateChange" />
@@ -40,6 +40,22 @@
           <el-option class="select-left" v-for="item in options.display" :key="item.value" :label="item.label"
             :value="item.value" />
         </el-select>
+      </el-col>
+    </el-row>
+
+    <!--    翻译字号（实时放大/缩小译文）-->
+    <el-row class="margin-bottom margin-left-2em">
+      <el-col :span="12" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="放大或缩小页面译文字号，点击后整页译文实时改变" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">翻译字号<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="12" class="flex-end">
+        <div class="font-scale-control">
+          <el-button size="small" :disabled="translationFontScale <= 0.5" @click="decreaseTranslationFont">A-</el-button>
+          <span class="font-scale-value" @click="resetTranslationFont">{{ Math.round(translationFontScale * 100) }}%</span>
+          <el-button size="small" :disabled="translationFontScale >= 3" @click="increaseTranslationFont">A+</el-button>
+        </div>
       </el-col>
     </el-row>
 
@@ -495,6 +511,46 @@
           :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
         />
       </section>
+      <section class="settings-block margin-left-2em margin-bottom">
+        <div class="section-header">
+          <span class="popup-text popup-vertical-left">GitHub优化</span>
+        </div>
+        <MainAdvancedBody
+          group="github"
+          :config="config" :compute="compute" :options="options"
+          :floatingBallEnabled="floatingBallEnabled"
+          :showExportBox="showExportBox" :exportData="exportData"
+          :showImportBox="showImportBox" :importData="importData"
+          :showConfigManagement="false"
+          @update:config="mergeConfig"
+          @update:floatingBallEnabled="applyFloatingBallEnabled"
+          @update:exportData="(v) => exportData = v"
+          @update:importData="(v) => importData = v"
+          :resetTemplate="resetTemplate" :handleExport="handleExport"
+          :handleImport="handleImport" :saveImport="saveImport"
+          :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+        />
+      </section>
+      <section class="settings-block margin-left-2em margin-bottom">
+        <div class="section-header">
+          <span class="popup-text popup-vertical-left">Reddit优化</span>
+        </div>
+        <MainAdvancedBody
+          group="reddit"
+          :config="config" :compute="compute" :options="options"
+          :floatingBallEnabled="floatingBallEnabled"
+          :showExportBox="showExportBox" :exportData="exportData"
+          :showImportBox="showImportBox" :importData="importData"
+          :showConfigManagement="false"
+          @update:config="mergeConfig"
+          @update:floatingBallEnabled="applyFloatingBallEnabled"
+          @update:exportData="(v) => exportData = v"
+          @update:importData="(v) => importData = v"
+          :resetTemplate="resetTemplate" :handleExport="handleExport"
+          :handleImport="handleImport" :saveImport="saveImport"
+          :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+        />
+      </section>
     </div>
 
     <!-- Flickr优化（移至配置管理之前） -->
@@ -526,6 +582,50 @@
       </div>
       <MainAdvancedBody
         group="linkedin"
+        :config="config" :compute="compute" :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox" :exportData="exportData"
+        :showImportBox="showImportBox" :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate" :handleExport="handleExport"
+        :handleImport="handleImport" :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+    </section>
+
+    <!-- GitHub优化（移至配置管理之前） -->
+    <section v-if="section === 'all'" id="section-github" class="settings-block margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">GitHub优化</span>
+      </div>
+      <MainAdvancedBody
+        group="github"
+        :config="config" :compute="compute" :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox" :exportData="exportData"
+        :showImportBox="showImportBox" :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate" :handleExport="handleExport"
+        :handleImport="handleImport" :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+    </section>
+
+    <!-- Reddit优化（移至配置管理之前） -->
+    <section v-if="section === 'all'" id="section-reddit" class="settings-block margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">Reddit优化</span>
+      </div>
+      <MainAdvancedBody
+        group="reddit"
         :config="config" :compute="compute" :options="options"
         :floatingBallEnabled="floatingBallEnabled"
         :showExportBox="showExportBox" :exportData="exportData"
@@ -695,6 +795,22 @@ watch(config, (newValue: any, oldValue: any) => {
     console.warn('[VerseVibe] Main: 保存配置失败:', message);
   });
 }, { deep: true });
+
+// 译文字号缩放：0.5 ~ 3.0，步进 0.1。改动经 config 持久化后，
+// 内容脚本监听 storage 变化并更新 CSS 变量，实现整页译文实时放大/缩小。
+const translationFontScale = computed(() => config.value.translationFontScale ?? 1);
+function clampFontScale(v: number): number {
+  return Math.min(3, Math.max(0.5, Math.round(v * 10) / 10));
+}
+function increaseTranslationFont() {
+  config.value.translationFontScale = clampFontScale((config.value.translationFontScale ?? 1) + 0.1);
+}
+function decreaseTranslationFont() {
+  config.value.translationFontScale = clampFontScale((config.value.translationFontScale ?? 1) - 0.1);
+}
+function resetTranslationFont() {
+  config.value.translationFontScale = 1;
+}
 
 // 计算属性
 let compute = ref({
@@ -1940,21 +2056,145 @@ const validateConfig = (configData: any): boolean => {
   text-overflow: ellipsis;
 }
 
+/* 翻译字号 放大/缩小 控件 */
+.font-scale-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.font-scale-value {
+  min-width: 44px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
 /* Translation style classes for preview */
 .verse-vibe-display-dimmed {
   opacity: 0.7;
 }
 
 .verse-vibe-display-solid-underline {
-  border-bottom: 2px solid #409EFF;
+  background-image: linear-gradient(#409EFF, #409EFF);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-solid-underline-red {
+  background-image: linear-gradient(#f56c6c, #f56c6c);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-solid-underline-orange {
+  background-image: linear-gradient(#ff9900, #ff9900);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-solid-underline-lightblue {
+  background-image: linear-gradient(#79bbff, #79bbff);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-double-underline-lightblue {
+  background-image: linear-gradient(#79bbff 0 1px, transparent 1px 2px, #79bbff 2px 3px);
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-double-underline-orange {
+  background-image: linear-gradient(#ff9900 0 1px, transparent 1px 2px, #ff9900 2px 3px);
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-double-underline-lightred {
+  background-image: linear-gradient(#fab6b6 0 1px, transparent 1px 2px, #fab6b6 2px 3px);
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: left bottom 3px;
 }
 
 .verse-vibe-display-dot-underline {
-  border-bottom: 2px dotted #409EFF;
+  background-image: repeating-linear-gradient(90deg, #409EFF 0 2px, transparent 2px 5px);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-dot-underline-red {
+  background-image: repeating-linear-gradient(90deg, #f56c6c 0 2px, transparent 2px 5px);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-dot-underline-yellow {
+  background-image: repeating-linear-gradient(90deg, #eab308 0 2px, transparent 2px 5px);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-dot-underline-green {
+  background-image: repeating-linear-gradient(90deg, #67c23a 0 2px, transparent 2px 5px);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-dot-underline-purple {
+  background-image: repeating-linear-gradient(90deg, #a855f7 0 2px, transparent 2px 5px);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: left bottom 3px;
 }
 
 .verse-vibe-display-learning-mode {
-  background: linear-gradient(transparent 60%, gold 40%);
+  background-image: linear-gradient(transparent 60%, gold 40%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-learning-mode-lightblue {
+  background-image: linear-gradient(transparent 60%, #79bbff 40%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-learning-mode-lightpink {
+  background-image: linear-gradient(transparent 60%, #fab6b6 40%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-learning-mode-lightgreen {
+  background-image: linear-gradient(transparent 60%, #95d475 40%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: left bottom 3px;
+}
+
+.verse-vibe-display-learning-mode-lightpurple {
+  background-image: linear-gradient(transparent 60%, #c8a8e9 40%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: left bottom 3px;
 }
 
 .verse-vibe-display-transparent-mode {
@@ -1973,10 +2213,44 @@ const validateConfig = (configData: any): boolean => {
   padding: 0 4px;
 }
 
+.verse-vibe-display-marker-lightblue {
+  background: #b3d9ff;
+  padding: 0 4px;
+}
+
+.verse-vibe-display-marker-lightpink {
+  background: #ffc2d1;
+  padding: 0 4px;
+}
+
+.verse-vibe-display-marker-lightgreen {
+  background: #c1f0c1;
+  padding: 0 4px;
+}
+
+.verse-vibe-display-marker-lightpurple {
+  background: #e0c2f5;
+  padding: 0 4px;
+}
+
 .verse-vibe-display-quote {
   border-left: 4px solid #409EFF;
   padding-left: 8px;
-  font-style: italic;
+}
+
+.verse-vibe-display-quote-yellow {
+  border-left: 4px solid #eab308;
+  padding-left: 8px;
+}
+
+.verse-vibe-display-quote-red {
+  border-left: 4px solid #f56c6c;
+  padding-left: 8px;
+}
+
+.verse-vibe-display-quote-purple {
+  border-left: 4px solid #a855f7;
+  padding-left: 8px;
 }
 
 .verse-vibe-display-bold {
@@ -1995,12 +2269,67 @@ const validateConfig = (configData: any): boolean => {
   background-color: rgba(158, 158, 158, 0.1);
 }
 
+/* 背景色系列（新增）预览：色块底 + 同色文字外发光 */
+.verse-vibe-display-bg-purple {
+  background-color: rgba(168, 85, 247, 0.16);
+  text-shadow: 0 0 2px rgba(168, 85, 247, 0.6);
+}
+
+.verse-vibe-display-bg-yellow {
+  background-color: rgba(234, 179, 8, 0.18);
+  text-shadow: 0 0 2px rgba(234, 179, 8, 0.6);
+}
+
+.verse-vibe-display-bg-red {
+  background-color: rgba(245, 108, 108, 0.16);
+  text-shadow: 0 0 2px rgba(245, 108, 108, 0.6);
+}
+
+.verse-vibe-display-bg-blue {
+  background-color: rgba(64, 158, 255, 0.16);
+  text-shadow: 0 0 2px rgba(64, 158, 255, 0.6);
+}
+
+.verse-vibe-display-bg-green {
+  background-color: rgba(103, 194, 58, 0.18);
+  text-shadow: 0 0 2px rgba(103, 194, 58, 0.6);
+}
+
+.verse-vibe-display-bg-brown {
+  background-color: rgba(141, 110, 99, 0.18);
+  text-shadow: 0 0 2px rgba(141, 110, 99, 0.6);
+}
+
 .verse-vibe-display-italic {
   font-style: italic;
 }
 
 .verse-vibe-display-border {
   border: 1px solid #409EFF;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.verse-vibe-display-border-lightblue {
+  border: 1px solid #79bbff;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.verse-vibe-display-border-lightpink {
+  border: 1px solid #fab6b6;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.verse-vibe-display-border-lightgreen {
+  border: 1px solid #95d475;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.verse-vibe-display-border-lightpurple {
+  border: 1px solid #c8a8e9;
   border-radius: 4px;
   padding: 2px 6px;
 }
@@ -2022,17 +2351,163 @@ const validateConfig = (configData: any): boolean => {
   text-underline-offset: 4px;
 }
 
-.verse-vibe-display-wavy-red {
+.verse-vibe-display-wavy-lively-red {
+  text-decoration: wavy underline #f56c6c;
+  text-underline-offset: 4px;
+}
+
+/* 闷骚浪（多色）预览 —— 与页面注入样式保持一致的几何参数 */
+.verse-vibe-display-wavy-red,
+.verse-vibe-display-wavy-yellow,
+.verse-vibe-display-wavy-green,
+.verse-vibe-display-wavy-blue,
+.verse-vibe-display-wavy-black,
+.verse-vibe-display-wavy-purple,
+.verse-vibe-display-wavy-orange {
   text-decoration: none !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 4'%3E%3Cpath fill='none' stroke='%23f56c6c' stroke-width='1.5' stroke-linecap='round' d='M0 3 Q5 0 10 3 T20 3'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
-  background-position: bottom;
-  background-size: 20px 4px;
+  background-position: left bottom;
+  background-size: 20px 8px;
+  padding-bottom: 5px;
+}
+
+.verse-vibe-display-wavy-red {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23f56c6c' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-yellow {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23eab308' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-green {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%2367c23a' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-blue {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23409eff' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-black {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23303133' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-purple {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23a855f7' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+.verse-vibe-display-wavy-orange {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath fill='none' stroke='%23ff9900' stroke-width='1.7' stroke-linecap='round' d='M0 4 Q5 0 10 4 T20 4'/%3E%3C/svg%3E");
+}
+
+/* 炫光底线 / 炫光分割线 预览 */
+@keyframes vv-glow-underline-flow {
+  from { background-position-x: 0; }
+  to { background-position-x: 240px; }
+}
+
+@keyframes vv-glow-flow {
+  0% { background-position-x: 0%; }
+  100% { background-position-x: 200%; }
+}
+
+.verse-vibe-display-glow-underline,
+.verse-vibe-display-glow-underline-yellow,
+.verse-vibe-display-glow-underline-red,
+.verse-vibe-display-glow-underline-green,
+.verse-vibe-display-glow-underline-brown {
+  text-decoration: none !important;
+  background-size: 240px 2px;
+  background-repeat: repeat-x;
+  background-position: 0 bottom;
   padding-bottom: 3px;
+  animation: vv-glow-underline-flow 2.5s linear infinite;
+}
+
+.verse-vibe-display-glow-underline {
+  background-image: linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 40%, #4d9bff 48%, #a855f7 52%, #1a1a1a 60%, #1a1a1a 100%);
+  filter: drop-shadow(0 0 2px rgba(77, 155, 255, 0.6));
+}
+
+.verse-vibe-display-glow-underline-yellow {
+  background-image: linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 40%, #fde68a 48%, #eab308 52%, #1a1a1a 60%, #1a1a1a 100%);
+  filter: drop-shadow(0 0 2px rgba(234, 179, 8, 0.6));
+}
+
+.verse-vibe-display-glow-underline-red {
+  background-image: linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 40%, #fca5a5 48%, #f56c6c 52%, #1a1a1a 60%, #1a1a1a 100%);
+  filter: drop-shadow(0 0 2px rgba(245, 108, 108, 0.6));
+}
+
+.verse-vibe-display-glow-underline-green {
+  background-image: linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 40%, #a7f3a0 48%, #67c23a 52%, #1a1a1a 60%, #1a1a1a 100%);
+  filter: drop-shadow(0 0 2px rgba(103, 194, 58, 0.6));
+}
+
+.verse-vibe-display-glow-underline-brown {
+  background-image: linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 40%, #c8a08f 48%, #8d6e63 52%, #1a1a1a 60%, #1a1a1a 100%);
+  filter: drop-shadow(0 0 2px rgba(141, 110, 99, 0.6));
+}
+
+.verse-vibe-display-glow-divider,
+.verse-vibe-display-glow-divider-dark,
+.verse-vibe-display-glow-divider-orange,
+.verse-vibe-display-glow-divider-green {
+  display: block;
+  text-decoration: none !important;
+  background-size: 200% 2px;
+  background-repeat: no-repeat;
+  background-position: 0% bottom;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  animation: vv-glow-flow 4s linear infinite;
+}
+
+.verse-vibe-display-glow-divider {
+  background-image: linear-gradient(90deg, transparent, #409eff, #a855f7, #f56c6c, transparent);
+  filter: drop-shadow(0 1px 4px rgba(124, 58, 237, 0.6));
+}
+
+.verse-vibe-display-glow-divider-dark {
+  background-image: linear-gradient(90deg, transparent, #6b7280, #1f2937, #6b7280, transparent);
+  filter: drop-shadow(0 1px 4px rgba(31, 41, 55, 0.6));
+}
+
+.verse-vibe-display-glow-divider-orange {
+  background-image: linear-gradient(90deg, transparent, #ff9900, #fde047, #ff9900, transparent);
+  filter: drop-shadow(0 1px 4px rgba(255, 153, 0, 0.6));
+}
+
+.verse-vibe-display-glow-divider-green {
+  background-image: linear-gradient(90deg, transparent, #22c55e, #a7f3a0, #22c55e, transparent);
+  filter: drop-shadow(0 1px 4px rgba(34, 197, 94, 0.6));
 }
 
 .verse-vibe-display-highlight-fade {
   background: linear-gradient(104deg, rgba(64, 158, 255, 0) 0.9%, rgba(64, 158, 255, 0.1) 2.4%, rgba(64, 158, 255, 0.15) 5.8%, rgba(64, 158, 255, 0.1) 93%, rgba(64, 158, 255, 0.1) 96%);
+  padding: 0.5em 0.8em;
+  border-radius: 4px;
+}
+
+.verse-vibe-display-highlight-fade-lightblue {
+  background: linear-gradient(104deg, rgba(121, 187, 255, 0) 0.9%, rgba(121, 187, 255, 0.1) 2.4%, rgba(121, 187, 255, 0.18) 5.8%, rgba(121, 187, 255, 0.1) 93%, rgba(121, 187, 255, 0.1) 96%);
+  padding: 0.5em 0.8em;
+  border-radius: 4px;
+}
+
+.verse-vibe-display-highlight-fade-lightpink {
+  background: linear-gradient(104deg, rgba(250, 182, 182, 0) 0.9%, rgba(250, 182, 182, 0.12) 2.4%, rgba(250, 182, 182, 0.22) 5.8%, rgba(250, 182, 182, 0.12) 93%, rgba(250, 182, 182, 0.12) 96%);
+  padding: 0.5em 0.8em;
+  border-radius: 4px;
+}
+
+.verse-vibe-display-highlight-fade-lightgreen {
+  background: linear-gradient(104deg, rgba(149, 212, 117, 0) 0.9%, rgba(149, 212, 117, 0.12) 2.4%, rgba(149, 212, 117, 0.22) 5.8%, rgba(149, 212, 117, 0.12) 93%, rgba(149, 212, 117, 0.12) 96%);
+  padding: 0.5em 0.8em;
+  border-radius: 4px;
+}
+
+.verse-vibe-display-highlight-fade-lightpurple {
+  background: linear-gradient(104deg, rgba(200, 168, 233, 0) 0.9%, rgba(200, 168, 233, 0.12) 2.4%, rgba(200, 168, 233, 0.22) 5.8%, rgba(200, 168, 233, 0.12) 93%, rgba(200, 168, 233, 0.12) 96%);
   padding: 0.5em 0.8em;
   border-radius: 4px;
 }
@@ -2070,6 +2545,24 @@ const validateConfig = (configData: any): boolean => {
   padding: 2px 6px;
   border-radius: 3px;
   border: 1px solid #eee;
+}
+
+.verse-vibe-display-tech-dark {
+  font-family: 'Consolas', monospace;
+  background: #1e1e1e;
+  color: #d4d4d4 !important;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #333;
+}
+
+.verse-vibe-display-tech-mars {
+  font-family: 'Consolas', monospace;
+  background: linear-gradient(180deg, #d99a4e, #a85d2b);
+  color: #2b1408 !important;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #7a3a16;
 }
 
 </style>

@@ -10,12 +10,10 @@
                   <el-icon :size="20"><Refresh /></el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="在新标签页打开全页设置" placement="left">
-                <el-button link type="primary" class="fullpage-settings-btn" @click="openFullPageSettings" aria-label="新标签页打开设置">
-                  <el-icon :size="20"><Setting /></el-icon>
-                  <span class="fullpage-settings-label">全页设置</span>
-                </el-button>
-              </el-tooltip>
+              <el-button link type="primary" class="fullpage-settings-btn" @click="openFullPageSettings" aria-label="新标签页打开设置">
+                <el-icon :size="20"><Setting /></el-icon>
+                <span class="fullpage-settings-label">全页设置</span>
+              </el-button>
             </div>
           </template>
         </Header>

@@ -1121,7 +1121,7 @@ function shouldSkipGitHubElement(node: any): boolean {
     }
 
     // 检查是否为许可证文本
-    if (/^Apache-[\d.]+|MIT|GPL-[\d.]+|BSD|LGPL/.test(node.textContent?.trim())) {
+    if (/^(Apache-[\d.]+|MIT|GPL-[\d.]+|BSD(-[\dA-Za-z]+)?|LGPL(-[\d.]+)?)( License)?$/.test(node.textContent?.trim())) {
         debugLog('GitHub', '许可证文本跳过', node.textContent);
         return true;
     }

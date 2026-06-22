@@ -247,12 +247,55 @@
     <!-- LinkedIn 自动隐藏推广帖图片 -->
     <el-row v-if="config.linkedinWideUi !== false" class="adv-row">
       <el-col :span="20" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="开启后，在 LinkedIn feed 页面自动检测 Promoted/赞助贴，并直接隐藏其图片或视频媒体。默认开启。" placement="top-start" :show-after="500">
+        <el-tooltip class="box-item" effect="dark" content="开启后，在 LinkedIn feed 页面尝试检测 Promoted/赞助贴并隐藏整贴。注意：LinkedIn 对推广标签做了混淆与多语言处理，识别不稳定，可能漏隐藏或误隐藏，因此默认关闭。" placement="top-start" :show-after="500">
           <span class="popup-text popup-vertical-left">Linkedin自动隐藏推广贴图片<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
         </el-tooltip>
       </el-col>
       <el-col :span="4" class="flex-end">
         <el-switch :model-value="config.linkedinAutoHidePromotedMedia" @update:model-value="$emit('update:config', { linkedinAutoHidePromotedMedia: $event })" inline-prompt active-text="启用" inactive-text="禁用" />
+      </el-col>
+    </el-row>
+    </template>
+
+    <!-- ============ GitHub 优化组 ============ -->
+    <template v-if="group === 'all' || group === 'github'">
+    <!-- GitHub 仓库首页 README 横排左移 -->
+    <el-row class="adv-row">
+      <el-col :span="20" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="在 github.com/用户/仓库 项目首页，把左栏的 README 从文件列表下方移到其左侧横排显示（整页由 2 列变 3 列），方便边看说明边看文件。默认开启。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">GitHub仓库README左移横排<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="4" class="flex-end">
+        <el-switch :model-value="config.githubReadmeLeft" @update:model-value="$emit('update:config', { githubReadmeLeft: $event })" inline-prompt active-text="启用" inactive-text="禁用" />
+      </el-col>
+    </el-row>
+    </template>
+
+    <!-- ============ Reddit 优化组 ============ -->
+    <template v-if="group === 'all' || group === 'reddit'">
+    <!-- Reddit 评论页正文贴列阅读优化 -->
+    <el-row class="adv-row">
+      <el-col :span="20" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="在 reddit.com 评论页与 feed 列表页（首页 / 子版块 /r/版块/ / 用户页），只优化左侧主内容列：把偏小的正文、评论、帖子标题文本放大到下方设置的最小字号，方便阅读。右侧社区/推荐侧栏不受影响。默认开启。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">Reddit正文/列表阅读优化<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="4" class="flex-end">
+        <el-switch :model-value="config.redditMainOptimize" @update:model-value="$emit('update:config', { redditMainOptimize: $event })" inline-prompt active-text="启用" inactive-text="禁用" />
+      </el-col>
+    </el-row>
+    <!-- Reddit 正文贴列最小字号 -->
+    <el-row class="adv-row">
+      <el-col :span="12" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="Reddit 评论页左侧正文贴列的最小字号。小于此值的正文/评论文本会被放大到此值；本来就更大的文本保持不变。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">Reddit正文最小字号<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="12">
+        <el-select :model-value="config.redditMinFontSize" @update:model-value="$emit('update:config', { redditMinFontSize: $event })" placeholder="请选择最小字号">
+          <el-option class="select-left" v-for="item in options.redditMinFontSizes" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
       </el-col>
     </el-row>
     </template>
@@ -302,7 +345,7 @@ withDefaults(defineProps<{
   showImportBox: any;
   importData: any;
   showConfigManagement?: boolean;
-  group?: 'all' | 'main' | 'flickr' | 'linkedin';
+  group?: 'all' | 'main' | 'flickr' | 'linkedin' | 'github' | 'reddit';
   resetTemplate: () => void;
   handleExport: () => void;
   handleImport: () => void;

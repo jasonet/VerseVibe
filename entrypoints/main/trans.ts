@@ -3,7 +3,7 @@ import { cache } from "../utils/cache";
 import { options, servicesType } from "../utils/option";
 import { insertFailedTip, insertLoadingSpinner } from "../utils/icon";
 import { styles } from "@/entrypoints/utils/constant";
-import { beautyHTML, grabNode, grabAllNode, LLMStandardHTML, smashTruncationStyle } from "@/entrypoints/main/dom";
+import { beautyHTML, grabNode, grabAllNode, LLMStandardHTML, smashTruncationStyle, assignLayoutPriorities, getNodeLayoutPriority } from "@/entrypoints/main/dom";
 import { detectlang, throttle } from "@/entrypoints/utils/common";
 import { getMainDomain, replaceCompatFn } from "@/entrypoints/main/compat";
 import { config } from "@/entrypoints/utils/config";
@@ -38,6 +38,28 @@ function logTranslationFailure(scope: string, node: any, error: unknown) {
     console.error(`[VerseVibe] ${scope}`, node, error);
 }
 
+// 从 getComputedStyle 返回的 transform 中提取「安全的正向缩放」。
+// getComputedStyle 会把 transform 归一化成 matrix(a,b,c,d,e,f)：
+//   - 纯缩放：b≈0、c≈0（无旋转/斜切），a>0、d>0（无镜像翻转）
+// 只有满足上述条件时才返回原 transform 字符串用于放大译文；
+// 任何镜像（负缩放）、旋转、斜切或 3D 变换(matrix3d) 都返回空字符串以跳过，
+// 避免把站点的翻转效果照抄到译文上造成「倒影」。
+function getSafeScaleTransform(transform: string | undefined): string {
+    if (!transform || transform === 'none') return '';
+    // 3D 变换无法用简单判定保证不翻转，保守跳过
+    if (transform.startsWith('matrix3d')) return '';
+    const match = transform.match(/^matrix\(([^)]+)\)$/);
+    if (!match) return '';
+    const parts = match[1].split(',').map(s => parseFloat(s.trim()));
+    if (parts.length < 6 || parts.some(n => Number.isNaN(n))) return '';
+    const [a, b, c, d] = parts;
+    const EPS = 0.001;
+    const hasRotationOrSkew = Math.abs(b) > EPS || Math.abs(c) > EPS;
+    const hasMirror = a <= 0 || d <= 0; // 负缩放=镜像翻转
+    if (hasRotationOrSkew || hasMirror) return '';
+    return transform;
+}
+
 // 复制原文节点的主要文本样式到译文节点，确保原文/译文样式一致
 function copyTextStyle(fromEl: HTMLElement, toEl: HTMLElement) {
     try {
@@ -60,9 +82,13 @@ function copyTextStyle(fromEl: HTMLElement, toEl: HTMLElement) {
 
         // 某些站点（如自定义落地页/海报式标题）通过 transform 放大标题，
         // 如果只复制 font-size 而不复制 transform，译文会显得比原文小。
-        // 这里额外同步 transform 相关属性，保证视觉大小一致。
-        if (style.transform && style.transform !== 'none') {
-            toEl.style.transform = style.transform;
+        // 这里额外同步 transform，但只允许「纯正向缩放」：
+        // 站点若用 scaleX(-1)/scaleY(-1)/rotate(180deg) 等做镜像或翻转，
+        // 直接照抄会让译文出现「倒影」（如 Windows Chrome 悬浮翻译时观察到），
+        // 因此对包含镜像/旋转/斜切的变换一律跳过，仅保留放大效果。
+        const safeTransform = getSafeScaleTransform(style.transform);
+        if (safeTransform) {
+            toEl.style.transform = safeTransform;
             toEl.style.transformOrigin = style.transformOrigin;
         }
     } catch (e) {
@@ -103,6 +129,51 @@ function applyMinChineseFontSize(node: HTMLElement) {
         node.style.fontSize = `${targetSize}px`;
     } catch (e) {
         console.warn('[VerseVibe] Trans: applyMinChineseFontSize failed', e);
+    }
+}
+
+// 多行译文的可读行间距：
+// 译文是一个 inline 容器，换行后装饰类样式（下划线 / 双实线 / 背景渐变等）会逐行渲染。
+// 当原文行距偏紧（如等宽正文 line-height≈1.2）时，上一行的下划线会压到下一行文字上，
+// 出现“横线穿字”的遮挡（多行裸文本翻译尤其明显）。
+// 策略：保留原文行距，但设一个可读下限；原文行距已经更大时完全不动，以保持与原文一致。
+const MIN_TRANSLATION_LINE_HEIGHT = 1.5;
+function ensureReadableLineHeight(node: HTMLElement, sourceComputed: CSSStyleDeclaration) {
+    try {
+        const lineHeightStr = sourceComputed.lineHeight || '';
+        const fontSizeStr = sourceComputed.fontSize || '';
+        const fontSize = parseFloat(fontSizeStr);
+        // 已解析为像素的行距才能算比例；"normal" 等非像素值按需要提升处理
+        let ratio = NaN;
+        if (lineHeightStr.endsWith('px') && fontSize) {
+            ratio = parseFloat(lineHeightStr) / fontSize;
+        }
+        if (Number.isNaN(ratio) || ratio < MIN_TRANSLATION_LINE_HEIGHT) {
+            node.style.lineHeight = String(MIN_TRANSLATION_LINE_HEIGHT);
+        }
+    } catch (e) {
+        console.warn('[VerseVibe] Trans: ensureReadableLineHeight failed', e);
+    }
+}
+
+// 译文字号缩放：把已确定的「自然字号」改写为 calc(自然字号 * var(--vv-trans-scale))。
+// 这样设置页改变 --vv-trans-scale 变量时，整页译文会实时放大/缩小，
+// 且不影响原文字号（用户放大译文时无需与原文保持一致）。
+function applyTranslationFontScale(node: HTMLElement) {
+    try {
+        // 优先读已写入的内联字号：bilingual 路径里 content 此时尚未挂载到 DOM，
+        // getComputedStyle 对游离节点返回空值，会导致 calc 永远写不进去（字号无法实时缩放）。
+        // copyTextStyle 已把字号写成内联样式（font 简写也会落到 fontSize），可直接取用。
+        let fontSizeStr = node.style.fontSize || '';
+        if (!fontSizeStr.endsWith('px')) {
+            fontSizeStr = window.getComputedStyle(node).fontSize || '';
+        }
+        if (!fontSizeStr.endsWith('px')) return;
+        const base = parseFloat(fontSizeStr);
+        if (Number.isNaN(base) || !base) return;
+        node.style.fontSize = `calc(${base}px * var(--vv-trans-scale, 1))`;
+    } catch (e) {
+        console.warn('[VerseVibe] Trans: applyTranslationFontScale failed', e);
     }
 }
 
@@ -195,45 +266,61 @@ export function autoTranslateEnglishPage() {
 
     // 获取所有需要翻译的节点
     console.log('[VerseVibe] Trans: Starting grabAllNode(document.body)...');
-    const nodes = grabAllNode(document.body);
+    // 先做布局分析，按「页中主干 → 页中右侧 → 页中左侧 → 页头 → 页尾」的优先级排序，
+    // 让用户最关注的正文中央部分优先进入翻译队列（FIFO），而不是单纯按 DOM 顺序翻译。
+    let nodes: Element[] = [];
+    try {
+        nodes = assignLayoutPriorities(grabAllNode(document.body));
+    } catch (err) {
+        // 抓取/布局分析阶段抛异常时，绝不能让整页翻译静默失败（尤其是从悬浮球点击调用，
+        // 异常会被 Vue 事件处理吞掉，表现为「点了没反应」）。这里兜底并打印明显错误。
+        console.error('[VerseVibe] Trans: grabAllNode/assignLayoutPriorities threw. Aborting grab but keeping observers.', err);
+        nodes = [];
+    }
     console.log(`[VerseVibe] Trans: grabAllNode found ${nodes.length} nodes.`);
 
-    if (!nodes.length) {
-        console.warn('[VerseVibe] Trans: No translatable nodes found. Aborting.');
-        return;
-    }
+    // 注意：即使初始抓取为 0 也不能中止——很多站点（如 GitHub 仓库页）的正文 README、
+    // 右侧 About 都是脚本执行之后由 React 客户端渲染插入的。若此处直接 return，
+    // 下方的 MutationObserver 就不会建立，后续渲染出来的正文将永远不会被翻译。
+    // 因此继续往下走，至少把 MutationObserver 挂上，等待正文渲染后再翻译。
 
     isAutoTranslating = true;
 
+    const translateObservedNode = (node: Element, observer: IntersectionObserver) => {
+        // 去重
+        if (node.hasAttribute(TRANSLATED_ATTR)) return;
+
+        // 为节点分配唯一ID
+        const nodeId = `fr-node-${nodeIdCounter++}`;
+        node.setAttribute(TRANSLATED_ID_ATTR, nodeId);
+
+        // 保存原始内容
+        originalContents.set(nodeId, node.innerHTML);
+
+        // 标记为已翻译
+        node.setAttribute(TRANSLATED_ATTR, 'true');
+
+        if (config.display === styles.bilingualTranslation) {
+            handleBilingualTranslation(node, false);
+        } else {
+            handleSingleTranslation(node, false);
+        }
+
+        // 停止观察该节点
+        observer.unobserve(node);
+    };
+
     // 创建观察器
     observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && isAutoTranslating) {
-                const node = entry.target as Element;
+        // 同一批次内仍按布局优先级排序后再依次入队，确保主干内容先翻译
+        const visible = entries
+            .filter(entry => entry.isIntersecting && isAutoTranslating)
+            .map(entry => entry.target as Element)
+            .sort((a, b) => getNodeLayoutPriority(a) - getNodeLayoutPriority(b));
 
-                // 去重
-                if (node.hasAttribute(TRANSLATED_ATTR)) return;
-
-                // 为节点分配唯一ID
-                const nodeId = `fr-node-${nodeIdCounter++}`;
-                node.setAttribute(TRANSLATED_ID_ATTR, nodeId);
-
-                // 保存原始内容
-                originalContents.set(nodeId, node.innerHTML);
-
-                // 标记为已翻译
-                node.setAttribute(TRANSLATED_ATTR, 'true');
-
-                if (config.display === styles.bilingualTranslation) {
-                    handleBilingualTranslation(node, false);
-                } else {
-                    handleSingleTranslation(node, false);
-                }
-
-                // 停止观察该节点
-                observer.unobserve(node);
-            }
-        });
+        for (const node of visible) {
+            translateObservedNode(node, observer);
+        }
     }, {
         root: null,
         rootMargin: '50px',
@@ -252,9 +339,11 @@ export function autoTranslateEnglishPage() {
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (node.nodeType === 1) { // 元素节点
-                    // 只处理未翻译的新节点
-                    const newNodes = grabAllNode(node as Element).filter(
-                        n => !n.hasAttribute(TRANSLATED_ATTR)
+                    // 只处理未翻译的新节点，并为其分配布局优先级（供观察回调排序使用）
+                    const newNodes = assignLayoutPriorities(
+                        grabAllNode(node as Element).filter(
+                            n => !n.hasAttribute(TRANSLATED_ATTR)
+                        )
                     );
                     newNodes.forEach(n => observer?.observe(n));
                 }
@@ -377,14 +466,26 @@ function bilingualTranslate(node: any, nodeOuterHTML: any) {
     // Immich 等站点：按钮/链接里常混入框架注释与 SVG 图标，翻译整段 HTML 容易生成大段乱码
     // 对“富标记”节点，优先只翻译纯文本，避免把结构交给翻译引擎
     const richMarkup = /<!---->|<svg\b|<path\b/.test(node.innerHTML || '');
-    let origin = (servicesType.isMachine(config.service) && !richMarkup) ? node.innerHTML : (richMarkup ? (node.textContent || '') : LLMStandardHTML(node));
-    // 原文含多行時改用 innerText，並按行拆分、逐行翻譯，再組回（卡片標題/描述/日期分三行對齊）
-    const originLinesStr = (node.innerText || node.textContent || '').trim();
-    if (!richMarkup && originLinesStr.includes('\n') && originLinesStr.length > 0 && originLinesStr.length < 4096) {
-        origin = originLinesStr;
-    }
-    const lines = origin.split(/\n/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
-    const doPerLine = lines.length >= 2 && lines.length <= 15;
+
+    // 是否逐行翻译，必须依据「渲染后的可见文本(innerText)」里真实的换行，
+    // 而不是 HTML 源码里的换行/缩进。否则像作者署名这种：源码里每个
+    // <span class="author"> 各占一行、但渲染为一整行的内容，会被误判成多行，
+    // 被拆成一个名字一行逐个翻译，导致译文多次换行且失去上下文（如 "5 THU" 被译成 "周四5点"）。
+    const visibleText = (node.innerText || node.textContent || '').trim();
+    const visualLines = visibleText.split(/\n/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+    const doPerLine = !richMarkup
+        && visibleText.length > 0
+        && visibleText.length < 4096
+        && visualLines.length >= 2
+        && visualLines.length <= 15;
+
+    // 整块翻译时的原文：机器翻译用 innerHTML、富标记用纯文本、其余用标准化 HTML。
+    // 关键：清除 HTML 源码中的装饰性换行/缩进（始终是不可见空白），
+    // 避免翻译引擎或后续清洗把这些换行当成真实多行而拆行展示。
+    let origin = (servicesType.isMachine(config.service) && !richMarkup)
+        ? node.innerHTML
+        : (richMarkup ? (node.textContent || '') : LLMStandardHTML(node));
+    origin = origin.replace(/\s*\n\s*/g, ' ').trim();
 
     let spinner = insertLoadingSpinner(node);
 
@@ -401,7 +502,7 @@ function bilingualTranslate(node: any, nodeOuterHTML: any) {
 
     if (doPerLine) {
         // 分三行等：逐行翻譯，再以換行拼成譯文塊
-        Promise.all(lines.map((line: string) => translateText(line, document.title)))
+        Promise.all(visualLines.map((line: string) => translateText(line, document.title)))
             .then((translatedLines: string[]) => {
                 const combined = translatedLines
                     .map((t: string) => normalizeTranslatedOutput(beautyHTML(t)).text.trim())
@@ -433,6 +534,8 @@ export function singleTranslate(node: any) {
     const inner = node.innerHTML || '';
     const richMarkup = /<!---->|<svg\b|<path\b/.test(inner);
     let origin = (servicesType.isMachine(config.service) && !richMarkup) ? inner : (richMarkup ? (node.textContent || '') : LLMStandardHTML(node));
+    // 清除 HTML 源码中的装饰性换行/缩进，避免被翻译引擎当作多行
+    origin = origin.replace(/\s*\n\s*/g, ' ').trim();
     let spinner = insertLoadingSpinner(node);
 
     // 使用队列管理的翻译API
@@ -471,6 +574,7 @@ export function singleTranslate(node: any) {
             copyTextStyle(node as HTMLElement, node as HTMLElement);
             applyMinChineseFontSize(node as HTMLElement);
             applyChineseHeiFont(node as HTMLElement);
+            applyTranslationFontScale(node as HTMLElement);
 
             let newOuterHtml = node.outerHTML;
 
@@ -583,19 +687,36 @@ function bilingualAppendChild(node: any, text: string) {
     const headingAncestor = (node as HTMLElement).closest?.('h1,h2,h3,h4,h5,h6') as HTMLElement | null;
     let styleSource = (headingAncestor || node) as HTMLElement;
 
-    // 仅在“链接独占”的容器（如页脚 li/span 里只有一个 a）才用内部 <a> 的样式；
-    // 对 <p>/<div> 等正文块不取链接样式，否则整段会变成链接色（如 selfh.st 正文）。
+    // 取内部 <a> 的样式（颜色等）的条件：
+    //  - 非 <p>/<div> 容器（如页脚 li/span 里只有一个 a）：直接取链接样式；
+    //  - <p>/<div> 容器：默认不取（避免正文段落整体变成链接色，如 selfh.st 正文），
+    //    但若该块的可见文本几乎全部由链接构成（链接列表，如作者署名行），则取链接样式，
+    //    以保持译文与原文一致的颜色（如 LongLive 作者行的绿色）。
     if (!headingAncestor && node instanceof HTMLElement) {
         const tag = (node.tagName || '').toLowerCase();
-        if (tag !== 'p' && tag !== 'div') {
-            const linkChild = node.querySelector('a');
-            if (linkChild && linkChild.textContent && linkChild.textContent.trim()) {
+        const linkChild = node.querySelector('a');
+        if (linkChild && linkChild.textContent && linkChild.textContent.trim()) {
+            if (tag !== 'p' && tag !== 'div') {
                 styleSource = linkChild as HTMLElement;
+            } else {
+                const totalLen = (node.textContent || '').replace(/\s+/g, '').length;
+                const linkLen = Array.from(node.querySelectorAll('a'))
+                    .reduce((sum, a) => sum + (a.textContent || '').replace(/\s+/g, '').length, 0);
+                // 链接文本占比 >= 80% 视为「链接列表」，采用链接颜色
+                if (totalLen > 0 && linkLen / totalLen >= 0.8) {
+                    styleSource = linkChild as HTMLElement;
+                }
             }
         }
     }
 
     const isHeadingTag = /^h[1-6]$/.test(tagName) || !!headingAncestor;
+
+    // 稳定标记 class：用于设置页实时切换样式时定位已翻译节点（无需重新翻译）
+    content.classList.add('verse-vibe-translation-text');
+    if (isHeadingTag) {
+        content.classList.add('verse-vibe-translation-heading');
+    }
 
     // 对标题类节点（h1-h6 及其内部 span）不再叠加额外的译文样式 class，
     // 保持译文外观与原文标题完全一致，只做必要的字号下限保护。
@@ -617,6 +738,7 @@ function bilingualAppendChild(node: any, text: string) {
     // 标题本身通常已经足够大，不再强制调整，以避免把大号标题“压扁”。
     if (!isHeadingTag) {
         applyMinChineseFontSize(content);
+        ensureReadableLineHeight(content, computedStyle);
     }
 
     // 布局控制
@@ -748,8 +870,54 @@ function bilingualAppendChild(node: any, text: string) {
     }
     applyChineseHeiFont(content);
     applyMinChineseFontSize(content);
+    applyTranslationFontScale(content);
     content.innerHTML = cleanText;
     wrapper.appendChild(content);
     smashTruncationStyle(node);
     node.appendChild(wrapper);
+}
+
+/**
+ * 设置页实时切换译文样式：对页面上「已翻译」的节点重新套用当前 config.style 对应的样式 class，
+ * 无需重新翻译。也兼容翻译进行中切换（新渲染节点会读取已更新的 config.style）。
+ * 标题类节点（verse-vibe-translation-heading）保持不叠加样式，与原文标题外观一致。
+ */
+export function restyleExistingTranslations() {
+    try {
+        const style = options.styles.find(s => s.value === config.style && !s.disabled);
+        const allStyleClasses = options.styles
+            .map(s => s.class)
+            .filter((c): c is string => !!c);
+        const isBlockStyle = style?.group === 'card' || style?.group === 'special' || style?.group === 'pro';
+
+        const nodes = document.querySelectorAll<HTMLElement>('.verse-vibe-translation-text');
+        nodes.forEach((content) => {
+            // 移除所有已知的样式 class，避免不同样式叠加冲突
+            allStyleClasses.forEach(c => content.classList.remove(c));
+
+            const isHeading = content.classList.contains('verse-vibe-translation-heading');
+            if (style?.class && !isHeading) {
+                content.classList.add(style.class);
+            }
+
+            // 重新套用布局：卡片/引用类为 block，下划线/高亮类为 inline + decoration-break
+            if (isBlockStyle) {
+                content.style.display = 'block';
+                content.style.maxWidth = '100%';
+                // @ts-ignore
+                content.style.webkitBoxDecorationBreak = '';
+                // @ts-ignore
+                content.style.boxDecorationBreak = '';
+            } else {
+                content.style.display = 'inline';
+                content.style.maxWidth = '';
+                // @ts-ignore
+                content.style.webkitBoxDecorationBreak = 'clone';
+                // @ts-ignore
+                content.style.boxDecorationBreak = 'clone';
+            }
+        });
+    } catch (e) {
+        console.warn('[VerseVibe] Trans: restyleExistingTranslations failed', e);
+    }
 }

@@ -1,0 +1,78 @@
+Android App 工程（android/），形态是：
+Kotlin + Jetpack Compose 主 App + 系统级悬浮球 Service + 翻译引擎抽象层，为后续接入现有多翻译引擎逻辑预留了接口。
+1. 工程结构（在仓库内）
+项目根：android/
+settings.gradle.kts：Gradle 设置（包含 :app 模块）
+build.gradle.kts：全局插件声明（Android + Kotlin）
+应用模块：android/app/
+build.gradle.kts：App 配置（applicationId = "com.fluentread.android"，Compose 开启）
+proguard-rules.pro：简化混淆配置
+src/main/AndroidManifest.xml：
+MainActivity：主界面（开启悬浮球、说明用法）
+FloatingBubbleService：系统级悬浮球服务
+权限：INTERNET、SYSTEM_ALERT_WINDOW、FOREGROUND_SERVICE
+代码：
+FluentReadApp.kt：自定义 Application
+MainActivity.kt：
+Compose 界面：说明步骤 + 悬浮窗权限引导 + 开关“系统级悬浮球”
+调用 FloatingBubbleService.start/stop
+overlay/FloatingBubbleService.kt：
+使用 WindowManager + TYPE_APPLICATION_OVERLAY 在任意界面显示可拖拽小圆球
+点击悬浮球：当前实现为唤起主 App（后续可扩展为直接弹出翻译面板）
+translation/TranslationEngine.kt：
+定义 TranslationEngine 接口（translate(text, source, target)）
+提供一个示例实现 EchoTranslationEngine（不访问网络，用于跑通 UI）
+translation/TranslationRepository.kt：
+管理当前引擎与最近一次翻译结果
+translation/TranslationPreview.kt：
+主界面中的翻译 Demo（输入框 + “翻译为中文”按钮 + 结果显示）
+ui/theme/Theme.kt：
+简单 Material3 主题封装
+资源：
+res/layout/view_floating_bubble.xml：悬浮球布局（小圆图标）
+res/values/strings.xml：应用名称等文案
+res/values/themes.xml：App 主题（Material3 无 ActionBar）
+2. 现在的能力 & 后续如何接轨现有逻辑
+当前 Android App 已具备：
+基础形态
+可在 Android Studio 打开 android/ 作为独立工程编译运行。
+启动 App 后：
+引导用户去系统设置授予“在其他应用上层显示”权限。
+提供开关启用/关闭系统级悬浮球。
+悬浮球可在任意 App 上方悬浮、拖动，轻点后回到主界面。
+翻译层抽象
+有统一的 TranslationEngine 接口，与浏览器端“多引擎可插拔”的理念对齐。
+目前内置 EchoTranslationEngine 只是示例（"[目标语言] 原文"），方便你先调试悬浮球 + UI。
+后续可以参考现有 TS 里的引擎配置，逐个实现 OpenAITranslationEngine、DeepSeekTranslationEngine 等 Kotlin 版本，通过 HTTP 请求同一批后端服务，就实现“逻辑对齐”。
+3. 安装包 & 发布包在哪里
+> 下面假设你在仓库根目录，用 Android Studio/Gradle 对 android/ 目录进行构建。
+3.1 调试 / 本地安装用 APK
+在 Android Studio 中：
+打开 android/ 目录作为项目。
+选择 Build Variant 为 debug 或 release。
+点击 “Run” 或 “Build > Build Bundle(s) / APK(s) > Build APK(s)”。
+编译完成后 APK 路径（标准 Gradle 约定）：
+Debug APK：
+    android/app/build/outputs/apk/debug/app-debug.apk
+Release APK：
+    android/app/build/outputs/apk/release/app-release.apk
+这两个 APK 都可以直接安装到手机/平板上做调试，区别在于签名和是否混淆。
+3.2 发布用 AAB / 正式包（用于上架应用商店）
+在 Android Studio 或命令行执行 Bundle 构建：
+菜单：Build > Build Bundle(s) / APK(s) > Build Bundle(s)
+或命令行（在 android/ 目录）：
+    ./gradlew :app:bundleRelease
+AAB（Android App Bundle）路径：
+  android/app/build/outputs/bundle/release/app-release.aab
+这就是可直接上传到 Google Play / 其他应用商店 的 发布包（前提是用你自己的 release 签名配置好 keystore）。
+4. 后续可演进方向（保持逻辑一致）
+在当前工程基础上，你可以逐步把“浏览器扩展里的逻辑”迁移/对齐到 Android：
+在 translation 模块中：
+为各个引擎实现对应的 TranslationEngine 子类，HTTP 调用沿用现有后端。
+使用相同的“引擎 ID / 配置结构”，实现真正的“逻辑不变，只是前端壳从扩展变成 App”。
+在悬浮球点击行为中：
+从 读取系统剪贴板内容并翻译 入手（满足“复制 → 点击悬浮球 → 翻译”）。
+后续再增加：
+接收系统分享的文本
+使用 MediaProjection + OCR 做截图翻译，进一步接近桌面端“整页翻译”的体验。
+如果你希望，我可以下一步专门帮你把 “复制文本 → 悬浮球 → 翻译弹窗” 这条链路在 Android 工程里补完整（含剪贴板、弹窗 UI、调用真实 HTTP 引擎的示例实现）。

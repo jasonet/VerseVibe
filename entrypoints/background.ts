@@ -3,6 +3,7 @@ import { config } from "@/entrypoints/utils/config";
 import { CONTEXT_MENU_IDS } from "@/entrypoints/utils/constant";
 import { contentPostHandler } from "@/entrypoints/utils/check";
 import { storage } from '@wxt-dev/storage';
+import { setupUpdateCheck, checkForUpdate } from "@/entrypoints/utils/updateCheck";
 
 // 翻译状态管理
 let translationStateMap = new Map<number, boolean>(); // tabId -> isTranslated
@@ -168,6 +169,9 @@ export default defineBackground({
         } catch (err) {
             console.warn('[VerseVibe] sidePanel API 不可用:', err);
         }
+        // 自建「检测新版本」：启动即查一次，并每隔数小时轮询 qdaa.com 版本清单
+        setupUpdateCheck();
+
         lastFlickrMenuEnabled = config.flickrDownloadMenu !== false;
         lastLinkedinMenuEnabled = config.linkedinWideUi !== false;
         lastLinkedinWideScale = typeof config.linkedinWideScale === 'string' ? config.linkedinWideScale : '1.5x';
@@ -522,9 +526,30 @@ export default defineBackground({
                         return;
                     }
 
+                    // 设置页点击「立即检查更新」时手动触发一次版本检查
+                    if (message.type === 'checkUpdateNow') {
+                        const info = await checkForUpdate();
+                        resolve({ success: true, info });
+                        return;
+                    }
+
                     // 点击悬浮球「设置」时在新标签页打开设置页（使用未列入 manifest 的 settings 页，避免 options_ui 导致加载失败）
                     if (message.type === 'openOptionsPage') {
                         const url = browser.runtime.getURL('settings.html');
+                        await browser.tabs.create({ url });
+                        resolve({ success: true });
+                        return;
+                    }
+
+                    // 方案 C：在新标签页打开 VerseVibe 全屏看图页。
+                    // 图片/正文数据已由 content script 写入 storage.local[key]，本页通过 ?k= 读取。
+                    if (message.type === 'openImageViewer') {
+                        const key = typeof message.key === 'string' ? message.key : '';
+                        if (!key) {
+                            resolve({ success: false, reason: 'invalid-key' });
+                            return;
+                        }
+                        const url = browser.runtime.getURL('imageviewer.html') + '?k=' + encodeURIComponent(key);
                         await browser.tabs.create({ url });
                         resolve({ success: true });
                         return;

@@ -301,10 +301,32 @@ export const options = {
     styles: [
         // 下划线系列
         { value: "underline", label: "下划线系列", disabled: true },
+        { value: 33, label: "炫光底线·紫", class: "verse-vibe-display-glow-underline", group: "underline" },
+        { value: 41, label: "炫光底线·黄", class: "verse-vibe-display-glow-underline-yellow", group: "underline" },
+        { value: 42, label: "炫光底线·红", class: "verse-vibe-display-glow-underline-red", group: "underline" },
+        { value: 43, label: "炫光底线·绿", class: "verse-vibe-display-glow-underline-green", group: "underline" },
+        { value: 44, label: "炫光底线·褐", class: "verse-vibe-display-glow-underline-brown", group: "underline" },
         { value: 5, label: "优雅虚线", class: "verse-vibe-display-dot-underline", group: "underline" },
+        { value: 51, label: "优雅虚线·红", class: "verse-vibe-display-dot-underline-red", group: "underline" },
+        { value: 52, label: "优雅虚线·黄", class: "verse-vibe-display-dot-underline-yellow", group: "underline" },
+        { value: 53, label: "优雅虚线·绿", class: "verse-vibe-display-dot-underline-green", group: "underline" },
+        { value: 54, label: "优雅虚线·紫", class: "verse-vibe-display-dot-underline-purple", group: "underline" },
         { value: 4, label: "蓝色实线", class: "verse-vibe-display-solid-underline", group: "underline" },
+        { value: 55, label: "实线·红", class: "verse-vibe-display-solid-underline-red", group: "underline" },
+        { value: 56, label: "实线·橘黄", class: "verse-vibe-display-solid-underline-orange", group: "underline" },
+        { value: 57, label: "实线·浅蓝", class: "verse-vibe-display-solid-underline-lightblue", group: "underline" },
+        { value: 58, label: "双实线·浅蓝", class: "verse-vibe-display-double-underline-lightblue", group: "underline" },
+        { value: 59, label: "双实线·橘黄", class: "verse-vibe-display-double-underline-orange", group: "underline" },
+        { value: 60, label: "双实线·浅红", class: "verse-vibe-display-double-underline-lightred", group: "underline" },
         { value: 6, label: "活泼波浪", class: "verse-vibe-display-wavy", group: "underline" },
-        { value: 26, label: "闷骚浪", class: "verse-vibe-display-wavy-red", group: "underline" },
+        { value: 61, label: "活泼波浪·红", class: "verse-vibe-display-wavy-lively-red", group: "underline" },
+        { value: 26, label: "闷骚浪·红", class: "verse-vibe-display-wavy-red", group: "underline" },
+        { value: 27, label: "闷骚浪·黄", class: "verse-vibe-display-wavy-yellow", group: "underline" },
+        { value: 28, label: "闷骚浪·绿", class: "verse-vibe-display-wavy-green", group: "underline" },
+        { value: 29, label: "闷骚浪·蓝", class: "verse-vibe-display-wavy-blue", group: "underline" },
+        { value: 30, label: "闷骚浪·黑", class: "verse-vibe-display-wavy-black", group: "underline" },
+        { value: 31, label: "闷骚浪·紫", class: "verse-vibe-display-wavy-purple", group: "underline" },
+        { value: 32, label: "闷骚浪·橘", class: "verse-vibe-display-wavy-orange", group: "underline" },
 
         // 卡片系列
         { value: "card", label: "卡片系列", disabled: true },
@@ -315,25 +337,56 @@ export const options = {
         // 高亮系列
         { value: "highlight", label: "高亮系列", disabled: true },
         { value: 10, label: "学习标记", class: "verse-vibe-display-learning-mode", group: "highlight" },
+        { value: 62, label: "学习标记·浅蓝", class: "verse-vibe-display-learning-mode-lightblue", group: "highlight" },
+        { value: 63, label: "学习标记·浅粉", class: "verse-vibe-display-learning-mode-lightpink", group: "highlight" },
+        { value: 64, label: "学习标记·浅绿", class: "verse-vibe-display-learning-mode-lightgreen", group: "highlight" },
+        { value: 65, label: "学习标记·浅紫", class: "verse-vibe-display-learning-mode-lightpurple", group: "highlight" },
         { value: 11, label: "荧光标记", class: "verse-vibe-display-marker", group: "highlight" },
+        { value: 66, label: "荧光标记·浅蓝", class: "verse-vibe-display-marker-lightblue", group: "highlight" },
+        { value: 67, label: "荧光标记·浅粉", class: "verse-vibe-display-marker-lightpink", group: "highlight" },
+        { value: 68, label: "荧光标记·浅绿", class: "verse-vibe-display-marker-lightgreen", group: "highlight" },
+        { value: 69, label: "荧光标记·浅紫", class: "verse-vibe-display-marker-lightpurple", group: "highlight" },
         { value: 12, label: "柔和渐变", class: "verse-vibe-display-highlight-fade", group: "highlight" },
+        { value: 70, label: "柔和渐变·浅蓝", class: "verse-vibe-display-highlight-fade-lightblue", group: "highlight" },
+        { value: 71, label: "柔和渐变·浅粉", class: "verse-vibe-display-highlight-fade-lightpink", group: "highlight" },
+        { value: 72, label: "柔和渐变·浅绿", class: "verse-vibe-display-highlight-fade-lightgreen", group: "highlight" },
+        { value: 73, label: "柔和渐变·浅紫", class: "verse-vibe-display-highlight-fade-lightpurple", group: "highlight" },
 
         // 背景色系列
         { value: "background", label: "背景色系列", disabled: true },
         { value: 13, label: "温暖黄底", class: "verse-vibe-display-lightyellow", group: "background" },
         { value: 14, label: "清新蓝底", class: "verse-vibe-display-lightblue", group: "background" },
         { value: 15, label: "素雅灰底", class: "verse-vibe-display-lightgray", group: "background" },
+        { value: 35, label: "紫色底", class: "verse-vibe-display-bg-purple", group: "background" },
+        { value: 36, label: "黄色底", class: "verse-vibe-display-bg-yellow", group: "background" },
+        { value: 37, label: "红色底", class: "verse-vibe-display-bg-red", group: "background" },
+        { value: 38, label: "蓝色底", class: "verse-vibe-display-bg-blue", group: "background" },
+        { value: 39, label: "绿色底", class: "verse-vibe-display-bg-green", group: "background" },
+        { value: 40, label: "褐色底", class: "verse-vibe-display-bg-brown", group: "background" },
 
         // 特殊效果
         { value: "special", label: "特殊效果", disabled: true },
+        { value: 34, label: "炫光分割线", class: "verse-vibe-display-glow-divider", group: "special" },
+        { value: 48, label: "炫光分割线·灰黑", class: "verse-vibe-display-glow-divider-dark", group: "special" },
+        { value: 49, label: "炫光分割线·橘黄", class: "verse-vibe-display-glow-divider-orange", group: "special" },
+        { value: 50, label: "炫光分割线·绿", class: "verse-vibe-display-glow-divider-green", group: "special" },
         { value: 16, label: "典雅引用", class: "verse-vibe-display-quote", group: "special" },
+        { value: 45, label: "典雅引用·黄", class: "verse-vibe-display-quote-yellow", group: "special" },
+        { value: 46, label: "典雅引用·红", class: "verse-vibe-display-quote-red", group: "special" },
+        { value: 47, label: "典雅引用·紫", class: "verse-vibe-display-quote-purple", group: "special" },
         { value: 17, label: "轻巧边框", class: "verse-vibe-display-border", group: "special" },
+        { value: 74, label: "轻巧边框·浅蓝", class: "verse-vibe-display-border-lightblue", group: "special" },
+        { value: 75, label: "轻巧边框·浅粉", class: "verse-vibe-display-border-lightpink", group: "special" },
+        { value: 76, label: "轻巧边框·浅绿", class: "verse-vibe-display-border-lightgreen", group: "special" },
+        { value: 77, label: "轻巧边框·浅紫", class: "verse-vibe-display-border-lightpurple", group: "special" },
         { value: 18, label: "阅读焦点", class: "verse-vibe-display-focus", group: "special" },
         { value: 19, label: "简约底线", class: "verse-vibe-display-clean", group: "special" },
 
         // 专业样式
         { value: "pro", label: "专业样式", disabled: true },
         { value: 20, label: "代码风格", class: "verse-vibe-display-tech", group: "pro" },
+        { value: 78, label: "代码风格·黑底", class: "verse-vibe-display-tech-dark", group: "pro" },
+        { value: 79, label: "代码风格·火星黄土", class: "verse-vibe-display-tech-mars", group: "pro" },
         { value: 21, label: "书籍风格", class: "verse-vibe-display-elegant", group: "pro" },
 
         // 透明度
@@ -402,6 +455,18 @@ export const options = {
         { value: "triple_equal", label: "连按三下等号(=)" },
         { value: "triple_dash", label: "连按三下短横线(-)" },
     ],
+    // Reddit 正文贴列最小字号选项
+    redditMinFontSizes: [
+        { value: 14, label: "14px" },
+        { value: 15, label: "15px" },
+        { value: 16, label: "16px (默认)" },
+        { value: 17, label: "17px" },
+        { value: 18, label: "18px" },
+        { value: 19, label: "19px" },
+        { value: 20, label: "20px" },
+        { value: 22, label: "22px" },
+        { value: 24, label: "24px" },
+    ],
     // LinkedIn 宽幅尺寸档位
     linkedinWideScale: [
         { value: "normal", label: "原始宽" },
@@ -441,5 +506,8 @@ export const defaultOption = {
     flickrDownloadMenu: true, // 默认启用 Flickr 大图下载菜单
     linkedinWideUi: true, // 默认启用 LinkedIn 宽幅 UI
     linkedinWideScale: "1.5x", // 默认 LinkedIn 1.5倍宽
-    linkedinAutoHidePromotedMedia: true, // 默认自动隐藏 LinkedIn 推广帖媒体
+    linkedinAutoHidePromotedMedia: false, // 默认关闭：LinkedIn 对 Promoted 标签做了混淆/本地化，文本识别不可靠，无法稳定隐藏
+    githubReadmeLeft: true, // 默认启用：GitHub 仓库首页 README 横排到文件列表左侧（左栏由 2 行变 2 列）
+    redditMainOptimize: true, // 默认启用：Reddit 评论页左侧正文贴列阅读优化（放大正文字号）
+    redditMinFontSize: 16, // Reddit 正文贴列最小字号（小于此值的正文文本会被放大到此值）
 };

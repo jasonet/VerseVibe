@@ -1,6 +1,6 @@
 <template>
   <div class="header-row">
-    <h1 class="title">VerseVibe <span class="version">V{{version}}</span></h1>
+    <h1 class="title"><span class="version">V{{version}}</span></h1>
     <div v-if="$slots.right" class="header-right">
       <slot name="right" />
     </div>
@@ -28,8 +28,9 @@ const version = process.env.VUE_APP_VERSION
 }
 
 .version {
-  font-size: 0.5em;
-  opacity: 0.8;
+  font-size: 0.7em;
+  opacity: 0.7;
+  font-weight: 500;
 }
 
 .header-right {
