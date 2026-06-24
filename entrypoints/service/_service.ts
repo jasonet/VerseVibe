@@ -5,7 +5,6 @@ import deeplx from "./deeplx";
 import custom from "./custom";
 import tongyi from "./tongyi";
 import zhipu from "./zhipu";
-import yiyan from "./yiyan";
 import gemini from "./gemini";
 import google from "./google";
 import xiaoniu from "./xiaoniu";
@@ -15,7 +14,6 @@ import claude from "./claude";
 import infini from "@/entrypoints/service/infini";
 import minimax from "@/entrypoints/service/minimax";
 import common from "@/entrypoints/service/common";
-import coze from "@/entrypoints/service/coze";
 import deepseek from "./deepseek";
 import newapi from "./newapi";
 import azureOpenai from "./azure-openai";
@@ -40,13 +38,10 @@ export const _service: ServiceMap = {
     [services.custom]: custom,
     [services.tongyi]: tongyi,
     [services.zhipu]: zhipu,
-    [services.yiyan]: yiyan,
     [services.gemini]: gemini,
     [services.claude]: claude,
     [services.infini]: infini,
     [services.minimax]: minimax,
-    [services.cozecom]: coze,
-    [services.cozecn]: coze,
     [services.deepseek]: deepseek,
     [services.newapi]: newapi,
     // openai schema

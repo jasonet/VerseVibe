@@ -16,20 +16,14 @@ export function checkConfig(): boolean {
             return false;
         }
     }
-    // Special case for YiYan service (requires both AK and SK)
-    if (config.service === services.yiyan && (!config.ak || !config.sk)) {
-        sendErrorMessage("令牌尚未配置，请前往设置页配置");
-        return false;
-    }
-
     // Special case for Tencent Cloud service (requires both SecretId and SecretKey)
     if (config.service === services.tencent && (!config.tencentSecretId || !config.tencentSecretKey)) {
         sendErrorMessage("腾讯云机器翻译密钥尚未配置，请前往设置页配置SecretId和SecretKey");
         return false;
     }
 
-    // 3. Check if a model is selected for AI services (except specific services like Coze)
-    if (servicesType.isAI(config.service) && ![services.cozecn, services.cozecom].includes(config.service)) {
+    // 3. Check if a model is selected for AI services
+    if (servicesType.isAI(config.service)) {
         const model = config.model[config.service];
         const customModel = config.customModel[config.service];
         if (!model || (model === customModelString && !customModel)) {

@@ -275,33 +275,6 @@
       </el-col>
     </el-row>
 
-    <!-- 使用AkSk -->
-    <el-row v-show="compute.showAkSk" class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="百度文心一言API密钥对，用于访问翻译服务" placement="top-start"
-          :show-after="500">
-          <span class="popup-text popup-vertical-left">API Key<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <el-input v-model="config.ak" placeholder="请输入Access Key" />
-      </el-col>
-    </el-row>
-    <el-row v-show="compute.showAkSk" class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="百度文心一言API密钥对，用于访问翻译服务" placement="top-start"
-          :show-after="500">
-          <span class="popup-text popup-vertical-left">Secret Key<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <el-input v-model="config.sk" type="password" placeholder="请输入Secret Key" />
-      </el-col>
-    </el-row>
 
     <!-- 有道翻译配置 -->
     <el-row v-show="compute.showYoudao" class="margin-bottom margin-left-2em">
@@ -377,20 +350,6 @@
       </el-col>
     </el-row>
 
-    <!--  Coze需显示 robot_id -->
-    <el-row v-show="compute.showRobotId" class="margin-bottom margin-left-2em">
-      <el-col :span="12" class="lightblue rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="Coze机器人ID，可在Coze开发者文档中查看获取方式" placement="top-start"
-          :show-after="500">
-          <span class="popup-text popup-vertical-left">机器人ID<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <el-input v-model="config.robot_id[config.service]" placeholder="请输入Coze机器人ID" />
-      </el-col>
-    </el-row>
 
     <!-- 本地大模型配置 -->
     <el-row v-show="compute.showCustom" class="margin-bottom margin-left-2em custom-interface-row">
@@ -824,8 +783,6 @@ let compute = ref({
   showModel: computed(() => servicesType.isUseModel(config.value.service)),
   // 5、是否显示token
   showToken: computed(() => servicesType.isUseToken(config.value.service)),
-  // 6、是否显示 AkSk
-  showAkSk: computed(() => servicesType.isUseAkSk(config.value.service)),
   // 6.5、是否显示有道翻译配置
   showYoudao: computed(() => servicesType.isYoudao(config.value.service)),
   // 6.6、是否显示腾讯云机器翻译配置
@@ -842,8 +799,6 @@ let compute = ref({
   filteredServices: computed(() => options.services.filter((service: any) =>
     !([service.google].includes(service.value) && config.value.display !== 1))
   ),
-  // 12、判断是否为 coze
-  showRobotId: computed(() => servicesType.isCoze(config.value.service)),
   // 13、是否显示New API配置
   showNewAPI: computed(() => servicesType.isNewApi(config.value.service)),
   // 14、是否显示Azure OpenAI端点配置

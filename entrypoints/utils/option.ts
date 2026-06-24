@@ -11,7 +11,6 @@ export const services = {
     openai: "openai",
     azureOpenai: "azureOpenai", // Azure OpenAI
     gemini: "gemini",
-    yiyan: "yiyan",
     tongyi: "tongyi",
     zhipu: "zhipu",
     moonshot: "moonshot",
@@ -25,8 +24,6 @@ export const services = {
     minimax: "minimax",
     jieyue: "jieyue", // 阶跃星辰
     groq: "groq",
-    cozecom: "cozecom", // coze 支持机器人不支持模型
-    cozecn: "cozecn",
     huanYuan: "huanYuan", // 腾讯混元
     huanYuanTranslation: "huanYuanTranslation", // 腾讯混元翻译大模型
     doubao: "doubao", // 字节豆包
@@ -46,7 +43,6 @@ export const servicesType = {
         services.openai,
         services.azureOpenai,
         services.gemini,
-        services.yiyan,
         services.tongyi,
         services.zhipu,
         services.moonshot,
@@ -58,8 +54,6 @@ export const servicesType = {
         services.minimax,
         services.jieyue,
         services.groq,
-        services.cozecom,
-        services.cozecn,
         services.huanYuan,
         services.huanYuanTranslation,
         services.doubao,
@@ -88,8 +82,6 @@ export const servicesType = {
         services.jieyue,
         services.groq,
         services.custom,
-        services.cozecom,
-        services.cozecn,
         services.huanYuan,
         services.doubao,
         services.siliconCloud,
@@ -102,7 +94,6 @@ export const servicesType = {
         services.openai,
         services.azureOpenai,
         services.gemini,
-        services.yiyan,
         services.tongyi,
         services.zhipu,
         services.moonshot,
@@ -142,8 +133,6 @@ export const servicesType = {
         services.lingyi,
         services.jieyue,
         services.groq,
-        services.cozecom,
-        services.cozecn,
         services.huanYuan,
         services.huanYuanTranslation,
         services.doubao,
@@ -166,8 +155,6 @@ export const servicesType = {
     isUseModel: (service: string) => servicesType.useModel.has(service),
     isCustom: (service: string) => service === services.custom,
     isNewApi: (service: string) => service === services.newapi,
-    isUseAkSk: (service: string) => service === services.yiyan,
-    isCoze: (service: string) => service === services.cozecom || service === services.cozecn,
     isYoudao: (service: string) => service === services.youdao,
     isTencent: (service: string) => service === services.tencent || service === services.huanYuanTranslation,
     isAzureOpenai: (service: string) => service === services.azureOpenai,
@@ -179,7 +166,6 @@ export const models = new Map<string, Array<string>>([
     [services.openai, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-5-chat-latest", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", "gpt-4o", "o3", "o3-mini", customModelString]],
     [services.azureOpenai, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-5-chat-latest", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", "gpt-4o", "o3", "o3-mini", customModelString]],
     [services.gemini, ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", customModelString]],
-    [services.yiyan, ["ERNIE-Bot 4.0", "ERNIE-Bot", "ERNIE-Speed-8K"]],
     [services.tongyi, ["qwen-long", "qwen-turbo", "qwen-plus", "qwen3-8b", "qwen-mt-plus", "qwen-mt-turbo", customModelString]],
     [services.zhipu, ["glm-4.5", "GLM-4-Flash", "glm-4-plus", "glm-4", "glm-4v", customModelString]],
     [services.moonshot, ["kimi-k2-0711-preview", "kimi-k2-turbo-preview", "moonshot-v1-auto", "moonshot-v1-8k", "moonshot-v1-32k", customModelString]],
@@ -224,11 +210,16 @@ export const options = {
     form: [{ value: "auto", label: "自动检测" }],
     to: [
         { value: "zh-Hans", label: "中文" },
+        { value: "zh-Hant", label: "繁体中文" },
         { value: "en", label: "英语" },
         { value: "ja", label: "日语" },
         { value: "ko", label: "韩语" },
         { value: "fr", label: "法语" },
         { value: "ru", label: "俄语" },
+        { value: "es", label: "西班牙语" },
+        { value: "de", label: "德语" },
+        { value: "pt", label: "葡萄牙语" },
+        { value: "it", label: "意大利语" },
     ],
     keys: [
         { value: "none", label: "禁用快捷键" },
@@ -264,7 +255,7 @@ export const options = {
         { value: services.xiaoniu, label: "小牛翻译" },
         { value: services.youdao, label: "有道翻译" },
         { value: services.tencent, label: "腾讯云翻译" },
-        // 大模型翻译
+        // 大模型翻译（常用）
         { value: "ai", label: "AI翻译", disabled: true },
         { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐" },
         { value: services.siliconCloud, label: "硅基流动⭐️" },
@@ -276,22 +267,21 @@ export const options = {
         { value: services.huanYuanTranslation, label: "腾讯混元翻译" },
         { value: services.tongyi, label: "阿里通义" },
         { value: services.doubao, label: "字节豆包" },
-        { value: services.grok, label: "Grok (X.AI)" },
-        { value: services.openrouter, label: "OpenRouter" },
-        { value: services.groq, label: "Groq" },
+        { value: services.claude, label: "Claude" },
+        { value: services.gemini, label: "Gemini" },
         { value: services.moonshot, label: "Kimi" },
         { value: services.zhipu, label: "智谱清言" },
+        { value: services.custom, label: "自定义接口⭐️" },
+        // 更多 / 小众模型（均可改用「自定义接口 / New API / OpenRouter」接入）
+        { value: "ai_more", label: "更多 / 小众模型", disabled: true },
+        { value: services.openrouter, label: "OpenRouter" },
+        { value: services.grok, label: "Grok (X.AI)" },
+        { value: services.groq, label: "Groq" },
         { value: services.baichuan, label: "百川智能" },
         { value: services.lingyi, label: "零一万物" },
         { value: services.minimax, label: "MiniMax" },
         { value: services.jieyue, label: "阶跃星辰" },
         { value: services.infini, label: "无向芯穹" },
-        { value: services.cozecom, label: "Coze国际" },
-        { value: services.cozecn, label: "Coze国内" },
-        { value: services.claude, label: "Claude" },
-        { value: services.gemini, label: "Gemini" },
-        { value: services.yiyan, label: "文心一言" },
-        { value: services.custom, label: "自定义接口⭐️" },
     ],
     display: [
         { value: 0, label: "仅译文模式" },
@@ -388,6 +378,8 @@ export const options = {
         { value: 78, label: "代码风格·黑底", class: "verse-vibe-display-tech-dark", group: "pro" },
         { value: 79, label: "代码风格·火星黄土", class: "verse-vibe-display-tech-mars", group: "pro" },
         { value: 21, label: "书籍风格", class: "verse-vibe-display-elegant", group: "pro" },
+        { value: 80, label: "竖版直书（日文/文言）", class: "verse-vibe-display-vertical", group: "pro" },
+        { value: 81, label: "竖版宣纸（古籍）", class: "verse-vibe-display-vertical-paper", group: "pro" },
 
         // 透明度
         { value: "transparent", label: "透明效果", disabled: true },
@@ -476,6 +468,47 @@ export const options = {
         { value: "full", label: "全宽" },
     ],
 };
+
+// 翻译风格预设：一键写入当前服务的 system_role（仅 AI 类服务可用）
+// value 为空字符串表示“自定义”占位项，不会覆盖现有 system_role。
+export const promptPresets: { value: string; label: string; system_role: string }[] = [
+    {
+        value: "default",
+        label: "专业直译（默认）",
+        system_role:
+            "You are a professional translation engine. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+    {
+        value: "fluent",
+        label: "白话流畅",
+        system_role:
+            "You are a professional translation engine. Translate into natural, fluent, idiomatic language as a native speaker would write it, prioritizing readability over literal word-for-word rendering. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+    {
+        value: "classical",
+        label: "典雅文言",
+        system_role:
+            "You are a master translator of Classical Chinese (文言文). When the target language is Chinese, render the translation in elegant, concise Classical Chinese prose (文言文) with literary refinement, while keeping the original meaning faithful. For other target languages, use an elevated, literary register. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+    {
+        value: "academic",
+        label: "学术严谨",
+        system_role:
+            "You are an academic translation engine. Translate with rigorous accuracy and formal, scholarly tone. Keep technical terms precise and consistent; preserve domain-specific terminology. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+    {
+        value: "colloquial",
+        label: "口语自然",
+        system_role:
+            "You are a translation engine specialized in casual, spoken-style language. Translate into relaxed, conversational, everyday speech as people actually talk, using natural contractions and colloquialisms where appropriate. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+    {
+        value: "literary",
+        label: "文学优美",
+        system_role:
+            "You are a literary translation engine. Translate with attention to rhythm, imagery, and aesthetic flow, producing graceful and expressive prose while staying faithful to the original meaning. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
+    },
+];
 
 export const defaultOption = {
     on: true,

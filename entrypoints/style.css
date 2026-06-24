@@ -740,3 +740,41 @@
     border-radius: 8px;
     padding: 6px 12px;
 }
+
+/* 竖版直书：传统 CJK 直排（自上而下、自右而左），
+   适合日文、文言/古籍阅读。译文块单独竖排，原文仍保持横排。
+   用 inline-block 让竖排块在原文下方独立成行，不破坏整段横排布局。 */
+.verse-vibe-display-vertical {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    -webkit-writing-mode: vertical-rl;
+    text-orientation: upright;
+    -webkit-text-orientation: upright;
+    line-height: 1.9;
+    letter-spacing: 1px;
+    max-height: 28em;
+    margin: 4px 0;
+    padding: 6px 10px;
+    border-right: 2px solid rgba(120, 90, 60, 0.35);
+    font-family: "Songti SC", "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+}
+
+/* 竖版宣纸：在直排基础上加古籍宣纸质感底与边框 */
+.verse-vibe-display-vertical-paper {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    -webkit-writing-mode: vertical-rl;
+    text-orientation: upright;
+    -webkit-text-orientation: upright;
+    line-height: 2;
+    letter-spacing: 2px;
+    max-height: 30em;
+    margin: 6px 0;
+    padding: 12px 14px;
+    color: #3a2a18 !important;
+    background: linear-gradient(135deg, #f5ecd7, #e9dcc0);
+    border: 1px solid #c9b48c;
+    border-radius: 4px;
+    box-shadow: inset 0 0 12px rgba(150, 120, 70, 0.18);
+    font-family: "Songti SC", "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+}

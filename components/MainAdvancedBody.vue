@@ -170,6 +170,25 @@
       </el-col>
     </el-row>
 
+    <!-- 翻译风格预设：一键写入当前服务的 system_role -->
+    <el-row v-show="compute.showAI" class="adv-row">
+      <el-col :span="8" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="一键套用常用翻译风格，会覆盖下方 system 角色提示词。可在套用后继续手动微调。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">风格预设<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="16">
+        <el-select
+          :model-value="promptPresets.find(p => p.system_role === config.system_role[config.service])?.value || ''"
+          @update:model-value="(v: string) => { const p = promptPresets.find(i => i.value === v); if (p) $emit('update:config', { system_role: { ...config.system_role, [config.service]: p.system_role } }) }"
+          placeholder="选择翻译风格（可选）"
+          style="width: 100%;"
+        >
+          <el-option v-for="p in promptPresets" :key="p.value" :label="p.label" :value="p.value" />
+        </el-select>
+      </el-col>
+    </el-row>
+
     <!-- 角色和模板 -->
     <el-row v-show="compute.showAI" class="adv-row">
       <el-col :span="8" class="lightblue rounded-corner">
@@ -334,6 +353,7 @@
 
 <script lang="ts" setup>
 import { ChatDotRound, Refresh, Upload, Download } from '@element-plus/icons-vue';
+import { promptPresets } from '@/entrypoints/utils/option';
 
 withDefaults(defineProps<{
   config: any;

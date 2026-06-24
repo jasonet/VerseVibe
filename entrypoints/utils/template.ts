@@ -130,20 +130,6 @@ export function tongyiMsgTemplate(origin: string) {
 
 }
 
-// 文心一言
-export function yiyanMsgTemplate(origin: string) {
-    let user = (config.user_role[config.service] || defaultOption.user_role)
-        .replace('{{to}}', config.to).replace('{{origin}}', origin);
-
-    return JSON.stringify({
-        'temperature': 0.7,
-        'disable_search': true, // 禁用搜索
-        'messages': [
-            { "role": "user", "content": user },
-        ],
-    })
-}
-
 export function minimaxTemplate(origin: string) {
 
     let system = config.system_role[config.service] || defaultOption.system_role;
@@ -161,16 +147,3 @@ export function minimaxTemplate(origin: string) {
     })
 }
 
-export function cozeTemplate(origin: string) {
-
-    let system = config.system_role[config.service] || defaultOption.system_role;
-    let user = (config.user_role[config.service] || defaultOption.user_role)
-        .replace('{{to}}', config.to).replace('{{origin}}', origin);
-
-    return JSON.stringify({
-        bot_id: config.robot_id[config.service],
-        user: "VerseVibe",
-        query: system + user,
-        stream: false
-    });
-}
