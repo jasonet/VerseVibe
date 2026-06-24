@@ -157,7 +157,10 @@
         <el-switch :model-value="config.forceChineseHeiFont" @update:model-value="$emit('update:config', { forceChineseHeiFont: $event })" inline-prompt active-text="启用" inactive-text="禁用" />
       </el-col>
     </el-row>
+    </template>
 
+    <!-- ============ 代理 / AI 提示词组（渲染在“划词翻译”之后） ============ -->
+    <template v-if="group === 'all' || group === 'aiprompt'">
     <!-- 使用代理转发 -->
     <el-row v-show="compute.showProxy" class="adv-row">
       <el-col :span="8" class="lightblue rounded-corner">
@@ -174,7 +177,7 @@
     <el-row v-show="compute.showAI" class="adv-row">
       <el-col :span="8" class="lightblue rounded-corner">
         <el-tooltip class="box-item" effect="dark" content="一键套用常用翻译风格，会覆盖下方 system 角色提示词。可在套用后继续手动微调。" placement="top-start" :show-after="500">
-          <span class="popup-text popup-vertical-left">风格预设<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+          <span class="popup-text popup-vertical-left">AI风格预设<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
         </el-tooltip>
       </el-col>
       <el-col :span="16">
@@ -365,7 +368,7 @@ withDefaults(defineProps<{
   showImportBox: any;
   importData: any;
   showConfigManagement?: boolean;
-  group?: 'all' | 'main' | 'flickr' | 'linkedin' | 'github' | 'reddit';
+  group?: 'all' | 'main' | 'aiprompt' | 'flickr' | 'linkedin' | 'github' | 'reddit';
   resetTemplate: () => void;
   handleExport: () => void;
   handleImport: () => void;

@@ -156,6 +156,29 @@
           </el-select>
         </el-col>
       </el-row>
+
+      <!-- 代理地址 / AI风格预设 / system / user（移动到划词翻译之后） -->
+      <MainAdvancedBody
+        group="aiprompt"
+        :config="config"
+        :compute="compute"
+        :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox"
+        :exportData="exportData"
+        :showImportBox="showImportBox"
+        :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate"
+        :handleExport="handleExport"
+        :handleImport="handleImport"
+        :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
     </section>
 
     <!--    译文样式选择器-->
