@@ -814,37 +814,74 @@ const chromeAIStatusText = ref('点击检查状态...');
 const chromeAIStatusColor = ref('var(--el-text-color-regular)');
 const chromeAINeedsDownload = ref(false);
 
+// 取当前目标语言对应的 Chrome Translation API 语言代码
+const chromeAILangPair = () => {
+    const map: Record<string, string> = {
+        'zh-Hans': 'zh', 'zh-Hant': 'zh-Hant', 'en': 'en', 'ja': 'ja', 'ko': 'ko',
+        'fr': 'fr', 'de': 'de', 'es': 'es', 'ru': 'ru', 'it': 'it', 'pt': 'pt',
+    };
+    const target = map[config.value.to] || config.value.to || 'zh';
+    // 源语言用英文做探测；若目标本身就是英文则用中文探测，避免同语言对
+    const source = target === 'en' ? 'zh' : 'en';
+    return { sourceLanguage: source, targetLanguage: target };
+};
+
 const checkChromeAIStatus = async () => {
     checkingChromeAI.value = true;
     try {
-        if (!('translation' in self && 'canTranslate' in (self as any).translation)) {
-             chromeAIStatusText.value = '当前浏览器不支持 Chrome Translation API';
-             chromeAIStatusColor.value = 'red';
-             chromeAINeedsDownload.value = false;
-             return;
+        // 稳定版 API（Chrome 138+）：全局 Translator 类
+        const hasNewAPI = 'Translator' in self && typeof (self as any).Translator?.availability === 'function';
+        // 旧版实验 API：self.translation.canTranslate（Chrome 早期版本）
+        const hasOldAPI = 'translation' in self && 'canTranslate' in ((self as any).translation || {});
+
+        if (!hasNewAPI && !hasOldAPI) {
+            chromeAIStatusText.value = '当前浏览器不支持 Chrome Translation API（需 Chrome 138+ 桌面版，且非无痕/访客模式）';
+            chromeAIStatusColor.value = 'red';
+            chromeAINeedsDownload.value = false;
+            return;
         }
-        
-        const options = {
-            sourceLanguage: 'en',
-            targetLanguage: 'zh' // 默认检测英译中，或根据当前 config.to 动态调整
-        };
-        
+
+        const options = chromeAILangPair();
+
+        if (hasNewAPI) {
+            // availability(): 'available' | 'downloadable' | 'downloading' | 'unavailable'
+            const availability = await (self as any).Translator.availability(options);
+            if (availability === 'available') {
+                chromeAIStatusText.value = `模型就绪，可直接使用（${options.sourceLanguage} → ${options.targetLanguage}）`;
+                chromeAIStatusColor.value = 'green';
+                chromeAINeedsDownload.value = false;
+            } else if (availability === 'downloading') {
+                chromeAIStatusText.value = '模型正在下载中…请稍候';
+                chromeAIStatusColor.value = 'orange';
+                chromeAINeedsDownload.value = false;
+            } else if (availability === 'downloadable') {
+                chromeAIStatusText.value = `模型可下载（${options.sourceLanguage} → ${options.targetLanguage}，点击“下载模型”触发）`;
+                chromeAIStatusColor.value = 'orange';
+                chromeAINeedsDownload.value = true;
+            } else {
+                chromeAIStatusText.value = `该语言组合不可用（${options.sourceLanguage} → ${options.targetLanguage}）`;
+                chromeAIStatusColor.value = 'red';
+                chromeAINeedsDownload.value = false;
+            }
+            return;
+        }
+
+        // 旧版 API 回退
         const availability = await (self as any).translation.canTranslate(options);
-        
-        if (availability === 'no') {
-            chromeAIStatusText.value = '模型不可用 (Availability: no)';
-             chromeAIStatusColor.value = 'red';
-             chromeAINeedsDownload.value = false;
-        } else if (availability === 'readily') {
-             chromeAIStatusText.value = '模型就绪，可直接使用';
-             chromeAIStatusColor.value = 'green';
-             chromeAINeedsDownload.value = false;
+        if (availability === 'readily') {
+            chromeAIStatusText.value = '模型就绪，可直接使用';
+            chromeAIStatusColor.value = 'green';
+            chromeAINeedsDownload.value = false;
         } else if (availability === 'after-download') {
-             chromeAIStatusText.value = '模型需要下载 (需用户手势触发)';
-             chromeAIStatusColor.value = 'orange';
-             chromeAINeedsDownload.value = true;
+            chromeAIStatusText.value = '模型需要下载 (需用户手势触发)';
+            chromeAIStatusColor.value = 'orange';
+            chromeAINeedsDownload.value = true;
+        } else {
+            chromeAIStatusText.value = '模型不可用 (Availability: no)';
+            chromeAIStatusColor.value = 'red';
+            chromeAINeedsDownload.value = false;
         }
-        
+
     } catch (error) {
         console.error('检查 Chrome AI 状态失败:', error);
         chromeAIStatusText.value = '检查失败: ' + (error instanceof Error ? error.message : String(error));
@@ -857,22 +894,35 @@ const checkChromeAIStatus = async () => {
 const downloadChromeAIModel = async () => {
     downloadingChromeAI.value = true;
     try {
-         const options = {
-            sourceLanguage: 'en',
-            targetLanguage: 'zh'
-        };
-        // 触发下载
-        await (self as any).translation.createTranslator(options);
-        
+        const options = chromeAILangPair();
+
+        if ('Translator' in self && typeof (self as any).Translator?.create === 'function') {
+            // 稳定版 API：create 触发下载，并监听下载进度
+            const translator = await (self as any).Translator.create({
+                ...options,
+                monitor(m: any) {
+                    m.addEventListener('downloadprogress', (e: any) => {
+                        const pct = Math.round((e.loaded || 0) * 100);
+                        chromeAIStatusText.value = `模型下载中… ${pct}%`;
+                        chromeAIStatusColor.value = 'orange';
+                    });
+                }
+            });
+            // 释放探测用的临时翻译器
+            translator?.destroy?.();
+        } else {
+            // 旧版 API 回退
+            await (self as any).translation.createTranslator(options);
+        }
+
         ElMessage.success('模型下载/初始化成功！');
-        // 重新检查状态
         await checkChromeAIStatus();
-        
+
     } catch (error) {
         console.error('下载 Chrome AI 模型失败:', error);
         ElMessage.error('下载失败: ' + (error instanceof Error ? error.message : String(error)));
-         chromeAIStatusText.value = '下载失败: ' + (error instanceof Error ? error.message : String(error));
-         chromeAIStatusColor.value = 'red';
+        chromeAIStatusText.value = '下载失败: ' + (error instanceof Error ? error.message : String(error));
+        chromeAIStatusColor.value = 'red';
     } finally {
         downloadingChromeAI.value = false;
     }
