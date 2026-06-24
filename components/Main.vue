@@ -1995,7 +1995,8 @@ const validateConfig = (configData: any): boolean => {
   align-items: center;
   justify-content: center;
   padding: 3px;
-  background: var(--el-fill-color-lighter);
+  /* 用纯白底，使各样式（卡片/高亮/下划线等）所见即所得，避免灰底干扰预览 */
+  background: #ffffff;
   border-radius: 3px;
   min-height: auto;
 }
@@ -2003,7 +2004,8 @@ const validateConfig = (configData: any): boolean => {
 .style-text {
   font-size: 14px;
   font-weight: 500;
-  color: var(--el-text-color-primary);
+  /* 固定为深色文字，在白底预览框内始终清晰（含暗色模式） */
+  color: #303133;
   text-align: center;
   line-height: 1.4;
   white-space: nowrap;
