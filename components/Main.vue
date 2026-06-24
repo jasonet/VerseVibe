@@ -367,8 +367,16 @@
           <div style="margin-bottom: 10px; font-size: 14px;">
             <span :style="{ color: chromeAIStatusColor }">{{ chromeAIStatusText }}</span>
           </div>
+          <!-- 模型说明：API 不暴露具体型号/版本/大小，给出真实可查的入口与下载方式 -->
+          <div style="margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);">
+            <div>· 模型：Chrome 设备端翻译模型（按“语言对”分发的语言包，本地离线运行）</div>
+            <div>· 型号 / 版本号 / 占用大小由浏览器管理，API 不提供查询；可在 <code>chrome://on-device-internals</code> 查看真实大小与状态</div>
+            <div>· 单个语言包通常约几十 MB；常驻内存仅在翻译时按需加载，不翻译时基本不占用</div>
+            <div>· 下载其他语言：先在上方“目标语言”选好语言，再点“检查状态 → 下载模型”，Chrome 会自动拉取对应语言包</div>
+          </div>
           <el-button type="primary" size="small" @click="checkChromeAIStatus" :loading="checkingChromeAI">检查状态</el-button>
           <el-button type="success" size="small" @click="downloadChromeAIModel" :loading="downloadingChromeAI" v-if="chromeAINeedsDownload">下载模型</el-button>
+          <el-button size="small" @click="openOnDeviceInternals">查看模型详情</el-button>
         </div>
       </el-col>
     </el-row>
@@ -948,6 +956,25 @@ const downloadChromeAIModel = async () => {
         chromeAIStatusColor.value = 'red';
     } finally {
         downloadingChromeAI.value = false;
+    }
+};
+
+// 打开 Chrome 设备端模型管理页（查看真实型号/大小/状态）；浏览器若禁止扩展直开 chrome:// 则回退为复制地址
+const openOnDeviceInternals = async () => {
+    const url = 'chrome://on-device-internals';
+    try {
+        if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+            await chrome.tabs.create({ url });
+            return;
+        }
+        throw new Error('tabs API 不可用');
+    } catch {
+        try {
+            await navigator.clipboard.writeText(url);
+            ElMessage.info(`无法直接打开，已复制地址：${url}，请在地址栏粘贴打开`);
+        } catch {
+            ElMessage.info(`请在地址栏手动打开：${url}`);
+        }
     }
 };
 
