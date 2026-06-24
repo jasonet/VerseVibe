@@ -259,6 +259,7 @@ export const options = {
         { value: "ai", label: "AI翻译", disabled: true },
         { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐" },
         { value: services.deepseek, label: "DeepSeek️" },
+        { value: services.custom, label: "自定义接口⭐️" },
         { value: services.siliconCloud, label: "硅基流动⭐️" },
         { value: services.huanYuan, label: "腾讯混元⭐" },
         { value: services.newapi, label: "New API" },
@@ -271,7 +272,6 @@ export const options = {
         { value: services.gemini, label: "Gemini" },
         { value: services.moonshot, label: "Kimi" },
         { value: services.zhipu, label: "智谱清言" },
-        { value: services.custom, label: "自定义接口⭐️" },
         // 更多 / 小众模型（均可改用「自定义接口 / New API / OpenRouter」接入）
         { value: "ai_more", label: "更多 / 小众模型", disabled: true },
         { value: services.openrouter, label: "OpenRouter" },
@@ -518,7 +518,7 @@ export const defaultOption = {
     display: 1,
     hotkey: "Control",
     service: services.microsoft,
-    custom: "http://localhost:11434/v1/chat/completions",
+    custom: "http://127.0.0.1:1234/v1/chat/completions",
     deeplx: "http://localhost:1188/translate",
     system_role:
         "You are a professional translation engine. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",

@@ -2,7 +2,7 @@
   "name": "VerseVibe",
   "description": "网页内容在不同语言间自然共振，创造力来自生命树的灵性",
   "private": true,
-  "version": "0.9.4",
+  "version": "0.9.5",
   "type": "module",
   "scripts": {
     "build": "wxt build",

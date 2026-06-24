@@ -1,4 +1,4 @@
-import { defaultOption, services } from "./option";
+import { customModelString, defaultOption, services } from "./option";
 
 /**
  * 根据当前浏览器返回首装时的默认翻译服务：
@@ -106,13 +106,15 @@ export class Config {
         // 根据浏览器自动选默认翻译服务（Chrome→Google / Edge→Microsoft）；
         // 用户切换后由 storage 中的 local:config 覆盖此默认值。
         this.service = detectDefaultTranslationService();
-        this.token = {};
+        // 自定义接口默认走本地 LM Studio（端口 1234），令牌占位为 local，
+        // 默认模型选择“自定义模型”并预填 TranslateGemma（本地 MLX 4bit 量化版）。
+        this.token = { [services.custom]: 'local' };
         this.ak = '';
         this.sk = '';
         this.appid = '';
         this.key = '';
-        this.model = {};
-        this.customModel = {};
+        this.model = { [services.custom]: customModelString };
+        this.customModel = { [services.custom]: 'translategemma-4b-it-4bit' };
         this.proxy = {};
         this.custom = defaultOption.custom;
         this.extra = {};

@@ -426,7 +426,7 @@
     <el-row v-show="compute.showCustomModel" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
         <el-tooltip class="box-item" effect="dark"
-          :content="config.service === 'doubao' ? '豆包的model为接入点，获取方式见官方文档：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！'"
+          :content="config.service === 'doubao' ? '豆包的model为接入点，获取方式见官方文档：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint' : (config.service === 'custom' ? '本地用 LM Studio / Ollama 加载模型后，此处填模型名（默认 translategemma-4b-it-4bit）。模型下载（HuggingFace）：https://huggingface.co/mlx-community/translategemma-4b-it-4bit_immersive-translate' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！')"
           placement="top-start" :show-after="500">
           <span class="popup-text popup-vertical-left">{{ config.service === 'doubao' ? '接入点' : '自定义模型' }}<el-icon
               class="icon-margin">
@@ -435,7 +435,7 @@
         </el-tooltip>
       </el-col>
       <el-col :span="12">
-        <el-input v-model="config.customModel[config.service]" placeholder="例如：gemma:7b" />
+        <el-input v-model="config.customModel[config.service]" :placeholder="config.service === 'custom' ? '例如：translategemma-4b-it-4bit' : '例如：gemma:7b'" />
       </el-col>
     </el-row>
   </div>
