@@ -1,4 +1,4 @@
-import {commonMsgTemplate} from "../utils/template";
+import {commonMsgTemplate, translateGemmaMsgTemplate, isTranslateGemmaModel} from "../utils/template";
 import {method, normalizeOpenAiUrl} from "../utils/constant";
 import {services} from "@/entrypoints/utils/option";
 import {config} from "@/entrypoints/utils/config";
@@ -10,10 +10,16 @@ async function custom(message: any) {
     headers.append('Content-Type', 'application/json');
     headers.append('Authorization', `Bearer ${config.token[services.custom]}`);
 
+    // TranslateGemma（immersive-translate 微调版）是「翻译专用模型」，不遵循 system/指令文本，
+    // 会把任何 prompt 内容当作待翻译原文。必须改用标记格式模板，否则翻译严重错误。
+    const body = isTranslateGemmaModel()
+        ? translateGemmaMsgTemplate(message.origin)
+        : commonMsgTemplate(message.origin);
+
     const resp = await fetch(normalizeOpenAiUrl(config.custom), {
         method: method.POST,
         headers: headers,
-        body: commonMsgTemplate(message.origin)
+        body: body
     });
 
     if (resp.ok) {

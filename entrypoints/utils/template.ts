@@ -1,6 +1,61 @@
 // 消息模板工具
 import { customModelString, defaultOption, services } from "./option";
 import { config } from "@/entrypoints/utils/config";
+import { detectlang } from "./common";
+
+// 解析当前服务实际使用的模型名（处理「自定义模型」占位与中文括号备注）
+function resolveModelName(): string {
+    let model = config.model[config.service] === customModelString
+        ? config.customModel[config.service]
+        : config.model[config.service];
+    return (model || "").replace(/（.*）/g, "");
+}
+
+// TranslateGemma 语言名映射（兼容 config.to 的自有代码与 franc 检测代码）
+function gemmaLangName(code: string): string {
+    const map: Record<string, string> = {
+        'zh-Hans': 'Chinese', 'zh-Hant': 'Traditional Chinese', 'zh': 'Chinese', 'cmn': 'Chinese',
+        'en': 'English', 'eng': 'English',
+        'ja': 'Japanese', 'jpn': 'Japanese',
+        'ko': 'Korean', 'kor': 'Korean',
+        'fr': 'French', 'fra': 'French',
+        'ru': 'Russian', 'rus': 'Russian',
+        'es': 'Spanish', 'spa': 'Spanish',
+        'de': 'German', 'deu': 'German',
+        'pt': 'Portuguese', 'por': 'Portuguese',
+        'it': 'Italian', 'ita': 'Italian',
+    };
+    return map[code] || '';
+}
+
+/**
+ * 是否为 TranslateGemma 翻译专用模型（含 immersive-translate 微调版）。
+ * 这类模型不遵循 system / 指令文本，会把任何 prompt 内容当作「待翻译原文」翻译，
+ * 因此必须改用专用的标记格式，而不能套用通用 system+user 提示词模板。
+ */
+export function isTranslateGemmaModel(): boolean {
+    return /translategemma/i.test(resolveModelName());
+}
+
+/**
+ * TranslateGemma（immersive-translate 微调版）专用模板。
+ * 正确用法（来自模型卡）：不使用 system；user 内容用标记格式：
+ *   <<<source>>>{源语言}<<<target>>>{目标语言}<<<text>>>{原文}
+ * 模型内置 chat 模板会解析这些标记并生成正确的翻译指令。
+ */
+export function translateGemmaMsgTemplate(origin: string): string {
+    const model = resolveModelName();
+    const target = gemmaLangName(config.to) || config.to;
+    const source = gemmaLangName(detectlang(origin)) || 'auto';
+
+    return JSON.stringify({
+        'model': model,
+        'temperature': 0,
+        'messages': [
+            { 'role': 'user', 'content': `<<<source>>>${source}<<<target>>>${target}<<<text>>>${origin}` },
+        ],
+    });
+}
 
 // openai 格式的消息模板（通用模板）
 export function commonMsgTemplate(origin: string) {
