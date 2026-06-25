@@ -60,7 +60,10 @@ export class Config {
     robot_id: IMapping;  // 机器人 ID（兼容 coze）
     system_role: IMapping;
     user_role: IMapping;
-    count: number;  // 翻译次数
+    count: number;  // 翻译总词条数（向后兼容：= 三模块之和）
+    countMachine: number; // 机器在线API翻译 词条数
+    countAI: number;      // AI翻译 词条数
+    countChrome: number;  // Chrome 本地翻译 词条数
     theme: string;  // 主题模式：'auto' | 'light' | 'dark'
     useCache: boolean; // 是否使用缓存
     disableFloatingBall: boolean; // 是否禁用悬浮球
@@ -122,6 +125,9 @@ export class Config {
         this.system_role = systemRoleFactory();
         this.user_role = userRoleFactory();
         this.count = 0;
+        this.countMachine = 0;
+        this.countAI = 0;
+        this.countChrome = 0;
         this.theme = 'auto';  // 默认跟随系统
         this.useCache = true; // 默认开启缓存
         this.disableFloatingBall = false; // 默认启用悬浮球

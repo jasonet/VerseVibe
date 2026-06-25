@@ -1,6 +1,6 @@
 import { checkConfig, searchClassName, skipNode } from "../utils/check";
 import { cache } from "../utils/cache";
-import { options, servicesType } from "../utils/option";
+import { options, servicesType, bumpTranslationCount } from "../utils/option";
 import { insertFailedTip, insertLoadingSpinner } from "../utils/icon";
 import { styles } from "@/entrypoints/utils/constant";
 import { beautyHTML, grabNode, grabAllNode, LLMStandardHTML, smashTruncationStyle, assignLayoutPriorities, getNodeLayoutPriority } from "@/entrypoints/main/dom";
@@ -598,12 +598,11 @@ export const handleBtnTranslation = throttle((node: any) => {
         return;
     }
 
-    if (config.count++) {
-        storage.setItem('local:config', JSON.stringify(config)).catch((error: unknown) => {
-            if (isExtensionContextInvalidatedError(error)) return;
-            console.warn('[VerseVibe] 按钮翻译计数保存失败:', getTranslationErrorMessage(error));
-        });
-    }
+    bumpTranslationCount(config);
+    storage.setItem('local:config', JSON.stringify(config)).catch((error: unknown) => {
+        if (isExtensionContextInvalidatedError(error)) return;
+        console.warn('[VerseVibe] 按钮翻译计数保存失败:', getTranslationErrorMessage(error));
+    });
 
     browser.runtime.sendMessage({ context: document.title, origin: origin })
         .then((text: string) => {

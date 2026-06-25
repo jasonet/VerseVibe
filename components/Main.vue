@@ -765,7 +765,7 @@ storage.watch('local:config', (newValue: any, oldValue: any) => {
       // 避免「翻译次数」等运行时字段在设置页中频繁跳动:
       // 当 settings.html 打开期间,忽略对这些字段的外部更新,
       // 以当前页面内的值为准,防止表单 UI 突然刷新影响体验。
-      const runtimeOnlyKeys: Array<keyof Config> = ['count'];
+      const runtimeOnlyKeys: Array<keyof Config> = ['count', 'countMachine', 'countAI', 'countChrome'];
       for (const key of runtimeOnlyKeys) {
         if (key in config.value) {
           incoming[key] = (config.value as any)[key];

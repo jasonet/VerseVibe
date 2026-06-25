@@ -161,6 +161,38 @@ export const servicesType = {
     isUseCustomUrl: (service: string) => servicesType.useCustomUrl.has(service),
 };
 
+/**
+ * 翻译统计分组：把当前服务归入三大模块之一。
+ *  - 'chrome'  → Chrome 本地（内置 Translator API，设备端离线）
+ *  - 'ai'      → AI 翻译（大模型 / 自定义接口）
+ *  - 'machine' → 机器在线API翻译（微软、谷歌、DeepL、有道、腾讯云等）
+ * 注意：chromeTranslator 虽在 machine 阵营里，但统计上单列为本地模块。
+ */
+export function translationModule(service: string): 'chrome' | 'ai' | 'machine' {
+    if (service === services.chromeTranslator) return 'chrome';
+    if (servicesType.AI.has(service)) return 'ai';
+    return 'machine';
+}
+
+/**
+ * 记一次翻译（一个词条 = 一段被翻译的文本）。
+ * 同步累加总数 count 与对应模块的分项计数，便于在页脚分三档展示。
+ */
+export function bumpTranslationCount(cfg: {
+    service: string;
+    count: number;
+    countMachine: number;
+    countAI: number;
+    countChrome: number;
+}): void {
+    cfg.count = (cfg.count || 0) + 1;
+    switch (translationModule(cfg.service)) {
+        case 'chrome': cfg.countChrome = (cfg.countChrome || 0) + 1; break;
+        case 'ai': cfg.countAI = (cfg.countAI || 0) + 1; break;
+        default: cfg.countMachine = (cfg.countMachine || 0) + 1; break;
+    }
+}
+
 export const customModelString = "自定义模型";
 export const models = new Map<string, Array<string>>([
     [services.openai, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-5-chat-latest", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", "gpt-4o", "o3", "o3-mini", customModelString]],

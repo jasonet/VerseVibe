@@ -1,9 +1,14 @@
 <template>
   <div class="footer-container footer-size">
     <p class="translation-count">你已经翻译
-      <el-text class="count-number" type="primary">{{ computedCount }}</el-text>
-      次
+      <el-text class="count-number" type="primary">{{ countMachine }}</el-text>
+      <span class="count-sep">/</span>
+      <el-text class="count-number ai" type="primary">{{ countAI }}</el-text>
+      <span class="count-sep">/</span>
+      <el-text class="count-number chrome" type="primary">{{ countChrome }}</el-text>
+      词条
     </p>
+    <p class="count-legend">API在线翻译 / AI翻译 / Chrome本地（按词条计，每段文本算 1 条）</p>
     <div class="footer-links">
       <el-link class="action-link left" :class="{ 'failed': buttonText === '清除失败', 'success': buttonText === '清除成功' }" @click="clearCache"
         :disabled="buttonDisabled">
@@ -88,7 +93,10 @@ storage.getItem('local:config').then((value) => {
   console.warn('[VerseVibe] Footer: 读取配置失败:', message);
 });
 
-const computedCount = computed(() => localConfig.count);
+// 三模块分项统计（旧数据无这些字段时按 0 处理，兼容历史安装）
+const countMachine = computed(() => localConfig.countMachine ?? 0);
+const countAI = computed(() => localConfig.countAI ?? 0);
+const countChrome = computed(() => localConfig.countChrome ?? 0);
 
 
 </script>
@@ -114,6 +122,27 @@ const computedCount = computed(() => localConfig.count);
   font-size: 1.1em;
   margin: 0 3px;
   color: var(--el-color-success);
+}
+
+.count-number.ai {
+  color: var(--el-color-primary);
+}
+
+.count-number.chrome {
+  color: var(--el-color-warning);
+}
+
+.count-sep {
+  color: var(--fr-text-color-secondary);
+  opacity: 0.6;
+}
+
+.count-legend {
+  margin: 2px 0 0;
+  font-size: 0.95em;
+  color: var(--fr-text-color-secondary);
+  opacity: 0.75;
+  text-align: center;
 }
 
 .footer-links {

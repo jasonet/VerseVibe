@@ -9,6 +9,7 @@ import { config } from './config';
 import { cache } from './cache';
 import { detectlang } from './common';
 import { storage } from '@wxt-dev/storage';
+import { bumpTranslationCount } from './option';
 
 // 调试相关
 // @ts-ignore
@@ -99,8 +100,8 @@ export async function translateText(origin: string, context: string = document.t
     }
   }
 
-  // 增加翻译计数
-  config.count++;
+  // 增加翻译计数（总数 + 按模块分项）
+  bumpTranslationCount(config);
   // 保存配置以确保计数持久化
   storage.setItem('local:config', JSON.stringify(config)).catch((error: unknown) => {
     if (isExtensionContextInvalidatedError(error)) {
