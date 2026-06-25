@@ -12,9 +12,15 @@ function resolveModelName(): string {
 }
 
 // TranslateGemma 语言名映射（兼容 config.to 的自有代码与 franc 检测代码）
+// 关键：中文必须区分「Simplified / Traditional」——否则模型默认输出繁体，
+// 这正是此前「目标=中文却出现繁体乱码」的根因。
 function gemmaLangName(code: string): string {
     const map: Record<string, string> = {
-        'zh-Hans': 'Chinese', 'zh-Hant': 'Traditional Chinese', 'zh': 'Chinese', 'cmn': 'Chinese',
+        // 简体中文（务必显式 Simplified，避免模型回退到繁体）
+        'zh-Hans': 'Simplified Chinese', 'zh-CN': 'Simplified Chinese',
+        'zh': 'Simplified Chinese', 'cmn': 'Simplified Chinese',
+        // 繁体中文
+        'zh-Hant': 'Traditional Chinese', 'zh-TW': 'Traditional Chinese', 'zh-HK': 'Traditional Chinese',
         'en': 'English', 'eng': 'English',
         'ja': 'Japanese', 'jpn': 'Japanese',
         'ko': 'Korean', 'kor': 'Korean',
@@ -24,6 +30,16 @@ function gemmaLangName(code: string): string {
         'de': 'German', 'deu': 'German',
         'pt': 'Portuguese', 'por': 'Portuguese',
         'it': 'Italian', 'ita': 'Italian',
+        // 常见 franc 检测码补充，提升源语言显式标注的命中率
+        'ar': 'Arabic', 'arb': 'Arabic',
+        'hi': 'Hindi', 'hin': 'Hindi',
+        'vi': 'Vietnamese', 'vie': 'Vietnamese',
+        'th': 'Thai', 'tha': 'Thai',
+        'id': 'Indonesian', 'ind': 'Indonesian',
+        'nl': 'Dutch', 'nld': 'Dutch',
+        'pl': 'Polish', 'pol': 'Polish',
+        'tr': 'Turkish', 'tur': 'Turkish',
+        'uk': 'Ukrainian', 'ukr': 'Ukrainian',
     };
     return map[code] || '';
 }
@@ -46,11 +62,24 @@ export function isTranslateGemmaModel(): boolean {
 export function translateGemmaMsgTemplate(origin: string): string {
     const model = resolveModelName();
     const target = gemmaLangName(config.to) || config.to;
+    // 显式标注源语言（官方最佳实践：不要在准确性敏感时依赖纯 auto）；
+    // 检测不到时回退 'auto'，模型自身也能处理。
     const source = gemmaLangName(detectlang(origin)) || 'auto';
+
+    // 译文长度约等于原文；按原文长度动态封顶 max_tokens，
+    // 避免本地小模型在长段落时超额生成而拖慢速度（同时防止复读跑飞）。
+    const maxTokens = Math.min(2048, Math.max(96, Math.ceil(origin.length * 2) + 96));
 
     return JSON.stringify({
         'model': model,
+        // 翻译任务用贪心解码：确定性最高、速度最快、最不易跑偏。
         'temperature': 0,
+        'top_p': 1,
+        'top_k': 1,
+        // 轻微重复惩罚，抑制 4B 小模型偶发的复读/循环（LM Studio / Ollama 支持）。
+        'repetition_penalty': 1.05,
+        'max_tokens': maxTokens,
+        'stream': false,
         'messages': [
             { 'role': 'user', 'content': `<<<source>>>${source}<<<target>>>${target}<<<text>>>${origin}` },
         ],
