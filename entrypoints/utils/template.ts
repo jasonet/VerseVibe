@@ -90,6 +90,9 @@ export function translateGemmaMsgTemplate(origin: string): string {
         'repetition_penalty': 1.05,
         'max_tokens': maxTokens,
         'stream': false,
+        // 兜底停止序列：即便本地未配置正确的 eos token（[106,1]），
+        // 也尽量让生成在一轮结束处停下，减少「翻完又继续输出选项/解释」的跑飞。
+        'stop': ['<end_of_turn>', '<eos>', '<start_of_turn>'],
         'messages': [
             { 'role': 'user', 'content': `<<<source>>>${source}<<<target>>>${target}<<<text>>>${origin}` },
         ],
@@ -102,15 +105,38 @@ export function translateGemmaMsgTemplate(origin: string): string {
  */
 export function sanitizeGemmaOutput(text: string): string {
     if (!text) return text;
-    let s = text.trim();
-    // 去掉单行开场白：Okay/Sure/Here's the translation: / 以下是…… / 翻译如下…… / 译文：
+    const original = text.trim();
+    let s = original;
+
+    // 1) 去掉单行开场白：Okay/Sure/Here's the translation: / 以下是…… / 翻译如下…… / 译文：
     s = s.replace(
         /^(?:okay|ok|sure|certainly|here(?:'s| is| are)[^\n]*|以下是[^\n]*|翻译如下[^\n]*|译文\s*[:：][^\n]*)\n+/i,
         ''
     );
-    // 去掉整体包裹的引号
-    s = s.replace(/^["'“”『「]+/, '').replace(/["'“”』」]+$/, '').trim();
-    return s;
+
+    // 2) 截断「选项/解释/拼音/逐词注释」啰嗦尾巴：从最早出现的小节标记处切掉其后内容。
+    //    仅当标记之前已有正文时才截断，避免把唯一内容也删没。
+    const tailMarkers = [
+        /\n\s*\*\*\s*Option\b/i,
+        /\n\s*\*\*\s*Explanation\b/i,
+        /\n\s*\*\*\s*Pronunciation\b/i,
+        /\n\s*\*\*\s*Why\b/i,
+        /\n\s*\*\s/,                  // markdown 列表项（多为逐词解释）
+        /\n\s*[（(]\s*Pinyin\b/i,
+        /\n\s*Here are a few options/i,
+    ];
+    let cut = s.length;
+    for (const re of tailMarkers) {
+        const m = s.match(re);
+        if (m && m.index !== undefined && m.index < cut) cut = m.index;
+    }
+    if (cut > 0 && cut < s.length) s = s.slice(0, cut).trim();
+
+    // 3) 去掉整体包裹的引号（只处理 ASCII 与弯引号；保留中文书名号《》「」，它们可能是正文）
+    s = s.replace(/^["'“”]+/, '').replace(/["'“”]+$/, '').trim();
+
+    // 兜底：若清洗后为空（如模型整段都是选项/解释），退回原始文本，至少不留空。
+    return s || original;
 }
 
 // openai 格式的消息模板（通用模板）
