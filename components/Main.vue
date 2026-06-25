@@ -230,8 +230,8 @@
           <div v-for="group in serviceGroups" :key="group.label" class="service-group-section">
             <div class="group-title">{{ group.label }}</div>
             <div class="service-cards-grid">
-              <div 
-                v-for="item in group.services" 
+              <div
+                v-for="item in group.services"
                 :key="item.value"
                 @click="config.service = item.value"
                 :class="['service-card', { 'selected': config.service === item.value }]"
@@ -240,14 +240,101 @@
                 <div class="service-name">{{ item.label }}</div>
               </div>
             </div>
+
+            <!-- AI私密翻译就近配置：选中 自定义接口 / Chrome 内置 AI 时，
+                 把访问令牌 / 接口 / 模型 / AI模型状态 显示在本组下方（AI远程翻译 上一行） -->
+            <div v-if="group.isPrivate" v-show="isPrivateAISelected" class="inline-private-config">
+              <!-- 访问令牌（自定义接口需要；Chrome 内置不需要） -->
+              <el-row v-show="compute.showToken" class="margin-bottom">
+                <el-col :span="12" class="lightblue rounded-corner">
+                  <el-tooltip class="box-item" effect="dark"
+                    content="API访问令牌仅保存在本地，用于访问翻译服务。获取方式请参考对应服务的官方文档；翻译服务为 ollama 时，token 可为任意值"
+                    placement="top-start" :show-after="500">
+                    <span class="popup-text popup-vertical-left">访问令牌<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+                  </el-tooltip>
+                </el-col>
+                <el-col :span="12">
+                  <el-input v-model="config.token[config.service]" type="password" show-password placeholder="请输入API访问令牌" />
+                </el-col>
+              </el-row>
+
+              <!-- 自定义接口地址 + 测试按钮 -->
+              <el-row v-show="compute.showCustom" class="margin-bottom custom-interface-row">
+                <el-col :span="12" class="custom-interface-label rounded-corner">
+                  <el-tooltip class="box-item" effect="dark" content="目前仅支持OpenAI格式的请求接口，如http://localhost:3000/v1/chat/completions，其中 localhost:11434 可更换为任意值。
+                     ollama 配置请参考：https://fluent.thinkstu.com/guide/faq.html" placement="top-start" :show-after="500">
+                    <span class="popup-text popup-vertical-left">自定义接口<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+                  </el-tooltip>
+                </el-col>
+                <el-col :span="12">
+                  <el-input v-model="config.custom" placeholder="请输入自定义接口地址（如 http://127.0.0.1:1234）" class="custom-interface-input">
+                    <template #append>
+                      <el-button @click="testCustomEndpoint" :loading="customTesting">测试</el-button>
+                    </template>
+                  </el-input>
+                  <div style="margin-top: 6px; font-size: 12px; line-height: 1.5;" :style="{ color: customTestColor }">{{ customTestText }}</div>
+                </el-col>
+              </el-row>
+
+              <!-- 模型 -->
+              <el-row v-show="compute.showModel" class="margin-bottom">
+                <el-col :span="12" class="lightblue rounded-corner">
+                  <span class="popup-text popup-vertical-left">模型</span>
+                </el-col>
+                <el-col :span="12">
+                  <el-select v-model="config.model[config.service]" placeholder="请选择模型">
+                    <el-option class="select-left" v-for="item in compute.model" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </el-col>
+              </el-row>
+
+              <!-- 自定义模型名 -->
+              <el-row v-show="compute.showCustomModel" class="margin-bottom">
+                <el-col :span="12" class="lightblue rounded-corner">
+                  <el-tooltip class="box-item" effect="dark"
+                    :content="config.service === 'custom' ? '本地用 LM Studio / Ollama 加载模型后，此处填模型名（默认 translategemma-4b-it_immersive-translate）。模型下载（HuggingFace）：https://huggingface.co/mlx-community/translategemma-4b-it-4bit_immersive-translate' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！'"
+                    placement="top-start" :show-after="500">
+                    <span class="popup-text popup-vertical-left">自定义模型<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+                  </el-tooltip>
+                </el-col>
+                <el-col :span="12">
+                  <el-input v-model="config.customModel[config.service]" :placeholder="config.service === 'custom' ? '例如：translategemma-4b-it_immersive-translate' : '例如：gemma:7b'" />
+                </el-col>
+              </el-row>
+
+              <!-- Chrome 内置 AI 模型状态 -->
+              <el-row v-show="compute.showChromeTranslator" class="margin-bottom">
+                <el-col :span="24">
+                  <div class="section-header">
+                    <el-tooltip class="box-item" effect="dark" content="管理 Chrome 内置 AI 翻译模型。首次使用或模型未下载时，需在此处手动下载。" placement="top-start" :show-after="500">
+                      <span class="popup-text popup-vertical-left">AI 模型状态<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+                    </el-tooltip>
+                  </div>
+                  <div style="margin-top: 10px; padding: 10px; background-color: var(--el-fill-color-light); border-radius: 8px;">
+                    <div style="margin-bottom: 10px; font-size: 14px;">
+                      <span :style="{ color: chromeAIStatusColor }">{{ chromeAIStatusText }}</span>
+                    </div>
+                    <div style="margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);">
+                      <div>· 基于 <a href="https://developer.chrome.com/docs/ai/translator-api?hl=zh-cn" target="_blank" rel="noopener" style="color: var(--el-color-primary);">Chrome 的 Translator API</a>（By Google）：设备端翻译模型，按“语言对”分发语言包，本地离线运行</div>
+                      <div>· 型号 / 版本号 / 占用大小由浏览器管理，API 不提供查询；可在 <code>chrome://on-device-internals</code> 查看真实大小与状态</div>
+                      <div>· 单个语言包通常约几十 MB；常驻内存仅在翻译时按需加载，不翻译时基本不占用</div>
+                      <div>· 下载其他语言：先在上方“目标语言”选好语言，再点“检查状态 → 下载模型”，Chrome 会自动拉取对应语言包</div>
+                    </div>
+                    <el-button type="primary" size="small" @click="checkChromeAIStatus" :loading="checkingChromeAI">检查状态</el-button>
+                    <el-button type="success" size="small" @click="downloadChromeAIModel" :loading="downloadingChromeAI" v-if="chromeAINeedsDownload">下载模型</el-button>
+                    <el-button size="small" @click="openOnDeviceInternals">查看模型详情</el-button>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
           </div>
         </div>
       </el-col>
     </el-row>
     </section>
 
-    <!-- token -->
-    <el-row v-show="compute.showToken" class="margin-bottom margin-left-2em">
+    <!-- token（私密 AI 选中时改在服务卡片组内就近显示，这里仅对其余服务显示） -->
+    <el-row v-show="compute.showToken && !isPrivateAISelected" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
         <el-tooltip class="box-item" effect="dark"
           content="API访问令牌仅保存在本地，用于访问翻译服务。获取方式请参考对应服务的官方文档；翻译服务为 ollama 时，token 可为任意值" placement="top-start"
@@ -356,52 +443,7 @@
       </el-col>
     </el-row>
 
-    <!-- Chrome 内置 AI 模型管理 -->
-    <el-row v-show="compute.showChromeTranslator" class="margin-bottom margin-left-2em">
-      <el-col :span="24">
-        <div class="section-header">
-           <el-tooltip class="box-item" effect="dark" content="管理 Chrome 内置 AI 翻译模型。首次使用或模型未下载时，需在此处手动下载。" placement="top-start" :show-after="500">
-            <span class="popup-text popup-vertical-left">AI 模型状态<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
-          </el-tooltip>
-        </div>
-        <div style="margin-top: 10px; padding: 10px; background-color: var(--el-fill-color-light); border-radius: 8px;">
-          <div style="margin-bottom: 10px; font-size: 14px;">
-            <span :style="{ color: chromeAIStatusColor }">{{ chromeAIStatusText }}</span>
-          </div>
-          <!-- 模型说明：API 不暴露具体型号/版本/大小，给出真实可查的入口与下载方式 -->
-          <div style="margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);">
-            <div>· 基于 <a href="https://developer.chrome.com/docs/ai/translator-api?hl=zh-cn" target="_blank" rel="noopener" style="color: var(--el-color-primary);">Chrome 的 Translator API</a>（By Google）：设备端翻译模型，按“语言对”分发语言包，本地离线运行</div>
-            <div>· 型号 / 版本号 / 占用大小由浏览器管理，API 不提供查询；可在 <code>chrome://on-device-internals</code> 查看真实大小与状态</div>
-            <div>· 单个语言包通常约几十 MB；常驻内存仅在翻译时按需加载，不翻译时基本不占用</div>
-            <div>· 下载其他语言：先在上方“目标语言”选好语言，再点“检查状态 → 下载模型”，Chrome 会自动拉取对应语言包</div>
-          </div>
-          <el-button type="primary" size="small" @click="checkChromeAIStatus" :loading="checkingChromeAI">检查状态</el-button>
-          <el-button type="success" size="small" @click="downloadChromeAIModel" :loading="downloadingChromeAI" v-if="chromeAINeedsDownload">下载模型</el-button>
-          <el-button size="small" @click="openOnDeviceInternals">查看模型详情</el-button>
-        </div>
-      </el-col>
-    </el-row>
-
-
-    <!-- 本地大模型配置 -->
-    <el-row v-show="compute.showCustom" class="margin-bottom margin-left-2em custom-interface-row">
-      <el-col :span="12" class="custom-interface-label rounded-corner">
-        <el-tooltip class="box-item" effect="dark" content="目前仅支持OpenAI格式的请求接口，如http://localhost:3000/v1/chat/completions，其中 localhost:11434 可更换为任意值。
-                     ollama 配置请参考：https://fluent.thinkstu.com/guide/faq.html" placement="top-start" :show-after="500">
-          <span class="popup-text popup-vertical-left">自定义接口<el-icon class="icon-margin">
-              <ChatDotRound />
-            </el-icon></span>
-        </el-tooltip>
-      </el-col>
-      <el-col :span="12">
-        <el-input v-model="config.custom" placeholder="请输入自定义接口地址（如 http://127.0.0.1:1234）" class="custom-interface-input">
-          <template #append>
-            <el-button @click="testCustomEndpoint" :loading="customTesting">测试</el-button>
-          </template>
-        </el-input>
-        <div style="margin-top: 6px; font-size: 12px; line-height: 1.5;" :style="{ color: customTestColor }">{{ customTestText }}</div>
-      </el-col>
-    </el-row>
+    <!-- Chrome 内置 AI 模型状态 / 自定义接口：已移至「AI私密翻译」服务卡片组内就近显示 -->
 
     <!-- NewAPI 配置 -->
     <el-row v-show="compute.showNewAPI" class="margin-bottom margin-left-2em">
@@ -417,8 +459,8 @@
       </el-col>
     </el-row>
 
-    <!--  模型 -->
-    <el-row v-show="compute.showModel" class="margin-bottom margin-left-2em">
+    <!--  模型（私密 AI 选中时改在服务卡片组内就近显示） -->
+    <el-row v-show="compute.showModel && !isPrivateAISelected" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
         <span class="popup-text popup-vertical-left">模型</span>
       </el-col>
@@ -429,7 +471,7 @@
       </el-col>
     </el-row>
 
-    <el-row v-show="compute.showCustomModel" class="margin-bottom margin-left-2em">
+    <el-row v-show="compute.showCustomModel && !isPrivateAISelected" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
         <el-tooltip class="box-item" effect="dark"
           :content="config.service === 'doubao' ? '豆包的model为接入点，获取方式见官方文档：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint' : (config.service === 'custom' ? '本地用 LM Studio / Ollama 加载模型后，此处填模型名（默认 translategemma-4b-it_immersive-translate）。模型下载（HuggingFace）：https://huggingface.co/mlx-community/translategemma-4b-it-4bit_immersive-translate' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！')"
@@ -548,6 +590,28 @@
         />
       </section>
     </div>
+
+    <!-- AI风格预设 / system / user（从「划词翻译」之后下移到 Flickr优化 之前显示） -->
+    <section v-if="section === 'all'" v-show="compute.showAI" id="section-aistyle" class="settings-block margin-left-2em margin-bottom">
+      <div class="section-header">
+        <span class="popup-text popup-vertical-left">AI风格预设</span>
+      </div>
+      <MainAdvancedBody
+        group="aistyle"
+        :config="config" :compute="compute" :options="options"
+        :floatingBallEnabled="floatingBallEnabled"
+        :showExportBox="showExportBox" :exportData="exportData"
+        :showImportBox="showImportBox" :importData="importData"
+        :showConfigManagement="false"
+        @update:config="mergeConfig"
+        @update:floatingBallEnabled="applyFloatingBallEnabled"
+        @update:exportData="(v) => exportData = v"
+        @update:importData="(v) => importData = v"
+        :resetTemplate="resetTemplate" :handleExport="handleExport"
+        :handleImport="handleImport" :saveImport="saveImport"
+        :handleConcurrentChange="(v) => handleConcurrentChange(v, config.maxConcurrentTranslations)"
+      />
+    </section>
 
     <!-- Flickr优化（移至配置管理之前） -->
     <section v-if="section === 'all'" id="section-flickr" class="settings-block margin-left-2em margin-bottom">
@@ -845,6 +909,12 @@ let compute = ref({
   showChromeTranslator: computed(() => config.value.service === services.chromeTranslator),
 })
 
+// 当前是否选中「AI私密翻译」组里的服务（自定义接口 / Chrome 内置 AI），
+// 选中时把对应的访问令牌 / 接口 / 模型 / AI模型状态 就近显示在该组下方。
+const isPrivateAISelected = computed(() =>
+  config.value.service === services.custom || config.value.service === services.chromeTranslator
+);
+
 // 自定义接口测试按钮状态（绿色=工作，红色=不工作）
 const customTesting = ref(false);
 const customTestText = ref('未测试');
@@ -1061,6 +1131,8 @@ const serviceGroups = computed(() => {
       }
       currentGroup = {
         label: item.label,
+        // 「AI私密翻译」组：含自定义接口或 Chrome 内置 AI，选中后在该组下方就近显示配置
+        isPrivate: item.value === 'ai',
         services: []
       };
     } else if (currentGroup) {
@@ -2085,6 +2157,20 @@ const validateConfig = (configData: any): boolean => {
   margin-right: 5px;
   flex-shrink: 0;
   object-fit: contain;
+}
+
+/* AI私密翻译就近配置：紧贴该组卡片下方，与下一组留出间距 */
+.inline-private-config {
+  margin-top: 10px;
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+
+.inline-private-config .margin-bottom:last-child {
+  margin-bottom: 0;
 }
 
 .service-name {

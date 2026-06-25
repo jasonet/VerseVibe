@@ -172,7 +172,10 @@
         <el-input :model-value="config.proxy[config.service]" @update:model-value="$emit('update:config', { proxy: { ...config.proxy, [config.service]: $event } })" placeholder="默认不使用代理" />
       </el-col>
     </el-row>
+    </template>
 
+    <!-- ============ AI 风格预设 / 角色提示词组（下移到 Flickr优化 之前显示） ============ -->
+    <template v-if="group === 'all' || group === 'aistyle'">
     <!-- 翻译风格预设：一键写入当前服务的 system_role -->
     <el-row v-show="compute.showAI" class="adv-row">
       <el-col :span="8" class="lightblue rounded-corner">
@@ -368,7 +371,7 @@ withDefaults(defineProps<{
   showImportBox: any;
   importData: any;
   showConfigManagement?: boolean;
-  group?: 'all' | 'main' | 'aiprompt' | 'flickr' | 'linkedin' | 'github' | 'reddit';
+  group?: 'all' | 'main' | 'aiprompt' | 'aistyle' | 'flickr' | 'linkedin' | 'github' | 'reddit';
   resetTemplate: () => void;
   handleExport: () => void;
   handleImport: () => void;
