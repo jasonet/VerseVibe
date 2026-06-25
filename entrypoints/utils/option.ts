@@ -282,8 +282,8 @@ export const options = {
         { value: "custom", label: "自定义快捷键（测试版）" },
     ],
     services: [
-        // 传统机器翻译
-        { value: "machine", label: "机器在线API翻译", disabled: true },
+        // 免费在线API翻译（浏览器默认）
+        { value: "machine", label: "免费在线API翻译（浏览器默认）", disabled: true },
         { value: services.microsoft, label: "微软翻译", icon: MICROSOFT_ICON },
         { value: services.google, label: "谷歌翻译", icon: GOOGLE_ICON },
         { value: services.deepL, label: "DeepL" },
@@ -292,10 +292,12 @@ export const options = {
         { value: services.xiaoniu, label: "小牛翻译" },
         { value: services.youdao, label: "有道翻译" },
         { value: services.tencent, label: "腾讯云翻译" },
-        // 大模型翻译（常用）
-        { value: "ai", label: "AI翻译（建议 自定义translategemma-4b-it_immersive-translate 2.2GB 2026本地运行）", disabled: true },
+        // AI 私密翻译（本地运行，数据不出本机）
+        { value: "ai", label: "AI私密翻译（建议 自定义translategemma-4b-it_immersive-translate 2.2GB 2026本地运行）", disabled: true },
         { value: services.custom, label: "自定义接口⭐️⭐️⭐️" },
-        { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐" },
+        { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐⭐" },
+        // AI 远程翻译（需自备 Key）
+        { value: "ai_remote", label: "AI远程翻译（Key）", disabled: true },
         { value: services.deepseek, label: "DeepSeek️" },
         { value: services.siliconCloud, label: "硅基流动⭐️" },
         { value: services.huanYuan, label: "腾讯混元⭐" },
@@ -308,17 +310,18 @@ export const options = {
         { value: services.claude, label: "Claude" },
         { value: services.gemini, label: "Gemini" },
         { value: services.moonshot, label: "Kimi" },
-        { value: services.zhipu, label: "智谱清言" },
+        { value: services.zhipu, label: "Z.ai" },
         // 更多 / 小众模型（均可改用「自定义接口 / New API / OpenRouter」接入）
         { value: "ai_more", label: "更多 / 小众模型", disabled: true },
         { value: services.openrouter, label: "OpenRouter" },
         { value: services.grok, label: "Grok (X.AI)" },
         { value: services.groq, label: "Groq" },
         { value: services.baichuan, label: "百川智能" },
-        { value: services.lingyi, label: "零一万物" },
+        // 隐藏 零一万物 / 阶跃星辰 / 无向芯穹（以后可恢复，勿删）
+        // { value: services.lingyi, label: "零一万物" },
         { value: services.minimax, label: "MiniMax" },
-        { value: services.jieyue, label: "阶跃星辰" },
-        { value: services.infini, label: "无向芯穹" },
+        // { value: services.jieyue, label: "阶跃星辰" },
+        // { value: services.infini, label: "无向芯穹" },
     ],
     display: [
         { value: 0, label: "仅译文模式" },
