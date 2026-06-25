@@ -202,7 +202,19 @@ export const models = new Map<string, Array<string>>([
     [services.zhipu, ["glm-4.5", "GLM-4-Flash", "glm-4-plus", "glm-4", "glm-4v", customModelString]],
     [services.moonshot, ["kimi-k2-0711-preview", "kimi-k2-turbo-preview", "moonshot-v1-auto", "moonshot-v1-8k", "moonshot-v1-32k", customModelString]],
     [services.claude, ["claude-sonnet-4-0", "claude-opus-4-1", "claude-3-5-haiku-latest"]],
-    [services.custom, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-4o", "gemma:7b", "llama2:7b", "mistral:7b", customModelString]],
+    // 自定义接口（本地优先）：仅列翻译优化型模型，默认 translategemma-4b-it_immersive-translate。
+    // TranslateGemma（Google，2026）为翻译专用，含 4B/12B/27B 及 immersive-translate 微调版；
+    // 另列入主流开源翻译专用模型（腾讯混元MT、字节 Seed-X、Unbabel Tower）。
+    [services.custom, [
+        "translategemma-4b-it_immersive-translate",
+        "translategemma-4b-it",
+        "translategemma-12b-it",
+        "translategemma-27b-it",
+        "hunyuan-mt-7b",
+        "seed-x-ppo-7b",
+        "towerinstruct-7b-v0.2",
+        customModelString,
+    ]],
     [services.infini, ["llama-2-13b-chat", "llama-3.3-70b-instruct", "qwen2.5-14b-instruct", "gemma-2-27b-it", "glm-4-9b-chat", customModelString]],
     [services.baichuan, ["Baichuan4-Air", "Baichuan4-Turbo", "Baichuan4", customModelString]],
     [services.lingyi, ["yi-lightning", customModelString]],
