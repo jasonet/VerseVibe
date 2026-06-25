@@ -192,6 +192,10 @@ export const models = new Map<string, Array<string>>([
     [services.openrouter, ["meta-llama/llama-3.1-8b-instruct", "google/gemini-2.0-flash-exp", "qwen/qwen-2-7b-instruct", "huggingfaceh4/zephyr-7b-beta", customModelString]]
 ]);
 
+// 品牌图标（内联 SVG data URI，无需额外网络请求）
+const MICROSOFT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='1' y='1' width='10' height='10' fill='%23F25022'/%3E%3Crect x='13' y='1' width='10' height='10' fill='%237FBA00'/%3E%3Crect x='1' y='13' width='10' height='10' fill='%2300A4EF'/%3E%3Crect x='13' y='13' width='10' height='10' fill='%23FFB900'/%3E%3C/svg%3E";
+const GOOGLE_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23FFC107' d='M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z'/%3E%3Cpath fill='%23FF3D00' d='M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z'/%3E%3Cpath fill='%234CAF50' d='M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.6 16.2 44 24 44z'/%3E%3Cpath fill='%231976D2' d='M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C39.9 36 44 30.6 44 24c0-1.3-.1-2.3-.4-3.5z'/%3E%3C/svg%3E";
+
 export const options = {
     on: [
         { value: true, label: "开启" },
@@ -247,19 +251,20 @@ export const options = {
     ],
     services: [
         // 传统机器翻译
-        { value: "machine", label: "机器翻译", disabled: true },
-        { value: services.microsoft, label: "微软翻译" },
-        { value: services.google, label: "谷歌翻译" },
+        { value: "machine", label: "机器在线API翻译", disabled: true },
+        { value: services.microsoft, label: "微软翻译", icon: MICROSOFT_ICON },
+        { value: services.google, label: "谷歌翻译", icon: GOOGLE_ICON },
         { value: services.deepL, label: "DeepL" },
-        { value: services.deeplx, label: "DeepLX" },
+        // 隐藏 DeepLX（以后可恢复，勿删）
+        // { value: services.deeplx, label: "DeepLX" },
         { value: services.xiaoniu, label: "小牛翻译" },
         { value: services.youdao, label: "有道翻译" },
         { value: services.tencent, label: "腾讯云翻译" },
         // 大模型翻译（常用）
-        { value: "ai", label: "AI翻译", disabled: true },
+        { value: "ai", label: "AI翻译（建议 自定义translategemma-4b-it_immersive-translate 2.2GB 2026本地运行）", disabled: true },
+        { value: services.custom, label: "自定义接口⭐️⭐️⭐️" },
         { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐" },
         { value: services.deepseek, label: "DeepSeek️" },
-        { value: services.custom, label: "自定义接口⭐️" },
         { value: services.siliconCloud, label: "硅基流动⭐️" },
         { value: services.huanYuan, label: "腾讯混元⭐" },
         { value: services.newapi, label: "New API" },
@@ -518,7 +523,7 @@ export const defaultOption = {
     display: 1,
     hotkey: "Control",
     service: services.microsoft,
-    custom: "http://127.0.0.1:1234/v1/chat/completions",
+    custom: "http://127.0.0.1:1234",
     deeplx: "http://localhost:1188/translate",
     system_role:
         "You are a professional translation engine. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",

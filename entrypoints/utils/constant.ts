@@ -32,6 +32,23 @@ export const urls: any = {
 
 export const method = { POST: "POST", GET: "GET", };
 
+// 规整 OpenAI 兼容接口地址：允许用户只填基础地址（如 http://127.0.0.1:1234），
+// 自动补全到 /v1/chat/completions；若已是完整 chat/completions 路径则原样返回。
+export function normalizeOpenAiUrl(url: string): string {
+    let u = (url || "").trim();
+    if (!u) return u;
+    u = u.replace(/\/+$/, "");
+    if (/\/chat\/completions$/.test(u)) return u;
+    if (/\/v1$/.test(u)) return u + "/chat/completions";
+    try {
+        const parsed = new URL(u);
+        if (parsed.pathname === "" || parsed.pathname === "/") {
+            return parsed.origin + "/v1/chat/completions";
+        }
+    } catch { /* 非法 URL，原样返回 */ }
+    return u;
+}
+
 export const constants = {
     // 键鼠事件
     DoubleClick: "DoubleClick",

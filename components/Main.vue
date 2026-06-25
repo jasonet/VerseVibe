@@ -236,6 +236,7 @@
                 @click="config.service = item.value"
                 :class="['service-card', { 'selected': config.service === item.value }]"
               >
+                <img v-if="item.icon" :src="item.icon" class="service-icon" alt="" />
                 <div class="service-name">{{ item.label }}</div>
               </div>
             </div>
@@ -369,7 +370,7 @@
           </div>
           <!-- 模型说明：API 不暴露具体型号/版本/大小，给出真实可查的入口与下载方式 -->
           <div style="margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary);">
-            <div>· 模型：Chrome 设备端翻译模型（按“语言对”分发的语言包，本地离线运行）</div>
+            <div>· 基于 <a href="https://developer.chrome.com/docs/ai/translator-api?hl=zh-cn" target="_blank" rel="noopener" style="color: var(--el-color-primary);">Chrome 的 Translator API</a>（By Google）：设备端翻译模型，按“语言对”分发语言包，本地离线运行</div>
             <div>· 型号 / 版本号 / 占用大小由浏览器管理，API 不提供查询；可在 <code>chrome://on-device-internals</code> 查看真实大小与状态</div>
             <div>· 单个语言包通常约几十 MB；常驻内存仅在翻译时按需加载，不翻译时基本不占用</div>
             <div>· 下载其他语言：先在上方“目标语言”选好语言，再点“检查状态 → 下载模型”，Chrome 会自动拉取对应语言包</div>
@@ -393,7 +394,12 @@
         </el-tooltip>
       </el-col>
       <el-col :span="12">
-        <el-input v-model="config.custom" placeholder="请输入自定义接口地址" class="custom-interface-input" />
+        <el-input v-model="config.custom" placeholder="请输入自定义接口地址（如 http://127.0.0.1:1234）" class="custom-interface-input">
+          <template #append>
+            <el-button @click="testCustomEndpoint" :loading="customTesting">测试</el-button>
+          </template>
+        </el-input>
+        <div style="margin-top: 6px; font-size: 12px; line-height: 1.5;" :style="{ color: customTestColor }">{{ customTestText }}</div>
       </el-col>
     </el-row>
 
@@ -426,7 +432,7 @@
     <el-row v-show="compute.showCustomModel" class="margin-bottom margin-left-2em">
       <el-col :span="12" class="lightblue rounded-corner">
         <el-tooltip class="box-item" effect="dark"
-          :content="config.service === 'doubao' ? '豆包的model为接入点，获取方式见官方文档：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint' : (config.service === 'custom' ? '本地用 LM Studio / Ollama 加载模型后，此处填模型名（默认 translategemma-4b-it-4bit）。模型下载（HuggingFace）：https://huggingface.co/mlx-community/translategemma-4b-it-4bit_immersive-translate' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！')"
+          :content="config.service === 'doubao' ? '豆包的model为接入点，获取方式见官方文档：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint' : (config.service === 'custom' ? '本地用 LM Studio / Ollama 加载模型后，此处填模型名（默认 translategemma-4b-it_immersive-translate）。模型下载（HuggingFace）：https://huggingface.co/mlx-community/translategemma-4b-it-4bit_immersive-translate' : '注意：自定义模型名称需要与服务商提供的模型名称一致，否则无法使用！')"
           placement="top-start" :show-after="500">
           <span class="popup-text popup-vertical-left">{{ config.service === 'doubao' ? '接入点' : '自定义模型' }}<el-icon
               class="icon-margin">
@@ -435,7 +441,7 @@
         </el-tooltip>
       </el-col>
       <el-col :span="12">
-        <el-input v-model="config.customModel[config.service]" :placeholder="config.service === 'custom' ? '例如：translategemma-4b-it-4bit' : '例如：gemma:7b'" />
+        <el-input v-model="config.customModel[config.service]" :placeholder="config.service === 'custom' ? '例如：translategemma-4b-it_immersive-translate' : '例如：gemma:7b'" />
       </el-col>
     </el-row>
   </div>
@@ -704,6 +710,7 @@ import browser from 'webextension-polyfill';
 import { defineAsyncComponent } from 'vue';
 const CustomHotkeyInput = defineAsyncComponent(() => import('@/components/CustomHotkeyInput.vue'));
 import { parseHotkey } from '@/entrypoints/utils/hotkey';
+import { normalizeOpenAiUrl } from '@/entrypoints/utils/constant';
 
 // 初始化深色模式媒体查询
 const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -837,6 +844,42 @@ let compute = ref({
   // 15、是否显示 Chrome AI 配置
   showChromeTranslator: computed(() => config.value.service === services.chromeTranslator),
 })
+
+// 自定义接口测试按钮状态（绿色=工作，红色=不工作）
+const customTesting = ref(false);
+const customTestText = ref('未测试');
+const customTestColor = ref('var(--el-text-color-secondary)');
+const testCustomEndpoint = async () => {
+    customTesting.value = true;
+    customTestText.value = '测试中…';
+    customTestColor.value = 'orange';
+    try {
+        const url = normalizeOpenAiUrl(config.value.custom);
+        const svc = config.value.service;
+        const modelName = config.value.model[svc] === '自定义模型'
+            ? config.value.customModel[svc]
+            : config.value.model[svc];
+        const token = config.value.token[svc] || 'local';
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ model: modelName, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, stream: false }),
+        });
+        if (resp.ok) {
+            customTestText.value = '✅ 工作正常';
+            customTestColor.value = 'green';
+        } else {
+            const body = (await resp.text().catch(() => '')).slice(0, 120);
+            customTestText.value = `❌ 失败 HTTP ${resp.status} ${body}`;
+            customTestColor.value = 'red';
+        }
+    } catch (e) {
+        customTestText.value = '❌ 无法连接：' + (e instanceof Error ? e.message : String(e));
+        customTestColor.value = 'red';
+    } finally {
+        customTesting.value = false;
+    }
+};
 
 // Chrome AI 状态管理
 const checkingChromeAI = ref(false);
@@ -2034,6 +2077,14 @@ const validateConfig = (configData: any): boolean => {
   color: var(--el-color-primary);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.12);
+}
+
+.service-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .service-name {

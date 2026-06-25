@@ -114,7 +114,7 @@ export class Config {
         this.appid = '';
         this.key = '';
         this.model = { [services.custom]: customModelString };
-        this.customModel = { [services.custom]: 'translategemma-4b-it-4bit' };
+        this.customModel = { [services.custom]: 'translategemma-4b-it_immersive-translate' };
         this.proxy = {};
         this.custom = defaultOption.custom;
         this.extra = {};
