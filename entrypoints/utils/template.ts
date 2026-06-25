@@ -54,21 +54,20 @@ export function isTranslateGemmaModel(): boolean {
 }
 
 /**
- * TranslateGemma 专用模板。
+ * TranslateGemma（immersive-translate 微调版）专用模板。
  *
- * 背景：immersive-translate 微调版「本应」用标记格式
+ * 关键认知（来自用户多版截图实测）：该模型是「纯翻译模型」，会把 user 轮里的
+ * 一切自然语言文本都当作待翻译原文——包括你写给它的指令本身。
+ *   · 用 system+user 通用提示词 → 模型把提示词翻成中文输出（最初的 bug）
+ *   · 用「Translate the following… Do not add…」自然语言指令 → 指令同样被翻成中文输出
+ * 因此唯一正确的方式是官方标记格式：
  *   <<<source>>>{源}<<<target>>>{目标}<<<text>>>{原文}
- * 由模型内置的 chat_template.jinja 解析后展开成「专业译者」指令。
- * 但该解析依赖 LM Studio / Ollama 实际加载了那份自定义 Jinja 模板；
- * 多数用户加载的 GGUF/量化版并未携带该模板，于是标记被原样塞进通用
- * Gemma-3 模板，模型把 <<<source>>> 等标记词当普通内容，输出一堆
- * 「选项/拼音/解释」的啰嗦结果（即用户截图的现象）。
+ * 这些 <<<...>>> 是该微调版「训练时就学会识别并剥离」的特殊标记（不是会被翻译的普通词），
+ * 模型只翻译 <<<text>>> 之后的正文，并据 source/target 决定方向。不带 system。
  *
- * 稳健做法：不再依赖模型解析标记，直接下发「展开后的专业译者指令」。
- * 无论是否加载了自定义模板，这段明确指令都能让模型只输出译文：
- *  - 自定义模板已加载：内容不含 <<<source>>>，走 else 分支按普通 user 轮渲染；
- *  - 仅通用模板：模型直接遵循该指令。
- * 仍不使用 system（官方要求 system 留空）。
+ * 注意：若 LM Studio/Ollama 加载的不是真正的 immersive 微调版（或量化损坏了标记识别），
+ * 标记可能不被识别。那属于本地模型/模板配置问题，需在 LM Studio 侧用正确模型与
+ * chat 模板解决——扩展侧已用模型本身的标准格式，无法替代本地模板配置。
  */
 export function translateGemmaMsgTemplate(origin: string): string {
     const model = resolveModelName();
@@ -76,16 +75,6 @@ export function translateGemmaMsgTemplate(origin: string): string {
     // 显式标注源语言（官方最佳实践：不要在准确性敏感时依赖纯 auto）；
     // 检测不到时回退 'auto'，模型自身也能处理。
     const source = gemmaLangName(detectlang(origin)) || 'auto';
-    const fromClause = (source && source !== 'auto') ? `from ${source} ` : '';
-
-    // 严格指令：强制「只输出译文」，杜绝选项/解释/拼音/注释/引号。
-    const instruction =
-        `Translate the following text ${fromClause}into ${target}. ` +
-        `Output ONLY the final ${target} translation as plain text. ` +
-        `Do NOT add any explanations, comments, notes, alternatives, options, ` +
-        `pinyin, romanization, labels, headings or quotation marks. ` +
-        `Do NOT repeat or include the original text.\n\n` +
-        origin;
 
     // 译文长度约等于原文；按原文长度动态封顶 max_tokens，
     // 避免本地小模型在长段落时超额生成而拖慢速度（同时防止复读跑飞）。
@@ -102,7 +91,7 @@ export function translateGemmaMsgTemplate(origin: string): string {
         'max_tokens': maxTokens,
         'stream': false,
         'messages': [
-            { 'role': 'user', 'content': instruction },
+            { 'role': 'user', 'content': `<<<source>>>${source}<<<target>>>${target}<<<text>>>${origin}` },
         ],
     });
 }
