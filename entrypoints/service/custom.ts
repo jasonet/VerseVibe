@@ -1,4 +1,4 @@
-import {commonMsgTemplate, translateGemmaMsgTemplate, isTranslateGemmaModel} from "../utils/template";
+import {commonMsgTemplate, translateGemmaMsgTemplate, isTranslateGemmaModel, sanitizeGemmaOutput} from "../utils/template";
 import {method, normalizeOpenAiUrl} from "../utils/constant";
 import {services} from "@/entrypoints/utils/option";
 import {config} from "@/entrypoints/utils/config";
@@ -24,7 +24,10 @@ async function custom(message: any) {
 
     if (resp.ok) {
         let result = await resp.json();
-        return  contentPostHandler(result.choices[0].message.content);
+        let content = result.choices[0].message.content;
+        // TranslateGemma：兜底清洗偶发的开场白/引号，确保只保留译文。
+        if (isTranslateGemmaModel()) content = sanitizeGemmaOutput(content);
+        return contentPostHandler(content);
     } else {
         console.log("翻译失败：", resp);
         throw new Error(`翻译失败: ${resp.status} ${resp.statusText} body: ${await resp.text()}`);

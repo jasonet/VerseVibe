@@ -54,10 +54,21 @@ export function isTranslateGemmaModel(): boolean {
 }
 
 /**
- * TranslateGemma（immersive-translate 微调版）专用模板。
- * 正确用法（来自模型卡）：不使用 system；user 内容用标记格式：
- *   <<<source>>>{源语言}<<<target>>>{目标语言}<<<text>>>{原文}
- * 模型内置 chat 模板会解析这些标记并生成正确的翻译指令。
+ * TranslateGemma 专用模板。
+ *
+ * 背景：immersive-translate 微调版「本应」用标记格式
+ *   <<<source>>>{源}<<<target>>>{目标}<<<text>>>{原文}
+ * 由模型内置的 chat_template.jinja 解析后展开成「专业译者」指令。
+ * 但该解析依赖 LM Studio / Ollama 实际加载了那份自定义 Jinja 模板；
+ * 多数用户加载的 GGUF/量化版并未携带该模板，于是标记被原样塞进通用
+ * Gemma-3 模板，模型把 <<<source>>> 等标记词当普通内容，输出一堆
+ * 「选项/拼音/解释」的啰嗦结果（即用户截图的现象）。
+ *
+ * 稳健做法：不再依赖模型解析标记，直接下发「展开后的专业译者指令」。
+ * 无论是否加载了自定义模板，这段明确指令都能让模型只输出译文：
+ *  - 自定义模板已加载：内容不含 <<<source>>>，走 else 分支按普通 user 轮渲染；
+ *  - 仅通用模板：模型直接遵循该指令。
+ * 仍不使用 system（官方要求 system 留空）。
  */
 export function translateGemmaMsgTemplate(origin: string): string {
     const model = resolveModelName();
@@ -65,6 +76,16 @@ export function translateGemmaMsgTemplate(origin: string): string {
     // 显式标注源语言（官方最佳实践：不要在准确性敏感时依赖纯 auto）；
     // 检测不到时回退 'auto'，模型自身也能处理。
     const source = gemmaLangName(detectlang(origin)) || 'auto';
+    const fromClause = (source && source !== 'auto') ? `from ${source} ` : '';
+
+    // 严格指令：强制「只输出译文」，杜绝选项/解释/拼音/注释/引号。
+    const instruction =
+        `Translate the following text ${fromClause}into ${target}. ` +
+        `Output ONLY the final ${target} translation as plain text. ` +
+        `Do NOT add any explanations, comments, notes, alternatives, options, ` +
+        `pinyin, romanization, labels, headings or quotation marks. ` +
+        `Do NOT repeat or include the original text.\n\n` +
+        origin;
 
     // 译文长度约等于原文；按原文长度动态封顶 max_tokens，
     // 避免本地小模型在长段落时超额生成而拖慢速度（同时防止复读跑飞）。
@@ -81,9 +102,26 @@ export function translateGemmaMsgTemplate(origin: string): string {
         'max_tokens': maxTokens,
         'stream': false,
         'messages': [
-            { 'role': 'user', 'content': `<<<source>>>${source}<<<target>>>${target}<<<text>>>${origin}` },
+            { 'role': 'user', 'content': instruction },
         ],
     });
+}
+
+/**
+ * 清洗 TranslateGemma 输出：作为安全网，剥除模型偶发的开场白与包裹引号。
+ * （主要靠上面的严格指令预防啰嗦输出，这里只做保守的二次兜底。）
+ */
+export function sanitizeGemmaOutput(text: string): string {
+    if (!text) return text;
+    let s = text.trim();
+    // 去掉单行开场白：Okay/Sure/Here's the translation: / 以下是…… / 翻译如下…… / 译文：
+    s = s.replace(
+        /^(?:okay|ok|sure|certainly|here(?:'s| is| are)[^\n]*|以下是[^\n]*|翻译如下[^\n]*|译文\s*[:：][^\n]*)\n+/i,
+        ''
+    );
+    // 去掉整体包裹的引号
+    s = s.replace(/^["'“”『「]+/, '').replace(/["'“”』」]+$/, '').trim();
+    return s;
 }
 
 // openai 格式的消息模板（通用模板）
