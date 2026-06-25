@@ -108,14 +108,34 @@ export function sanitizeGemmaOutput(text: string): string {
     const original = text.trim();
     let s = original;
 
-    // 1) 去掉单行开场白：Okay/Sure/Here's the translation: / 以下是…… / 翻译如下…… / 译文：
+    // A) 去掉被模型回显的标记残片：<<<source>>> / <<<target>>> / <<<text>>> / <<>> 等
+    s = s.replace(/<<<\s*(?:source|target|text)\s*>>>/gi, ' ');
+    s = s.replace(/<<+\s*>>+/g, ' ');
+
+    // B) 逐行清洗：丢掉开场白、纯标签行、解释括注、分隔线
+    const dropLine = (line: string): boolean => {
+        const t = line.trim();
+        if (!t) return false; // 空行后面统一处理
+        // 开场白：Okay/Sure/Here's a translation... / 以下是…… / 翻译如下……
+        if (/^(?:okay|ok|sure|certainly|here(?:'s| is| are)\b)[^\n]*$/i.test(t)) return true;
+        if (/^(?:以下是|翻译如下)[^\n]*$/.test(t)) return true;
+        // 纯标签行：**Translation:** / **译文：** / **《翻译》** / **Simplified Chinese:** 等
+        if (/^\**\s*(?:《?\s*(?:translation|译文|翻译)\s*》?|simplified\s+chinese|traditional\s+chinese)\s*[:：]?\s*\**$/i.test(t)) return true;
+        // 分隔线：--- / *** / ___
+        if (/^[-—*_]{3,}$/.test(t)) return true;
+        // 整行解释性括注：(This indicates ...) /（表示……）—— 仅在含解释关键词时丢
+        if (/^[（(].*[)）]$/.test(t) && /indicate|comparison|means?|note|表示|说明|意为|即/i.test(t)) return true;
+        return false;
+    };
+    s = s.split('\n').filter(l => !dropLine(l)).join('\n').trim();
+
+    // C) 行首残留标签前缀（标签与正文同一行）：**《翻译》** 正文 / **Simplified Chinese:** 正文
     s = s.replace(
-        /^(?:okay|ok|sure|certainly|here(?:'s| is| are)[^\n]*|以下是[^\n]*|翻译如下[^\n]*|译文\s*[:：][^\n]*)\n+/i,
+        /^\**\s*(?:《?\s*(?:translation|译文|翻译)\s*》?|simplified\s+chinese|traditional\s+chinese)\s*[:：]?\s*\**\s*/i,
         ''
     );
 
-    // 2) 截断「选项/解释/拼音/逐词注释」啰嗦尾巴：从最早出现的小节标记处切掉其后内容。
-    //    仅当标记之前已有正文时才截断，避免把唯一内容也删没。
+    // D) 截断「选项/解释/拼音/逐词注释」啰嗦尾巴：从最早出现的小节标记处切掉其后内容。
     const tailMarkers = [
         /\n\s*\*\*\s*Option\b/i,
         /\n\s*\*\*\s*Explanation\b/i,
@@ -132,7 +152,7 @@ export function sanitizeGemmaOutput(text: string): string {
     }
     if (cut > 0 && cut < s.length) s = s.slice(0, cut).trim();
 
-    // 3) 去掉整体包裹的引号（只处理 ASCII 与弯引号；保留中文书名号《》「」，它们可能是正文）
+    // E) 去掉整体包裹的引号（只处理 ASCII 与弯引号；保留中文书名号《》「」，它们可能是正文）
     s = s.replace(/^["'“”]+/, '').replace(/["'“”]+$/, '').trim();
 
     // 兜底：若清洗后为空（如模型整段都是选项/解释），退回原始文本，至少不留空。
