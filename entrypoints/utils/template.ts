@@ -103,6 +103,11 @@ export function translateGemmaMsgTemplate(origin: string): string {
  * 清洗 TranslateGemma 输出：作为安全网，剥除模型偶发的开场白与包裹引号。
  * （主要靠上面的严格指令预防啰嗦输出，这里只做保守的二次兜底。）
  */
+// 含声调拼音字母（ā á ǎ à 等）——用于高精度识别拼音行/括注，避免误删合法的 (API)/(AGPL-3.0)。
+function hasPinyinTone(s: string): boolean {
+    return /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹ]/i.test(s);
+}
+
 export function sanitizeGemmaOutput(text: string): string {
     if (!text) return text;
     const original = text.trim();
@@ -112,7 +117,14 @@ export function sanitizeGemmaOutput(text: string): string {
     s = s.replace(/<<<\s*(?:source|target|text)\s*>>>/gi, ' ');
     s = s.replace(/<<+\s*>>+/g, ' ');
 
-    // B) 逐行清洗：丢掉开场白、纯标签行、解释括注、分隔线
+    // B0) 只保留「第一种译法」：4bit 量化常输出 **Option 1 ...** / **Option 2 ...**，
+    //     从第二个 Option（及 Alternative/其他译法标题）处整体截断，仅留首个译文块。
+    {
+        const secondOption = s.search(/\n\s*\**\s*(?:option|alternative|或译|其他译法|另一种)\s*[2-9２-９]/i);
+        if (secondOption > 0) s = s.slice(0, secondOption).trim();
+    }
+
+    // B) 逐行清洗：丢掉开场白、纯标签行、Option 标题、拼音行、解释括注、分隔线
     const dropLine = (line: string): boolean => {
         const t = line.trim();
         if (!t) return false; // 空行后面统一处理
@@ -121,6 +133,10 @@ export function sanitizeGemmaOutput(text: string): string {
         if (/^(?:以下是|翻译如下)[^\n]*$/.test(t)) return true;
         // 纯标签行：**Translation:** / **译文：** / **《翻译》** / **Simplified Chinese:** 等
         if (/^\**\s*(?:《?\s*(?:translation|译文|翻译)\s*》?|simplified\s+chinese|traditional\s+chinese)\s*[:：]?\s*\**$/i.test(t)) return true;
+        // Option 标题行：**Option 1 (Most Precise ...):** / **Option（最精确）：**
+        if (/^\**\s*option\b.*$/i.test(t)) return true;
+        // 整行拼音注释：(AGPL-3.0 xiéyù) / （📌 Yuányīn: ...）——仅当含声调拼音时丢
+        if (/^[（(].*[)）]$/.test(t) && hasPinyinTone(t)) return true;
         // 分隔线：--- / *** / ___
         if (/^[-—*_]{3,}$/.test(t)) return true;
         // 整行解释性括注：(This indicates ...) /（表示……）—— 仅在含解释关键词时丢
@@ -152,7 +168,15 @@ export function sanitizeGemmaOutput(text: string): string {
     }
     if (cut > 0 && cut < s.length) s = s.slice(0, cut).trim();
 
-    // E) 去掉整体包裹的引号（只处理 ASCII 与弯引号；保留中文书名号《》「」，它们可能是正文）
+    // E) 剥掉行尾拼音括注（与正文同一行）：技术名词 (xiéyù) / 原因 （Yuányīn）
+    s = s.split('\n').map(line => {
+        const m = line.match(/[（(][^（()）]*[)）]\s*$/);
+        if (m && hasPinyinTone(m[0])) return line.slice(0, m.index).trimEnd();
+        return line;
+    }).join('\n');
+
+    // F) 去掉残留的粗体标记 **，以及整体包裹的引号（保留中文书名号《》「」）
+    s = s.replace(/\*\*/g, '');
     s = s.replace(/^["'“”]+/, '').replace(/["'“”]+$/, '').trim();
 
     // 兜底：若清洗后为空（如模型整段都是选项/解释），退回原始文本，至少不留空。
