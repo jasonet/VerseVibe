@@ -306,7 +306,7 @@ export const options = {
         { value: services.tencent, label: "腾讯云翻译" },
         // AI 私密翻译（本地运行，数据不出本机）
         { value: "ai", label: "AI私密翻译（建议 自定义translategemma-4b-it_immersive-translate 2.2GB 2026本地运行）", disabled: true },
-        { value: services.custom, label: "自定义接口⭐️⭐️⭐️" },
+        { value: services.custom, label: "自定义接口⭐️" },
         { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐⭐" },
         // AI 远程翻译（需自备 Key）
         { value: "ai_remote", label: "AI远程翻译（Key）", disabled: true },

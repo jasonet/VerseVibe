@@ -71,10 +71,17 @@ export function isTranslateGemmaModel(): boolean {
  */
 export function translateGemmaMsgTemplate(origin: string): string {
     const model = resolveModelName();
+    // 目标语言强约束：始终用显式英文语种名（如 Simplified Chinese），
+    // 绝不把 config.to 的原始代码（zh-Hans 等）直接塞给模型——它可能识别不了而回退繁体。
     const target = gemmaLangName(config.to) || config.to;
     // 显式标注源语言（官方最佳实践：不要在准确性敏感时依赖纯 auto）；
     // 检测不到时回退 'auto'，模型自身也能处理。
-    const source = gemmaLangName(detectlang(origin)) || 'auto';
+    let source = gemmaLangName(detectlang(origin)) || 'auto';
+    // 关键修复：franc 对短/混排文本常误判，可能把源语言判成与目标相同
+    // （例如英文短句被判为中文）。一旦 source==target，模型会被要求「中文→中文」，
+    // 无可翻译内容时便跑偏成「给出多个选项/解释」的乱输出——正是本地模型错误的根因之一。
+    // 此时退回 'auto'，让模型自行判断方向，仍严格译往目标语言。
+    if (source === target) source = 'auto';
 
     // 译文长度约等于原文；按原文长度动态封顶 max_tokens，
     // 避免本地小模型在长段落时超额生成而拖慢速度（同时防止复读跑飞）。

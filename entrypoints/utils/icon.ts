@@ -29,29 +29,85 @@ export function insertFailedTip(
   // 创建包装元素
   const wrapper = document.createElement("span");
   wrapper.classList.add("versevibe-retry-wrapper");
-
-  // 创建重试按钮
-  const retryBtn = document.createElement("span");
-  retryBtn.innerText = "重试";
-  retryBtn.classList.add("versevibe-retry");
-  retryBtn.addEventListener("click", handleRetryClick(node, wrapper));
+  wrapper.style.cssText =
+    "display:inline-flex;align-items:center;gap:2px;vertical-align:middle;";
 
   // 添加失败标记
   node.classList.add("versevibe-failure");
 
-  // 创建错误信息提示按钮
-  const errorTip = document.createElement("span");
-  errorTip.innerText = "错误原因";
-  errorTip.classList.add("versevibe-reason");
-  errorTip.addEventListener("click", handleErrorClick(errMsg));
+  // 「重试」按钮组：图标 + 文字 整体可点击（此前仅文字可点、图标 pointer-events:none，
+  // 导致用户点图标无反应）。整组绑定点击，并加 cursor:pointer/title 让它看起来像按钮。
+  const retryGroup = document.createElement("span");
+  retryGroup.classList.add("versevibe-retry");
+  retryGroup.style.cssText =
+    "display:inline-flex;align-items:center;cursor:pointer;user-select:none;";
+  retryGroup.title = "点击重新翻译";
 
-  // 创建图标元素
   const retryElement = createIconElement(icon.retry);
+  const retryText = document.createElement("span");
+  retryText.innerText = "重试";
+  retryGroup.append(retryElement, retryText);
+  retryGroup.addEventListener("click", handleRetryClick(node, wrapper));
+
+  // 「错误原因」按钮组：直接把具体原因显示出来（如 网络连接异常 / 本地模型无法连通 / 请求超时），
+  // 而不是只显示静态的「错误原因」四个字。点击仍可弹出完整原文便于排查。
+  const reason = getShortErrorReason(errMsg);
+  const reasonGroup = document.createElement("span");
+  reasonGroup.classList.add("versevibe-reason");
+  reasonGroup.style.cssText =
+    "display:inline-flex;align-items:center;cursor:help;user-select:none;margin-left:6px;color:#d97706;";
+  reasonGroup.title = "点击查看完整错误信息";
+
   const warnElement = createIconElement(icon.warn);
+  const reasonText = document.createElement("span");
+  reasonText.innerText = reason;
+  reasonGroup.append(warnElement, reasonText);
+  reasonGroup.addEventListener("click", handleErrorClick(errMsg));
 
   // 将所有元素批量添加到 wrapper
-  wrapper.append(retryElement, retryBtn, warnElement, errorTip);
+  wrapper.append(retryGroup, reasonGroup);
   node.appendChild(wrapper);
+}
+
+// 把原始错误信息归纳成简短、可读的中文原因，直接展示给用户。
+function getShortErrorReason(errMsg: string): string {
+  const raw = errMsg || "";
+  const msg = raw.toLowerCase();
+  // 本地模型（自定义接口）连不上：fetch 失败 / 连接被拒 / 端口无响应
+  const isLocal = config.service === services.custom;
+  if (
+    msg.includes("failed to fetch") ||
+    msg.includes("networkerror") ||
+    msg.includes("econnrefused") ||
+    msg.includes("connection refused") ||
+    msg.includes("err_connection")
+  ) {
+    return isLocal ? "本地模型无法连通" : "网络连接异常";
+  }
+  if (msg.includes("timeout") || msg.includes("timed out") || msg.includes("etimedout")) {
+    return "请求超时";
+  }
+  if (msg.includes("network error")) {
+    return "网络连接异常";
+  }
+  if (msg.includes("auth failed") || msg.includes("api key") || msg.includes("401") || msg.includes("unauthorized")) {
+    return "密钥无效或未授权";
+  }
+  if (msg.includes("quota") || msg.includes("limit") || msg.includes("429")) {
+    return "请求频率过高";
+  }
+  if (msg.includes("model")) {
+    return "模型配置有误";
+  }
+  if (msg.includes("404")) {
+    return "接口地址错误";
+  }
+  if (msg.includes("500") || msg.includes("502") || msg.includes("503")) {
+    return "服务端异常";
+  }
+  // 兜底：截取一小段原始信息，避免过长
+  const trimmed = raw.trim().replace(/\s+/g, " ");
+  return trimmed ? (trimmed.length > 24 ? trimmed.slice(0, 24) + "…" : trimmed) : "翻译失败";
 }
 
 // 处理重试按钮点击事件
