@@ -13,6 +13,12 @@ dist
 dist
 .wxt
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
 # Docs
 docs/.vitepress/dist
 docs/.vitepress/cache
@@ -61,6 +67,9 @@ Thumbs.db
 *.crx
 *.xpi
 *.bak
+WeCom*.png
+WeCom截圖*.png
+WeCom截图*.png
 
 # Local env files
 .env*.local

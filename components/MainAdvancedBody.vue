@@ -226,6 +226,42 @@
     </el-row>
     </template>
 
+    <!-- ============ PDF 沉浸式翻译 ============ -->
+    <template v-if="group === 'all' || group === 'pdf'">
+    <!-- 自动接管 PDF -->
+    <el-row class="adv-row">
+      <el-col :span="20" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="打开在线 PDF 时自动进入沉浸式翻译阅读器：左侧原页、右侧译文对照，并可导出左英右中的双语 PDF。默认开启。可随时在侧栏点击 PDF 图标手动打开。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">PDF沉浸式翻译<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="4" class="flex-end">
+        <el-switch :model-value="config.pdfTakeover" @update:model-value="$emit('update:config', { pdfTakeover: $event })" inline-prompt active-text="启用" inactive-text="禁用" />
+      </el-col>
+    </el-row>
+
+    <!-- PDF 本地服务地址 -->
+    <el-row class="adv-row">
+      <el-col :span="12" class="lightblue rounded-corner">
+        <el-tooltip class="box-item" effect="dark" content="混合架构：PDF 解析/翻译/重建在本地 Python 服务完成（server/server.py）。插件只把 PDF 字节发给此地址。详见 server/README.md。" placement="top-start" :show-after="500">
+          <span class="popup-text popup-vertical-left">PDF本地服务地址<el-icon class="icon-margin"><ChatDotRound /></el-icon></span>
+        </el-tooltip>
+      </el-col>
+      <el-col :span="8">
+        <el-input :model-value="config.pdfServerUrl" placeholder="http://127.0.0.1:8765" size="small"
+          @update:model-value="$emit('update:config', { pdfServerUrl: $event })" />
+      </el-col>
+      <el-col :span="4" class="flex-end">
+        <el-button size="small" :loading="pdfTesting" @click="testPdfServer">测试连接</el-button>
+      </el-col>
+    </el-row>
+    <el-row v-if="pdfTestResult" class="adv-row">
+      <el-col :span="24">
+        <span class="popup-text" :style="{ color: pdfTestOk ? '#67c23a' : '#f56c6c' }">{{ pdfTestResult }}</span>
+      </el-col>
+    </el-row>
+    </template>
+
     <!-- ============ Flickr 优化组 ============ -->
     <template v-if="group === 'all' || group === 'flickr'">
     <!-- Flickr 大图下载菜单 -->
@@ -359,9 +395,10 @@
 
 <script lang="ts" setup>
 import { ChatDotRound, Refresh, Upload, Download } from '@element-plus/icons-vue';
+import { ref } from 'vue';
 import { promptPresets } from '@/entrypoints/utils/option';
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   config: any;
   compute: any;
   options: any;
@@ -371,7 +408,7 @@ withDefaults(defineProps<{
   showImportBox: any;
   importData: any;
   showConfigManagement?: boolean;
-  group?: 'all' | 'main' | 'aiprompt' | 'aistyle' | 'flickr' | 'linkedin' | 'github' | 'reddit';
+  group?: 'all' | 'main' | 'aiprompt' | 'aistyle' | 'pdf' | 'flickr' | 'linkedin' | 'github' | 'reddit';
   resetTemplate: () => void;
   handleExport: () => void;
   handleImport: () => void;
@@ -385,6 +422,35 @@ defineEmits<{
   (e: 'update:exportData', v: string): void;
   (e: 'update:importData', v: string): void;
 }>();
+
+// PDF 本地服务「测试连接」
+const pdfTesting = ref(false);
+const pdfTestResult = ref('');
+const pdfTestOk = ref(false);
+async function testPdfServer() {
+  if (pdfTesting.value) return;
+  pdfTesting.value = true;
+  pdfTestResult.value = '正在连接…';
+  pdfTestOk.value = false;
+  const base = ((props.config?.pdfServerUrl || 'http://127.0.0.1:8765') as string).replace(/\/+$/, '');
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const resp = await fetch(`${base}/health`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (resp.ok) {
+      pdfTestOk.value = true;
+      pdfTestResult.value = `✓ 连接成功（${base}）`;
+    } else {
+      pdfTestResult.value = `✗ 服务返回 ${resp.status}`;
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    pdfTestResult.value = `✗ 无法连接，请确认 server.py 运行中（${msg}）`;
+  } finally {
+    pdfTesting.value = false;
+  }
+}
 </script>
 
 <style scoped>

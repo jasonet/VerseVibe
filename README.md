@@ -1,243 +1,158 @@
 # VerseVibe
 
-> [English](https://github.com/Bistutu/FluentRead/blob/main/misc/README_EN.md) | 中文
+> **网页内容在不同语言间自然共振，创造力来自生命树的灵性。**
+> 
+> Open Immersive Translate 开源沉浸式双语翻译浏览器扩展。
 
-Open Immersive Translate 开源的沉浸式翻译。
-npm run dev
+一款专为深度阅读与多语言工作者打造的现代化浏览器开源翻译插件，融合传统翻译与前沿大模型，提供丝滑的母语级双语对照与 PDF 沉浸式阅读体验。
 
-一款革命性的浏览器开源翻译插件，让所有人都能够拥有母语般的阅读体验。
+---
 
-1. [官方文档（必看）](https://fluent.thinkstu.com/)
-2. [B站视频介绍](https://www.bilibili.com/video/BV1ux4y1e73x/)
-3. [deepwiki 架构介绍](https://deepwiki.com/Bistutu/FluentRead)
+## 🌟 核心特性
 
-## 🌟 特性
+- 📄 **PDF 沉浸式翻译（全新混合架构）**
+  - **在线 PDF 自动接管**：访问任意在线 PDF 自动跳转沉浸式阅读器（`pdfreader.html`），左侧高清原页 Canvas 预览，右侧对照与状态流。
+  - **双语 PDF 导出**：结合本地 Python 翻译服务（`server/`），自动完成版面提取、大模型翻译、智能排版与单页紧凑压缩，一键导出**左英右中、原貌保真**的高质量双语对照 PDF。
+  - **本地文件拖拽即读**：支持本地 PDF 文件直接拖拽或选取解析。
+- 🤖 **本地 TranslateGemma / 纯翻译大模型深度优化**
+  - 自动适配 Google TranslateGemma 官方标记协议（`<<<source>>>...<<<target>>>...<<<text>>>...`），杜绝大模型翻译指令本身的缺陷。
+  - 多重输出清洗：剥除拼音、选项列表、发音标注、模型解释废话，仅保留第一种最精准译法。
+  - 停止序列兜底与异常自动恢复。
+- ⚡ **智能布局分析与整页调度（页面即开即翻）**
+  - **无需等待多媒体加载**：DOM 解析完成即触发翻译，不等待图片/视频等全量资源加载。
+  - **正文主干优先**：智能识别 `<article>`、`[role="main"]` 与主体分栏，优先翻译中央正文，再翻译侧栏、页头、页尾。
+  - **SPA 客户端渲染兜底**：挂载 `MutationObserver`，React / Vue 动态渲染的内容亦能无缝补翻。
+- 🎯 **就近配置与极简交互**
+  - 划词即译、悬浮球一键全页翻译、快捷键定制。
+  - 私密 AI 与本地接口就近配置，AI 风格预设一键切换。
+  - 翻译失败友好提示、失败原因可追溯并支持一键点按重试。
+- 🌐 **20+ 种主流翻译服务 & AI 大模型**
+  - **AI 大模型**：DeepSeek、OpenAI (ChatGPT)、Claude、Gemini、Grok、通义千问、智谱清言、文心一言、MiniMax、Ollama、自建 / 代理接口等。
+  - **传统翻译**：微软翻译、谷歌翻译、DeepL / DeepLX、有道翻译、Chrome 原生内置翻译等。
+- 🔒 **隐私至上 & 完全开源**
+  - 所有配置与历史数据本地存储，代码完全开源透明。
 
-- **智能翻译**：支持 20+ 种翻译引擎，包括传统翻译和 AI 大模型。如：微软翻译、谷歌翻译、DeepL翻译、OpenAI、DeepSeek、Kimi、Ollama、自定义引擎等。
-- **双语对照**：支持原文与译文并列显示，让阅读更轻松。
-- **划词翻译**：选中任意文本，即可获得即时翻译结果，一键复制译文，提高阅读效率。
-- **全文翻译**：通过悬浮球一键翻译整个网页，无需刷新页面即可切换。
-- **隐私保护**：所有数据本地存储，代码开源透明。
-- **高度定制**：丰富的自定义选项，满足不同场景需求。
-- **完全免费**：开源免费，非商业化项目。
+---
 
-<kbd><img src="./misc/sample-git-1.gif" alt="sample-git-1.gif" style="width: 80%; max-width: 100%;border: 1px solid black;"></kbd>
+## 📸 界面预览
 
-<kbd><img src="./misc/sample-git-4.gif" alt="sample-git-4.gif" style="width: 80%; max-width: 100%;border: 1px solid black;"></kbd>
+<kbd><img src="./misc/sample-git-1.gif" alt="整页双语对照翻译" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
 
-<kbd><img src="./misc/highlight_trans.png" alt="sample-git-4.gif" style="width: 80%; max-width: 100%;border: 1px solid black;"></kbd>
+<kbd><img src="./misc/sample-git-4.gif" alt="划词翻译与交互" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
 
-## 📦 安装
+<kbd><img src="./misc/highlight_trans.png" alt="高亮翻译效果" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
 
-| 浏览器 | 安装方式 |
-|-------|---------|
-| Chrome | [Chrome 应用商店](https://chromewebstore.google.com/detail/%E6%B5%81%E7%95%85%E9%98%85%E8%AF%BB/djnlaiohfaaifbibleebjggkghlmcpcj?hl=zh-CN&authuser=0) \| [国内镜像](https://www.crxsoso.com/webstore/detail/djnlaiohfaaifbibleebjggkghlmcpcj) |
-| Edge | [Edge 应用商店](https://microsoftedge.microsoft.com/addons/detail/%E6%B5%81%E7%95%85%E9%98%85%E8%AF%BB/kakgmllfpjldjhcnkghpplmlbnmcoflp?hl=zh-CN) |
-| Firefox | [Firefox 附加组件商店](https://addons.mozilla.org/zh-CN/firefox/addon/%E6%B5%81%E7%95%85%E9%98%85%E8%AF%BB/) |
-| Safari | 通过本地构建安装，详见仓库内 `misc/README_SAFARI.md` |
-| Android（Firefox） | 使用 Firefox for Android 安装，详见仓库内 `misc/README_ANDROID.md` |
+---
 
-## 📖 使用文档
+## 🛠️ 本地开发与构建打包
 
-请直接访问 [灵魂树官方文档](https://fluent.thinkstu.com/) 获取详细的：
+### 1. 环境准备
 
-**本地开发 / 加载未打包扩展（避免 “Failed to load extension”）：**
+- Node.js >= 18
+- pnpm >= 9 (`npm i -g pnpm`)
+- Python 3.10+（若使用 PDF 导出服务）
 
-1. 构建：`pnpm run build`（开发时可用 `pnpm run dev` 监听变更）
-2. 在 Chrome 打开 `chrome://extensions`，开启右上角「开发者模式」
-3. 点击「加载已解压的扩展程序」，**选择项目下的 `dist/chrome-mv3` 文件夹**（该目录内含 `manifest.json` 与 `icon/`，不要选项目根目录，否则会报 Failed to load extension）
-4. 安装成功后，**扩展图标会出现在浏览器工具栏**，点击图标可打开设置弹窗；在页面上点击悬浮球上的设置图标可在新标签页打开完整设置页
-5. 生成发布包：`pnpm run package:chrome`
-6. 产物说明：
-   - `dist/versevibe-<版本>-chrome.zip`：用于上传商店，或解压后再通过“加载已解压的扩展程序”安装
-   - `dist/versevibe-<版本>.crx`：签名后的 CRX 安装包
-7. 注意：**Chrome 官方桌面版通常不允许用户直接安装从网站下载的本地 `.crx` 文件**。如果目标是“用户下载后点一下就装”，推荐发布到 Chrome Web Store；本仓库内置打包更适合开发分发、企业内部分发，或兼容本地 CRX 安装策略的 Chromium 浏览器
+### 2. 安装依赖
 
-**已知问题 / 待处理：**
+```bash
+pnpm install
+```
 
-- macOS 下 `Option/Alt + 字母` 组合键存在系统字符输入干扰，`Alt+A` 可能表现为 `å`，导致悬浮球热键在部分页面或壳层站点（如带嵌套 frame 的页面）触发不稳定。该问题仍待进一步优化；当前建议优先使用 `F9`、`Ctrl+Shift+A` 等非 `Option + 字母` 组合。
+### 3. 开发调试
 
-顶层结构总览（从“项目主题”和“层次”看）
-这个项目是一个 Chrome / Edge 浏览器翻译扩展，核心主题可以理解成：
-> “多引擎 + AI 翻译（整页 + 划词）+ Vue 配置界面 + WXT 打包”
-从上到下大致分为 5 层：
-工程与构建层（项目骨架、打包配置）
-浏览器扩展入口层（background / content / popup / offscreen 等）
-翻译核心与业务逻辑层（main、service、utils）
-UI 组件与样式层（Vue 组件 + CSS 主题）
-文档与资产层（VitePress 文档、图标等）
-下面按目录分层说明。
-一、工程与构建层（项目骨架）
-package.json
-描述项目依赖与脚本：Vue 3、Element Plus、TypeScript、WXT 等。
-体现项目技术栈：Vue + TypeScript + WXT 的扩展工程。
-wxt.config.ts
-WXT 的主配置文件：相当于传统扩展的 manifest.json 的“生成源”。
-定义：
-扩展名称、描述、图标
-入口（background、content、popup、offscreen）
-权限（如 tabs、contextMenus、storage、scripting 等）
-tsconfig.json / .gitignore / README.md / misc/README_EN.md
-TypeScript 编译配置、忽略规则，以及中文/英文 README。
-主要面向开发者，解释如何安装、构建、调试扩展。
-> 这一层决定了项目如何构建、打包成真正的浏览器扩展。
-二、浏览器扩展入口层（与浏览器交互的“壳”）
-入口全部集中在 entrypoints/ 目录，是扩展在不同上下文中的“入口脚本”。
-1. Background（后台脚本）
-entrypoints/background.ts
-运行在扩展后台（service worker）环境。
-典型职责：
-右键菜单（context menu）集成
-统一处理需要跨域、长生命周期的请求
-和 content script / popup 通信（message passing）
-2. Content Script（内容脚本）
-entrypoints/content.ts
-注入到网页中执行，直接操作页面 DOM。
-结合 entrypoints/main/ 中的 DOM 和翻译逻辑，实现：
-整页翻译
-选中文字翻译
-在页面上挂载浮动球、气泡等 UI。
-3. Popup UI（弹出窗口）
-entrypoints/popup/
-index.html / main.ts：挂载 Vue 应用的入口。
-style.css：popup 独立样式。
-Vue 主组件通常会在 components/ 内引用（如 Main.vue、Header.vue、Footer.vue）。
-> 这一块就是点击浏览器工具栏图标后弹出的“设置/控制面板”。
-4. Offscreen Document（隐形页面）
-entrypoints/offscreen/index.html
-entrypoints/offscreen/main.ts
-使用 Chrome offscreen 文档能力，在不可见页面中执行代码。
-用于：
-走 Chrome 自带翻译接口
-或作为某些翻译 API 的“桥接环境”，避免直接注入页面。
-5. 公共样式
-entrypoints/style.css
-全局扩展入口级别的样式，给 content / popup / 浮动组件等提供基础 CSS。
-> 这一整层是“与浏览器的集成点”，决定扩展在哪些上下文中出现、如何被加载。
-三、翻译核心与业务逻辑层（项目的大脑）
-这一层的代码主要在 entrypoints/main/、entrypoints/service/、entrypoints/utils/ 中，是项目的“业务核心”。
-1. 主翻译流程（Main）
-entrypoints/main/trans.ts
-翻译总调度中心，负责：
-整页翻译的流程控制
-选择使用哪个翻译引擎
-调用队列、缓存等工具
-把翻译结果回写 DOM 或传给 UI 组件
-entrypoints/main/dom.ts
-DOM 操作模块，负责：
-从页面中提取需翻译的文本节点
-保留 HTML 结构（如标签、样式）
-将翻译结果按原结构写回页面
-布局分析与翻译优先级排序（见下方「整页翻译流程规则」）
+```bash
+pnpm run dev
+```
 
-#### 整页翻译流程规则
+在 Chromium 浏览器（Chrome / Edge / Brave 等）打开 `chrome://extensions`：
+1. 开启右上角 **「开发者模式」**。
+2. 点击 **「加载已解压的扩展程序」**。
+3. 选择项目根目录下的 **`dist/chrome-mv3`** 文件夹。
 
-1. 翻译触发时机：网页结构（DOM）解析完毕即可开始翻译（内容脚本 `runAt: 'document_end'`，并在 `DOMContentLoaded` 兜底触发），**无需等待浏览器把图片 / 多媒体等子资源 100% 加载完成**（即不等待 window `load` 事件）。
-2. 布局分析：把页面抽象为「页头 / 页中 / 页尾」结构；页中作为主体，内部又可分为「左 / 中 / 右」。其中页中的中间部分称为 **页中主干**。
-   - 主内容容器识别顺序：优先 `<article>`（语义化正文列，文本长度需达标），其次 `[role="main"]`，最后 `<main>`，各自取可见面积最大者。之所以优先 `<article>` 而非 `<main>`，是因为某些站点（如 GitHub 仓库页）的 `<main>` 会同时包裹正文与右侧 About 等侧栏，若整体当作主干会把侧栏误判为主干；而正文实为 `<article class="markdown-body">`，据此可把 README 正确归为页中主干、About 归为页中右侧。
-   - 无主内容容器时，按视口左 1/3、中 1/3、右 1/3 划分左 / 中 / 右。
-   - 页头：`[role="banner"]` 或站点级 `<header>`（不含 `<main>`/`<article>` 内的 hero/article header）；页尾：`<footer>` / `[role="contentinfo"]` 或页面底部链接密集区。
-3. 翻译优先级（由高到低，替代原来的「纯 DOM 顺序翻译」）：
-   1. **页中主干**（正文中央，最高优先）
-   2. 页中右侧
-   3. 页中左侧
-   4. 页头
-   5. 页尾
-   同一区域内保持原 DOM 顺序（大致从上到下的阅读顺序）。
-4. 页头 / 页尾是否翻译由设置项 `skipTranslateHeader` / `skipTranslateFooter` 决定；关闭翻译时这两个区域会在抓取阶段被直接跳过。
-5. 实现：`dom.ts` 的 `assignLayoutPriorities()` 负责分配区域优先级并排序，翻译调度（`trans.ts` 的 `autoTranslateEnglishPage`）按该顺序通过 `IntersectionObserver` 入队，翻译队列（`translateQueue.ts`）为 FIFO，因此入队顺序即翻译顺序。
-6. 客户端渲染兜底：即使首次抓取到 0 个可翻译节点也不中止流程，仍会挂上 `MutationObserver`。这样像 GitHub 仓库页这类正文（README）、右侧（About）在脚本执行之后才由 React 客户端渲染插入的页面，后续渲染出来的内容仍能被观察并翻译。
-entrypoints/main/compat.ts
-网站适配层，负责：
-对特定网站做兼容处理（如避免破坏某些站点的脚本/样式）
-特殊站点上的 DOM 策略、排除规则等。
-2. 翻译引擎层（Service）
-目录：entrypoints/service/
-通用基类 & 共用工具
-_service.ts / common.ts
-定义统一接口、错误处理、请求封装等。
-为所有引擎提供相同调用方式（如 translate(text, from, to, options)）。
-传统翻译服务
-google.ts、microsoft.ts、deepl.ts、deeplx.ts、youdao.ts、chrome-translator.ts 等。
-每个文件封装一个具体服务：
-负责拼装请求、处理返回格式、错误重试等。
-大模型 / AI 翻译服务
-openai.ts、deepseek.ts、claude.ts、gemini.ts、grok.ts、
-tongyi.ts、zhipu.ts、yiyan.ts、minimax.ts、xiaoniu.ts、
-coze.ts、infini.ts、azure-openai.ts、tencent.ts、hunyuan-translation.ts 等。
-负责对接各家 LLM / AI 服务，统一抽象为“翻译引擎”。
-自定义 / 代理接口
-custom.ts、newapi.ts
-给用户配置自建翻译后端 / 第三方代理提供入口。
-> 这一层体现“多引擎可插拔”的设计：上层逻辑只关心接口，不关心具体供应商。
-3. 工具与支撑逻辑（Utils）
-目录：entrypoints/utils/
-核心文件职责大致如下（具体命名稍有不同，但语义接近）：
-配置与常量
-config.ts：用户配置（启用哪些引擎、默认语言、开关等）。
-constant.ts：枚举、常量（如语言列表、快捷键默认值等）。
-option.ts：选项页/配置项读写，通常和 chrome.storage 打交道。
-model.ts：类型定义、数据模型（引擎配置、任务结构等）。
-翻译接口与调度
-translateApi.ts：提供统一的“调用翻译”的 API（屏蔽 service 层的细节）。
-translateQueue.ts（如果存在）：请求队列、并发控制、节流等。
-cache.ts：翻译结果缓存，减少重复调用。
-功能性模块
-selectionTranslator.ts：划词翻译 逻辑（选中文本 → 请求 → 弹出 UI）。
-floatingBall.ts：浮动小球 的逻辑（位置、拖拽、点击触发）。
-hotkey.ts：快捷键 绑定与处理。
-check.ts：环境检测、兼容性检查。
-template.ts：一些 HTML 字符串模板，生成插入页面的 DOM。
-icon.ts：图标相关的小工具（可能与不同主题或状态图标有关）。
-newApi.ts：新式 API 入口/挂载点，便于将来扩展新功能。
-common.ts / tip.ts：公共工具函数、提示/通知封装。
-> 这一层是“翻译业务的基础设施”：配置、缓存、队列、DOM 挂载、快捷键等都在这里。
-四、UI 组件与样式层（用户交互界面）
-1. Vue 组件（components/）
-这些组件大部分会在 popup 或页面上挂载使用：
-Main.vue
-主设置界面：选择引擎、开启功能、调整参数等的中枢。
-Header.vue / Footer.vue
-配置界面的头部、底部，放 logo、标题、操作按钮等。
-SelectionTranslator.vue
-展示“划词翻译”的结果弹窗或侧边面板，可能有原文/译文切换、复制按钮等。
-TranslationStatus.vue
-显示当前翻译状态：进行中、成功、失败，错误提示等。
-FloatingBall.vue
-漂浮小球的 Vue 版本，负责 UI 展现与交互（绑定 floatingBall.ts 的逻辑）。
-CustomHotkeyInput.vue
-专门给用户录入快捷键用的输入组件，监听键盘组合并可视化显示。
-> 这层把“复杂逻辑”封装成“交互友好”的 Vue 组件，既服务 popup，也服务页面内挂载的 UI。
-2. 样式
-entrypoints/popup/style.css
-Popup 相关的特定样式。
-entrypoints/style.css
-全局扩展样式入口，覆盖内容脚本等。
-styles/theme.css
-主题相关样式（颜色、暗色模式、间距等），让整体 UI 有统一视觉风格。
-五、文档与资产层（面向用户/宣传）
-1. 文档站（docs/）
-使用 VitePress 搭建文档网站：
-docs/index.md：首页。
-docs/guide/：使用指南（入门、功能说明、自定义快捷键、FAQ 等）。
-docs/config/：配置说明（翻译引擎配置、参数解释）。
-.vitepress/config.ts：文档站配置（导航、主题、侧边栏等）。
-> 这部分是“产品说明书”，面向终端用户与高级用户（自定义 API / 引擎的人）。
-2. 静态资源（public/）
-public/icon/
-扩展图标资源，多个尺寸（16/32/48/64/128/256/512），当前使用的是 tree 风格图标。
-public/debug.html
-调试页面：可能用于在浏览器直接调试脚本/样式的行为。
-public/favicon.ico
-文档站或调试页的 favicon。
-六、从“主题”到“层次”的概括
-从业务/主题角度，可以把整个项目看成 4 层嵌套：
-浏览器扩展外壳
-由 wxt.config.ts + entrypoints/ 中的 background/content/popup/offscreen 组成。
-定义了扩展如何加载、在哪些环境运行。
-翻译核心业务
-entrypoints/main/ + entrypoints/service/ + entrypoints/utils/
-管理：文本抽取 → 请求调度 → 多引擎调用 → 缓存 → 写回 DOM。
-交互与展示
-components/ + styles/ + entrypoints/popup/
-面向用户的配置界面、状态面板、浮动球、划词弹窗等。
+> ⚠️ **注意**：必须选择 `dist/chrome-mv3` 目录，不要选项目根目录，否则会报 `Failed to load extension`。
+
+### 4. 生产构建与打包发布
+
+```bash
+# 1. 编译 Chrome MV3 产物
+pnpm run build
+
+# 2. 生成未签名分发包 ZIP
+pnpm run zip
+
+# 3. 生成完整打包产物（ZIP + CRX 签名包）
+pnpm run package:chrome
+```
+
+**产物说明：**
+- `dist/chrome-mv3/`：已解压的扩展程序目录（用于本地调试加载）。
+- `dist/versevibe-<版本>-chrome.zip`：用于上传 Chrome Web Store、Edge Add-ons，或解压后直接加载。
+- `dist/versevibe-<版本>.crx`：签名后的 CRX 安装包（适用于支持本地安装的 Chromium 分发渠道）。
+
+---
+
+## 📑 PDF 沉浸式翻译本地服务（混合架构）
+
+VerseVibe 提供高质量的「左原文截图 / 右中文译文」双语 PDF 生成能力，依赖本地轻量 Python 服务：
+
+### 1. 启动服务
+
+```bash
+cd server
+pip install -r requirements.txt
+python server.py
+# 或在 macOS 下直接双击 start.command
+```
+默认服务监听在 `http://127.0.0.1:8765`。
+
+### 2. 在插件中配置
+
+1. 打开插件设置页 -> **PDF沉浸式翻译**。
+2. 确认服务地址为 `http://127.0.0.1:8765`。
+3. 点击 **「测试连接」**，显示 `✓ 连接成功` 即可。
+4. 打开任意网页 PDF，或在侧边栏点击 PDF 图标，即可在阅读器中直接点击 **「翻译并导出双语 PDF」**。
+
+---
+
+## 🧩 项目工程架构
+
+从层次上看，整个项目分为 5 大模块：
+
+```
+VerseVibe/
+├── entrypoints/                  # 浏览器扩展入口层 (WXT 驱动)
+│   ├── background.ts             # Service Worker: 消息中转、跨域 fetch、CORS 绕过、Tab 控制
+│   ├── content.ts                # Content Script: 页面 DOM 注入、PDF 自动接管、浮动球挂载
+│   ├── pdfreader/                # PDF 沉浸式阅读器页面 (pdfreader.html / main.ts / pdf.js)
+│   ├── popup/                    # 浏览器工具栏弹窗 UI
+│   ├── sidepanel/                # 侧边栏面板 UI
+│   ├── offscreen/                # Chrome Offscreen 隐形文档 (用于原生翻译桥接等)
+│   ├── main/                     # 核心翻译调度与 DOM 处理
+│   │   ├── trans.ts              # 翻译总调度中心、并发队列、状态流
+│   │   ├── dom.ts                # DOM 提取、布局分析与正文优先级划分
+│   │   └── compat.ts             # 复杂/特殊站点兼容适配
+│   ├── service/                  # 20+ 翻译引擎与 LLM 服务实现
+│   └── utils/                    # 配置、存储、缓存、快捷键、提示封装
+├── components/                   # Vue 3 交互组件 (Main.vue, Header.vue, FloatingBall.vue 等)
+├── server/                       # PDF 双语翻译与排版本地服务 (Python + PyMuPDF + ReportLab)
+│   ├── server.py                 # FastAPI / HTTP 接口与 TranslateGemma pipeline
+│   ├── pdf_bilingual.py          # PDF 页面解析、段落坐标对齐与单页紧凑排版生成
+│   └── start.command             # macOS 一键启动快捷脚本
+├── scripts/                      # 构建与打包脚本 (build-chrome.sh 等)
+├── wxt.config.ts                 # WXT 与 Manifest V3 构建配置
+└── package.json
+```
+
+---
+
+## 🤝 开源与贡献
+
+欢迎提交 Issue 与 Pull Request 共同改进 VerseVibe！
+
+- 仓库地址：[https://github.com/jasonet/VerseVibe](https://github.com/jasonet/VerseVibe)
+
+---
+
+## 📄 License
+
+[Apache-2.0 License](./LICENSE)

@@ -1965,11 +1965,73 @@ function applyTranslationFontScaleVar(scale: unknown) {
     }
 }
 
+/**
+ * 判断当前页面是否为 PDF，若是则在用户开启「PDF 接管」时跳转到沉浸式翻译阅读器。
+ * 返回 true 表示已接管（content 应立即退出）。
+ *
+ * 判定依据：
+ *  - document.contentType === 'application/pdf'（部分浏览器）
+ *  - URL 以 .pdf 结尾（剥离 query/hash）
+ *  - 页面内存在 <embed type="application/pdf">（旧版 PDF 查看器）
+ *  - Chrome 原生 PDF 查看器（content type 为 pdf 时 body 仅含一个 embed/有特殊结构）
+ * 跳转循环防护：阅读器页本身用 chrome-extension:// 协议，不会被此判定命中。
+ */
+async function maybeTakeoverPdf(): Promise<boolean> {
+    try {
+        // 仅在顶层框架接管，避免 iframe 内重复跳转
+        if (window.self !== window.top) return false;
+
+        // 已在阅读器页或扩展页：不接管
+        const href = location.href;
+        if (/^chrome-extension:|^moz-extension:|^about:|^chrome:/.test(href)) return false;
+
+        // 判定 PDF
+        let isPdf = false;
+        try {
+            // @ts-ignore document.contentType 在部分浏览器可用
+            if (document.contentType === 'application/pdf') isPdf = true;
+        } catch { /* ignore */ }
+        if (!isPdf) {
+            const clean = href.split('#')[0].split('?')[0];
+            if (/\.pdf$/i.test(clean)) isPdf = true;
+        }
+        if (!isPdf) {
+            const embed = document.querySelector('embed[type="application/pdf"], embed[src$=".pdf" i]');
+            if (embed) isPdf = true;
+        }
+        if (!isPdf) return false;
+
+        // 读取配置，确认用户开启接管
+        await configReady;
+        if (config.on === false) return false;
+        if ((config as any).pdfTakeover === false) return false;
+
+        // 交给 background 用 tabs.update 原地跳转。
+        // 注意：不能在 content script 里直接 location.replace(chrome-extension://...) ——
+        // 网页发起的跳转到扩展页会被 Edge/Chrome 拦截（"This page has been blocked"）。
+        try {
+            await browser.runtime.sendMessage({ type: 'takeoverPdf', url: href });
+        } catch (e) {
+            // 扩展上下文失效等异常时，降级为不接管，避免阻塞用户打开 PDF
+            console.warn('[VerseVibe] PDF 接管通知失败，按普通页面处理', e);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.warn('[VerseVibe] PDF 接管判定失败，按普通页面处理', e);
+        return false;
+    }
+}
+
 export default defineContentScript({
     matches: ['<all_urls>'],  // 匹配所有页面
     allFrames: true,  // 必须 camelCase；WXT 不识别 all_frames，会被静默丢弃
     runAt: 'document_end',  // 在页面加载完成后运行
     async main() {
+        // PDF 沉浸式翻译接管：若当前页是 PDF，跳转到专属阅读器，本页 content 退出。
+        // 必须在 configReady 之前执行，避免悬浮球/划词/自动翻译在 PDF 上启动。
+        if (await maybeTakeoverPdf()) return;
+
         console.log('[VerseVibe] Content script started. URL:', window.location.href);
         try {
             await configReady;

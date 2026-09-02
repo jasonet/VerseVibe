@@ -506,7 +506,7 @@ export default defineBackground({
         });
 
         // 处理翻译请求
-        browser.runtime.onMessage.addListener((message: any) => {
+        browser.runtime.onMessage.addListener((message: any, sender: any) => {
             return new Promise(async (resolve, reject) => {
                 try {
                     if (message.type === 'triggerFlickrDownloadFromPageHotkey') {
@@ -552,6 +552,64 @@ export default defineBackground({
                         const url = browser.runtime.getURL('imageviewer.html') + '?k=' + encodeURIComponent(key);
                         await browser.tabs.create({ url });
                         resolve({ success: true });
+                        return;
+                    }
+
+                    // 打开 PDF 沉浸式翻译阅读器：
+                    //  - message.url：在线 PDF，直接以 ?url= 传入
+                    //  - message.local=true：本地文件模式（阅读器内提供选择/拖拽区）
+                    if (message.type === 'openPdfReader') {
+                        const base = browser.runtime.getURL('pdfreader.html');
+                        let url: string;
+                        if (typeof message.url === 'string' && message.url) {
+                            url = base + '?url=' + encodeURIComponent(message.url);
+                        } else {
+                            url = base + '?local=1';
+                        }
+                        await browser.tabs.create({ url });
+                        resolve({ success: true });
+                        return;
+                    }
+
+                    // PDF 自动接管：在「当前标签页」原地跳转到阅读器（替代 content script 的
+                    // location.replace —— 网页发起的跳转到 chrome-extension:// 会被 Edge/Chrome
+                    // 当作导航劫持拦截，报 "This page has been blocked"。由 background 用
+                    // tabs.update 发起的导航是扩展自身行为，不受此限制）。
+                    if (message.type === 'takeoverPdf') {
+                        const tabId = sender.tab?.id;
+                        const origUrl = typeof message.url === 'string' ? message.url : '';
+                        if (typeof tabId !== 'number' || !origUrl) {
+                            resolve({ success: false, reason: 'invalid-tab-or-url' });
+                            return;
+                        }
+                        const readerUrl = browser.runtime.getURL('pdfreader.html') + '?url=' + encodeURIComponent(origUrl);
+                        await browser.tabs.update(tabId, { url: readerUrl });
+                        resolve({ success: true });
+                        return;
+                    }
+
+                    // 在线 PDF 跨域下载：阅读器页面（chrome-extension:// 源）直接 fetch 会受目标站点
+                    // CORS 限制；background service worker 拥有 host_permissions(<all_urls>)，可绕过 CORS。
+                    // 返回 base64 数据，阅读器再解码成 ArrayBuffer。
+                    if (message.type === 'fetchPdf') {
+                        const target = typeof message.url === 'string' ? message.url : '';
+                        if (!target) { resolve({ success: false, reason: 'invalid-url' }); return; }
+                        try {
+                            const resp = await fetch(target, { credentials: 'include' });
+                            if (!resp.ok) { resolve({ success: false, reason: `status-${resp.status}` }); return; }
+                            const buf = await resp.arrayBuffer();
+                            // 转 base64 传输（大文件也够用，PDF 几 MB 级）
+                            const bytes = new Uint8Array(buf);
+                            let binary = '';
+                            const CHUNK = 0x8000;
+                            for (let i = 0; i < bytes.length; i += CHUNK) {
+                                binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)) as unknown as number[]);
+                            }
+                            const dataUrl = 'data:application/pdf;base64,' + btoa(binary);
+                            resolve({ success: true, dataUrl });
+                        } catch (e) {
+                            resolve({ success: false, reason: e instanceof Error ? e.message : String(e) });
+                        }
                         return;
                     }
 

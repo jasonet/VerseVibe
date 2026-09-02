@@ -5,6 +5,11 @@
         <Header>
           <template #right>
             <div class="header-actions">
+              <el-tooltip content="PDF 沉浸式翻译" placement="left">
+                <el-button link type="primary" class="reload-btn" @click="openPdfReader" aria-label="打开 PDF 阅读">
+                  <el-icon :size="20"><Document /></el-icon>
+                </el-button>
+              </el-tooltip>
               <el-tooltip content="重载插件" placement="left">
                 <el-button link type="primary" class="reload-btn" @click="reloadExtension" aria-label="重载插件">
                   <el-icon :size="20"><Refresh /></el-icon>
@@ -32,11 +37,33 @@
 import Header from '../../components/Header.vue';
 import Main from "../../components/Main.vue";
 import Footer from "../../components/Footer.vue";
-import { Refresh, Setting } from '@element-plus/icons-vue';
+import { Refresh, Setting, Document } from '@element-plus/icons-vue';
 import browser from 'webextension-polyfill';
 import '../../styles/theme.css';
 import 'element-plus/theme-chalk/base.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
+
+async function openPdfReader() {
+  // 若当前标签是 PDF，带入其 URL；否则进入本地文件模式
+  let pdfUrl: string | undefined;
+  try {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const u = tab?.url || '';
+    if (/\.pdf(\?.*)?$/i.test(u) || /pdf/i.test((tab as any)?.contentType || '')) {
+      pdfUrl = u;
+    }
+  } catch { /* 忽略，进入本地模式 */ }
+  try {
+    await browser.runtime.sendMessage({ type: 'openPdfReader', url: pdfUrl, local: !pdfUrl });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (message.toLowerCase().includes('context invalidated')) {
+      console.warn('[VerseVibe] 扩展上下文已失效，无法打开 PDF 阅读器');
+      return;
+    }
+    console.warn('[VerseVibe] 打开 PDF 阅读器失败:', message);
+  }
+}
 
 function openFullPageSettings() {
   browser.runtime.sendMessage({ type: 'openOptionsPage' }).catch((error: unknown) => {

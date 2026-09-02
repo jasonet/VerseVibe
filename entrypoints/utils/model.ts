@@ -97,6 +97,8 @@ export class Config {
     skipTranslateHeader: boolean; // 不翻译页头（默认开启，全文翻译时跳过）
     skipTranslateFooter: boolean; // 不翻译页尾（默认开启，全文翻译时跳过）
     translationFontScale: number; // 译文字号缩放倍数（1 = 原始大小）
+    pdfTakeover: boolean; // 打开在线 PDF 时自动进入沉浸式翻译阅读器
+    pdfServerUrl: string; // PDF 沉浸式翻译本地服务地址（混合架构：插件发字节给此服务生成双语 PDF）
 
     constructor() {
         this.on = true;
@@ -162,6 +164,8 @@ export class Config {
         this.skipTranslateHeader = true; // 默认不翻译页头
         this.skipTranslateFooter = true; // 默认不翻译页尾
         this.translationFontScale = 1; // 译文字号缩放倍数（1 = 原始大小，可在设置页放大/缩小）
+        this.pdfTakeover = true; // 默认开启：打开在线 PDF 自动进入沉浸式翻译阅读器
+        this.pdfServerUrl = 'http://127.0.0.1:8765'; // 本地 PDF 翻译服务默认地址（对应 server/server.py）
     }
 }
 

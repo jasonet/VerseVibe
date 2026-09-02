@@ -69,7 +69,7 @@ export default defineConfig({
         },
         web_accessible_resources: [
             {
-                resources: ["icon/*.png"],
+                resources: ["icon/*.png", "pdfreader.html"],
                 matches: ["<all_urls>"]
             }
         ]
