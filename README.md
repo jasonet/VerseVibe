@@ -14,6 +14,9 @@
   - **在线 PDF 自动接管**：访问任意在线 PDF 自动跳转沉浸式阅读器（`pdfreader.html`），左侧高清原页 Canvas 预览，右侧对照与状态流。
   - **双语 PDF 导出**：结合本地 Python 翻译服务（`server/`），自动完成版面提取、大模型翻译、智能排版与单页紧凑压缩，一键导出**左英右中、原貌保真**的高质量双语对照 PDF。
   - **本地文件拖拽即读**：支持本地 PDF 文件直接拖拽或选取解析。
+
+<kbd><img src="./misc/pdf-reader-preview.png" alt="VerseVibe PDF 沉浸式翻译与双语阅读器" style="width: 90%; max-width: 100%; border-radius: 8px; border: 1px solid #333; margin: 12px 0;"></kbd>
+
 - 🤖 **本地 TranslateGemma / 纯翻译大模型深度优化**
   - 自动适配 Google TranslateGemma 官方标记协议（`<<<source>>>...<<<target>>>...<<<text>>>...`），杜绝大模型翻译指令本身的缺陷。
   - 多重输出清洗：剥除拼音、选项列表、发音标注、模型解释废话，仅保留第一种最精准译法。
@@ -34,12 +37,17 @@
 
 ---
 
-## 📸 界面预览
+## 📸 界面与核心功能预览
 
-<kbd><img src="./misc/sample-git-1.gif" alt="整页双语对照翻译" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
+### 1. PDF 沉浸式阅读与双语对照导出
+<kbd><img src="./misc/pdf-reader-preview.png" alt="VerseVibe PDF 沉浸式翻译与双语对照" style="width: 88%; max-width: 100%; border-radius: 8px; border: 1px solid #333;"></kbd>
 
-<kbd><img src="./misc/sample-git-4.gif" alt="划词翻译与交互" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
+### 2. 功能强大的控制面板与模型就近配置
+<kbd><img src="./misc/settings-preview.png" alt="VerseVibe 强大设置面板与模型配置" style="width: 50%; max-width: 100%; border-radius: 8px; border: 1px solid #333;"></kbd>
 
+### 3. 网页双语对照与即时划词
+<kbd><img src="./misc/sample-git-1.gif" alt="整页双语对照翻译" style="width: 80%; max-width: 100%; border: 1px solid #333; margin-bottom: 8px;"></kbd>
+<kbd><img src="./misc/sample-git-4.gif" alt="划词翻译与交互" style="width: 80%; max-width: 100%; border: 1px solid #333; margin-bottom: 8px;"></kbd>
 <kbd><img src="./misc/highlight_trans.png" alt="高亮翻译效果" style="width: 80%; max-width: 100%; border: 1px solid #333;"></kbd>
 
 ---

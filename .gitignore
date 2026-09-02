@@ -67,9 +67,9 @@ Thumbs.db
 *.crx
 *.xpi
 *.bak
-WeCom*.png
-WeCom截圖*.png
-WeCom截图*.png
+/WeCom*.png
+/WeCom截圖*.png
+/WeCom截图*.png
 
 # Local env files
 .env*.local
