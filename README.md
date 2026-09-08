@@ -52,6 +52,29 @@
 
 ---
 
+## 📦 Chrome / Edge 插件下载安装（开发者模式）
+
+**[下载 VerseVibe 0.9.18 开发者模式 ZIP 包](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.18-chrome-edge.zip)**
+
+该 ZIP 包包含已编译的插件加载目录，专用于通过 Chrome / Edge 的「开发者模式」加载扩展程序。无需安装 Node.js、下载源码或自行编译。下载后必须先解压，不能直接选择 ZIP 文件。
+
+### 安装步骤
+
+1. 下载上面的 ZIP 包，解压到一个固定位置（例如「文档/VerseVibe」）。解压后得到 `chrome-mv3` 文件夹，其中包含 `manifest.json`。
+2. 打开浏览器扩展管理页：Chrome 在地址栏输入 `chrome://extensions`；Edge 输入 `edge://extensions`，然后回车。
+3. 开启扩展管理页中的 **「开发者模式」**。
+4. 点击 **「加载已解压的扩展程序」**（Edge 中也可能显示为「加载解压缩的扩展」）。
+5. 选择解压得到的 **`chrome-mv3` 文件夹**，即直接包含 `manifest.json` 的目录；不要选择它的上级目录。
+6. 扩展列表出现 **VerseVibe** 后安装完成。可在浏览器工具栏的扩展菜单中将其固定，打开插件设置并配置翻译服务，然后刷新需要翻译的网页。
+
+**安装后请保留该文件夹，不要移动或删除**，浏览器会持续从该目录读取插件。更新时，将新版解压文件覆盖到原来的 `chrome-mv3` 目录，在扩展管理页点击 VerseVibe 的「重新加载」按钮，再刷新网页。
+
+如果提示找不到清单文件，请检查所选目录下是否直接存在 `manifest.json`，并确认 ZIP 已完整解压。
+
+另提供 **[CRX 签名包（0.9.18）](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.18.crx)**。上面的开发者模式安装步骤使用 ZIP 解压目录。
+
+---
+
 ## 🛠️ 本地开发与构建打包
 
 ### 1. 环境准备
@@ -69,7 +92,7 @@ pnpm install
 ### 3. 开发调试
 
 ```bash
-pnpm run dev
+pnpm run build
 ```
 
 在 Chromium 浏览器（Chrome / Edge / Brave 等）打开 `chrome://extensions`：
