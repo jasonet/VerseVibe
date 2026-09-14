@@ -77,7 +77,6 @@ import { Refresh, Setting } from '@element-plus/icons-vue';
 import { storage } from '@wxt-dev/storage';
 import { UPDATE_INFO_KEY, type UpdateInfo } from '../utils/updateCheck';
 import '../../styles/theme.css';
-import 'element-plus/theme-chalk/base.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
 
 const version = process.env.VUE_APP_VERSION ?? '0.0.0';

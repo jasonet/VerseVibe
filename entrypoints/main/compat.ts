@@ -642,7 +642,7 @@ export const selectCompatFn: SelectCompatFn = {
         if (!article || !(node instanceof Node) || !article.contains(node)) return false;
 
         // 已在 directSet 的块级元素（如 p）由默认逻辑处理，这里只做兜底
-        const tag = node.tagName?.toLowerCase();
+        const tag = (node as any).tagName?.toLowerCase();
         if (tag === 'p' || tag === 'blockquote' || /^h[1-6]$/.test(tag)) return false;
 
         // 找段落级祖先：优先 p，否则含实质文字的 div（避免整篇 article 被当成一块）

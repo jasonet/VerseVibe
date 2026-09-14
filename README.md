@@ -29,6 +29,9 @@
   - 划词即译、悬浮球一键全页翻译、快捷键定制。
   - 私密 AI 与本地接口就近配置，AI 风格预设一键切换。
   - 翻译失败友好提示、失败原因可追溯并支持一键点按重试。
+- 📖 **Reddit 阅读优化**
+  - 设置中的「Reddit优化 → 主阅读 Feed 列宽 150%」默认勾选，仅扩展首页、子版块和用户 Feed 列表的主阅读列；帖子详情页保持原布局，社区侧栏与主列分开，空间不足时自动适配窗口。
+  - 独立控制列宽与最小字号，改善正文行距、标题及长链接换行；详情页双语译文按段落紧随原文，取消选项即可恢复原布局。
 - 🌐 **20+ 种主流翻译服务 & AI 大模型**
   - **AI 大模型**：DeepSeek、OpenAI (ChatGPT)、Claude、Gemini、Grok、通义千问、智谱清言、文心一言、MiniMax、Ollama、自建 / 代理接口等。
   - **传统翻译**：微软翻译、谷歌翻译、DeepL / DeepLX、有道翻译、Chrome 原生内置翻译等。
@@ -54,7 +57,7 @@
 
 ## 📦 Chrome / Edge 插件下载安装（开发者模式）
 
-**[下载 VerseVibe 0.9.18 开发者模式 ZIP 包](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.18-chrome-edge.zip)**
+**[下载 VerseVibe 0.9.19 开发者模式 ZIP 包](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.19-chrome-edge.zip)**
 
 该 ZIP 包包含已编译的插件加载目录，专用于通过 Chrome / Edge 的「开发者模式」加载扩展程序。无需安装 Node.js、下载源码或自行编译。下载后必须先解压，不能直接选择 ZIP 文件。
 
@@ -71,7 +74,7 @@
 
 如果提示找不到清单文件，请检查所选目录下是否直接存在 `manifest.json`，并确认 ZIP 已完整解压。
 
-另提供 **[CRX 签名包（0.9.18）](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.18.crx)**。上面的开发者模式安装步骤使用 ZIP 解压目录。
+另提供 **[CRX 签名包（0.9.19）](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.19.crx)**。上面的开发者模式安装步骤使用 ZIP 解压目录。
 
 ---
 

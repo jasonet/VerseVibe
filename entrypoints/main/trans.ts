@@ -656,7 +656,69 @@ function normalizeTranslatedOutput(raw: any): { html: string; text: string } {
 }
 
 
+function isRedditPostDetailBody(node: HTMLElement): boolean {
+    if (!/(^|\.)reddit\.com$/i.test(window.location.hostname)) return false;
+    if (!/^\/r\/[^/]+\/comments\//i.test(window.location.pathname)) return false;
+    let insidePost = false;
+    let current: Node | null = node;
+    while (current) {
+        if (current instanceof HTMLElement && current.matches('shreddit-post')) {
+            insidePost = true;
+            break;
+        }
+        if (current.parentNode) current = current.parentNode;
+        else {
+            const root = current.getRootNode();
+            current = root instanceof ShadowRoot ? root.host : null;
+        }
+    }
+    if (!insidePost) return false;
+    if (node.closest('aside, #right-sidebar-container, [slot="sidebar"]')) return false;
+    const blockTags = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
+    return Array.from(node.children).filter((child) =>
+        child instanceof HTMLElement && child.matches(blockTags),
+    ).length >= 2;
+}
+
+function splitRedditTranslation(raw: string, count: number): string[] | null {
+    const holder = document.createElement('div');
+    holder.innerHTML = raw;
+    const blockTags = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
+    let blocks = Array.from(holder.children).filter((child) => child.matches(blockTags));
+    // Some providers wrap the translated paragraphs in one outer div.
+    if (blocks.length !== count && holder.children.length === 1) {
+        const only = holder.firstElementChild;
+        if (only) blocks = Array.from(only.children).filter((child) => child.matches(blockTags));
+    }
+    if (blocks.length === count) return blocks.map((block) => block.outerHTML);
+
+    // Plain-text engines commonly return one translated paragraph per line.
+    const lines = (holder.textContent || raw)
+        .replace(/\r/g, '')
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+    return lines.length === count ? lines : null;
+}
+
+function appendRedditImmersiveTranslation(node: HTMLElement, text: string): boolean {
+    if (!isRedditPostDetailBody(node)) return false;
+    const blocks = Array.from(node.children).filter((child): child is HTMLElement =>
+        child instanceof HTMLElement && child.matches('p, li, blockquote, pre, h1, h2, h3, h4, h5, h6'),
+    );
+    const segments = splitRedditTranslation(text, blocks.length);
+    if (!segments) return false;
+
+    // Keep the original body marked for restoreOriginalContent(), but attach
+    // each translated segment directly after its matching paragraph. This is
+    // the immersive bilingual layout users expect on Reddit detail pages.
+    node.classList.add('verse-vibe-bilingual');
+    blocks.forEach((block, index) => bilingualAppendChild(block, segments[index]));
+    return true;
+}
+
 function bilingualAppendChild(node: any, text: string) {
+    if (node instanceof HTMLElement && appendRedditImmersiveTranslation(node, text)) return;
     node.classList.add("verse-vibe-bilingual");
 
     // 在 flex/grid 下，当前节点及到 flex 祖先的整条链默认 min-width:auto 会随内容撑开，导致译文溢出卡片（如 selfh.st）

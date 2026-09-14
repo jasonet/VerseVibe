@@ -335,6 +335,13 @@
 
     <!-- ============ Reddit 优化组 ============ -->
     <template v-if="group === 'all' || group === 'reddit'">
+    <el-row class="adv-row">
+      <el-col :span="24">
+        <el-tooltip effect="dark" content="仅将首页与子版块/用户 Feed 列表的主阅读列扩展至原宽度的 150%。帖子详情页保持原布局，右侧栏与主列始终分开；空间不足时自动收窄，取消勾选立即恢复。默认勾选，与字号优化独立。" placement="top-start" :show-after="500">
+          <el-checkbox :model-value="config.redditFeedWide" @update:model-value="$emit('update:config', { redditFeedWide: $event })">主阅读 Feed 列宽 150%</el-checkbox>
+        </el-tooltip>
+      </el-col>
+    </el-row>
     <!-- Reddit 评论页正文贴列阅读优化 -->
     <el-row class="adv-row">
       <el-col :span="20" class="lightblue rounded-corner">

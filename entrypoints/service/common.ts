@@ -32,7 +32,7 @@ async function common(message: any) {
         const result = await resp.json();
         return contentPostHandler(result.choices[0].message.content);
     } catch (error) {
-        console.log('[VerseVibe] 调用翻译服务:', service);
+        console.log('[VerseVibe] 调用翻译服务:', config.service);
         throw error;
     }
 }

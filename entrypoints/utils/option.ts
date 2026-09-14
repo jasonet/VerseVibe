@@ -594,5 +594,6 @@ export const defaultOption = {
     linkedinAutoHidePromotedMedia: false, // 默认关闭：LinkedIn 对 Promoted 标签做了混淆/本地化，文本识别不可靠，无法稳定隐藏
     githubReadmeLeft: true, // 默认启用：GitHub 仓库首页 README 横排到文件列表左侧（左栏由 2 行变 2 列）
     redditMainOptimize: true, // 默认启用：Reddit 评论页左侧正文贴列阅读优化（放大正文字号）
+    redditFeedWide: true, // 默认勾选：Reddit 主阅读列 150% 宽度，窄窗口自动适配
     redditMinFontSize: 16, // Reddit 正文贴列最小字号（小于此值的正文文本会被放大到此值）
 };

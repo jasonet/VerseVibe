@@ -40,7 +40,6 @@ import Footer from "../../components/Footer.vue";
 import { Refresh, Setting, Document } from '@element-plus/icons-vue';
 import browser from 'webextension-polyfill';
 import '../../styles/theme.css';
-import 'element-plus/theme-chalk/base.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
 
 async function openPdfReader() {

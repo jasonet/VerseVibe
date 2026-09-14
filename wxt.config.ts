@@ -25,7 +25,7 @@ export default defineConfig({
         },
     },
     vite: () => ({
-        plugins: [vue()],
+        plugins: [vue() as any],
         define: {
             'process.env.VUE_APP_VERSION': JSON.stringify(packageJson.version),
         }

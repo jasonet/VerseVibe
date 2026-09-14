@@ -488,7 +488,7 @@
     </el-row>
   </div>
 
-    <div v-if="section === 'advanced'" class="advanced-standalone">
+    <div v-if="section === 'advanced' && isDeferredReady" class="advanced-standalone">
       <section class="settings-block margin-left-2em margin-bottom">
         <div class="section-header">
           <span class="popup-text popup-vertical-left">翻译选项 Alt+A</span>
@@ -592,7 +592,7 @@
     </div>
 
     <!-- AI风格预设 / system / user（从「划词翻译」之后下移到 Flickr优化 之前显示） -->
-    <section v-if="section === 'all'" v-show="compute.showAI" id="section-aistyle" class="settings-block margin-left-2em margin-bottom">
+    <section v-if="section === 'all' && isDeferredReady" v-show="compute.showAI" id="section-aistyle" class="settings-block margin-left-2em margin-bottom">
       <div class="section-header">
         <span class="popup-text popup-vertical-left">AI风格预设</span>
       </div>
@@ -614,7 +614,7 @@
     </section>
 
     <!-- Flickr优化（移至配置管理之前） -->
-    <section v-if="section === 'all'" id="section-flickr" class="settings-block margin-left-2em margin-bottom">
+    <section v-if="section === 'all' && isDeferredReady" id="section-flickr" class="settings-block margin-left-2em margin-bottom">
       <div class="section-header">
         <span class="popup-text popup-vertical-left">Flickr优化</span>
       </div>
@@ -636,7 +636,7 @@
     </section>
 
     <!-- Linkedin优化（移至配置管理之前） -->
-    <section v-if="section === 'all'" id="section-linkedin" class="settings-block margin-left-2em margin-bottom">
+    <section v-if="section === 'all' && isDeferredReady" id="section-linkedin" class="settings-block margin-left-2em margin-bottom">
       <div class="section-header">
         <span class="popup-text popup-vertical-left">Linkedin优化</span>
       </div>
@@ -658,7 +658,7 @@
     </section>
 
     <!-- GitHub优化（移至配置管理之前） -->
-    <section v-if="section === 'all'" id="section-github" class="settings-block margin-left-2em margin-bottom">
+    <section v-if="section === 'all' && isDeferredReady" id="section-github" class="settings-block margin-left-2em margin-bottom">
       <div class="section-header">
         <span class="popup-text popup-vertical-left">GitHub优化</span>
       </div>
@@ -680,7 +680,7 @@
     </section>
 
     <!-- Reddit优化（移至配置管理之前） -->
-    <section v-if="section === 'all'" id="section-reddit" class="settings-block margin-left-2em margin-bottom">
+    <section v-if="section === 'all' && isDeferredReady" id="section-reddit" class="settings-block margin-left-2em margin-bottom">
       <div class="section-header">
         <span class="popup-text popup-vertical-left">Reddit优化</span>
       </div>
@@ -701,7 +701,7 @@
       />
     </section>
 
-    <section v-if="section === 'all'" class="settings-block margin-bottom margin-left-2em">
+    <section v-if="section === 'all' && isDeferredReady" class="settings-block margin-bottom margin-left-2em">
       <div class="config-mgmt-header">
         <span class="config-mgmt-title">配置管理</span>
         <span class="config-mgmt-actions">
@@ -761,7 +761,7 @@
 <script lang="ts" setup>
 
 // Main 处理配置信息
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { models, options, servicesType, defaultOption, services } from "../entrypoints/utils/option";
 import MainAdvancedBody from './MainAdvancedBody.vue';
 
@@ -795,20 +795,39 @@ function updateTheme(theme: string) {
 
 // 配置信息
 let config = ref(new Config());
+const isConfigLoaded = ref(false);
+const isDeferredReady = ref(false);
+let lastSavedConfigJson = '';
+
+onMounted(() => {
+  // 首屏优先渲染核心控制项，次级优化与高级选项在空闲/稍后加载，大幅降低首屏挂载消耗
+  const schedule = typeof requestIdleCallback === 'function'
+    ? (cb: () => void) => requestIdleCallback(cb, { timeout: 80 })
+    : (cb: () => void) => setTimeout(cb, 25);
+  schedule(() => {
+    isDeferredReady.value = true;
+  });
+});
 
 // 从 storage 中获取本地配置
 storage.getItem('local:config').then((value: any) => {
   if (typeof value === 'string' && value) {
     try {
       const parsedConfig = JSON.parse(value);
+      lastSavedConfigJson = value;
       Object.assign(config.value, parsedConfig);
     } catch (error) {
       console.warn('[VerseVibe] Main: 解析配置失败，使用默认配置', error);
+      lastSavedConfigJson = JSON.stringify(config.value);
     }
+  } else {
+    lastSavedConfigJson = JSON.stringify(config.value);
   }
+  isConfigLoaded.value = true;
   // 初始应用主题
   updateTheme(config.value.theme || 'auto');
 }).catch((error: unknown) => {
+  isConfigLoaded.value = true;
   const message = error instanceof Error ? error.message : String(error ?? '');
   if (message.toLowerCase().includes('context invalidated')) {
     console.warn('[VerseVibe] Main: 扩展上下文已失效，跳过读取配置');
@@ -823,8 +842,12 @@ storage.getItem('local:config').then((value: any) => {
 storage.watch('local:config', (newValue: any, oldValue: any) => {
   // 检查 newValue 是否为非空字符串
   if (typeof newValue === 'string' && newValue) {
+    // 忽略本页面刚刚写入的回显更新，避免自引发多余响应式重排
+    if (newValue === lastSavedConfigJson) return;
+
     try {
       const incoming = JSON.parse(newValue);
+      lastSavedConfigJson = newValue;
 
       // 避免「翻译次数」等运行时字段在设置页中频繁跳动:
       // 当 settings.html 打开期间,忽略对这些字段的外部更新,
@@ -848,14 +871,42 @@ storage.watch('local:config', (newValue: any, oldValue: any) => {
 // 监听菜单栏配置变化
 // 当配置发生改变时,将新的配置序列化为 JSON 字符串并保存到 storage 中
 // deep: true 表示深度监听对象内部属性的变化
+// 增加防抖并在初始加载完成前拦截，彻底解决首开卡顿和重复写盘
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 watch(config, (newValue: any, oldValue: any) => {
-  // TODO 监听配置变化，显示刷新提示
-  storage.setItem('local:config', JSON.stringify(newValue)).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error ?? '');
-    if (message.toLowerCase().includes('context invalidated')) return;
-    console.warn('[VerseVibe] Main: 保存配置失败:', message);
-  });
+  if (!isConfigLoaded.value) return;
+
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+  }
+
+  saveDebounceTimer = setTimeout(() => {
+    try {
+      const json = JSON.stringify(newValue);
+      if (json === lastSavedConfigJson) return;
+      lastSavedConfigJson = json;
+      storage.setItem('local:config', json).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error ?? '');
+        if (message.toLowerCase().includes('context invalidated')) return;
+        console.warn('[VerseVibe] Main: 保存配置失败:', message);
+      });
+    } catch (err) {
+      console.warn('[VerseVibe] 序列化配置失败:', err);
+    }
+  }, 200);
 }, { deep: true });
+
+onUnmounted(() => {
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+    try {
+      const json = JSON.stringify(config.value);
+      if (json !== lastSavedConfigJson) {
+        storage.setItem('local:config', json).catch(() => {});
+      }
+    } catch {}
+  }
+});
 
 // 译文字号缩放：0.5 ~ 3.0，步进 0.1。改动经 config 持久化后，
 // 内容脚本监听 storage 变化并更新 CSS 变量，实现整页译文实时放大/缩小。
@@ -1529,7 +1580,9 @@ const saveImport = async () => {
       });
       return;
     }
-    await storage.setItem('local:config', JSON.stringify(parsedConfig));
+    const jsonStr = JSON.stringify(parsedConfig);
+    lastSavedConfigJson = jsonStr;
+    await storage.setItem('local:config', jsonStr);
     ElMessage({
       message: '配置导入成功!',
       type: 'success',
@@ -1660,7 +1713,9 @@ const importConfig = async () => {
     Object.assign(config.value, importedConfig);
 
     // 保存到storage
-    await storage.setItem('local:config', JSON.stringify(config.value));
+    const jsonStr = JSON.stringify(config.value);
+    lastSavedConfigJson = jsonStr;
+    await storage.setItem('local:config', jsonStr);
 
     // 隐藏导入区域并清空输入
     showImportConfig.value = false;

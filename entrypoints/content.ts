@@ -15,6 +15,7 @@ import { createApp } from 'vue';
 import TranslationStatus from '@/components/TranslationStatus.vue';
 import { mountNewApiComponent } from "@/entrypoints/utils/newApi";
 import { mountVueWithTrustedTypesBypass } from "@/entrypoints/utils/trustedTypes";
+import { applyRedditWide, clearRedditWide, redditReadingCss } from './main/redditReading';
 
 const LINKEDIN_WIDE_STYLE_ID = 'versevibe-linkedin-wide-style';
 const LINKEDIN_WIDE_CLASS = 'versevibe-linkedin-wide';
@@ -59,6 +60,7 @@ let githubSyncTimer: number | null = null;
 // ===== Reddit 评论页：左侧正文贴列阅读优化（放大正文字号）=====
 const REDDIT_MAIN_ATTR = 'data-vv-reddit-main';   // 左侧正文贴列容器标记
 const REDDIT_ORIG_FS_ATTR = 'data-vv-reddit-orig'; // 记录文本元素原始字号（px），避免反复放大抖动
+const redditOriginalFonts = new Map<HTMLElement, [string, string]>();
 let redditRouteTimer: number | null = null;
 let redditObserver: MutationObserver | null = null;
 let redditSyncTimer: number | null = null;
@@ -1733,6 +1735,12 @@ function isRedditOptimizePath(pathname: string): boolean {
     return /^\/(r|user|u)\//i.test(pathname);
 }
 
+/** Only feed listing routes receive the optional 150% main-column layout. */
+function isRedditFeedPath(pathname: string): boolean {
+    if (pathname === '/' || pathname === '') return true;
+    return /^\/(r|user|u)\/[^/]+\/?$/i.test(pathname);
+}
+
 /**
  * 定位左侧主内容列（正文/帖子列表所在列，天然排除右侧社区/推荐侧栏）：
  *  1) feed 页（子版块/首页/用户页）：帖子列表在 <shreddit-feed> 内，直接用它。
@@ -1740,8 +1748,11 @@ function isRedditOptimizePath(pathname: string): boolean {
  *  3) 兜底：主内容区 <main> / #main-content。
  */
 function findRedditMainColumn(): HTMLElement | null {
+    const main = document.querySelector<HTMLElement>('main#main-content, main');
+    // A detail page can also contain a recommendations feed below the comments.
+    if (main?.querySelector('shreddit-comment-tree, #comment-tree, shreddit-comment')) return main;
     // feed 页：帖子列表容器（本身就只含贴文，不含右侧栏）
-    const feed = document.querySelector<HTMLElement>('shreddit-feed');
+    const feed = (main || document).querySelector<HTMLElement>('shreddit-feed');
     if (feed) return feed;
 
     // 评论页：从正文贴向上找到含评论树的祖先
@@ -1779,14 +1790,12 @@ function applyRedditMinFont(container: HTMLElement, minSize: number) {
             if (!fs.endsWith('px')) return;
             orig = parseFloat(fs);
             if (Number.isNaN(orig) || !orig) return;
+            redditOriginalFonts.set(node, [node.style.getPropertyValue('font-size'), node.style.getPropertyPriority('font-size')]);
             node.setAttribute(REDDIT_ORIG_FS_ATTR, String(orig));
         }
         if (Number.isNaN(orig) || !orig) return;
         if (orig < minSize) {
             node.style.fontSize = `${minSize}px`;
-        } else {
-            // 原始就比下限大：不改（清掉可能残留的 inline）
-            node.style.fontSize = '';
         }
     });
 }
@@ -1795,28 +1804,31 @@ function clearRedditMainMarks() {
     document
         .querySelectorAll<HTMLElement>(`[${REDDIT_MAIN_ATTR}]`)
         .forEach((el) => el.removeAttribute(REDDIT_MAIN_ATTR));
-    document
-        .querySelectorAll<HTMLElement>(`[${REDDIT_ORIG_FS_ATTR}]`)
-        .forEach((el) => {
-            el.style.fontSize = '';
-            el.removeAttribute(REDDIT_ORIG_FS_ATTR);
-        });
+    for (const [el, [value, priority]] of redditOriginalFonts) {
+        if (value) el.style.setProperty('font-size', value, priority);
+        else el.style.removeProperty('font-size');
+        el.removeAttribute(REDDIT_ORIG_FS_ATTR);
+    }
+    redditOriginalFonts.clear();
 }
 
 function applyRedditMainColumn() {
     if (window.self !== window.top) return;
     if (!/(^|\.)reddit\.com$/i.test(window.location.hostname)) return;
 
-    const enabled =
-        (config as any).redditMainOptimize !== false &&
-        isRedditOptimizePath(window.location.pathname);
+    const supported = isRedditOptimizePath(window.location.pathname);
+    const column = supported ? findRedditMainColumn() : null;
+    // A post/comments page has a different right column and must keep Reddit's
+    // native detail layout. The 150% option is limited to subreddit/home feeds.
+    const wideFeed = isRedditFeedPath(window.location.pathname);
+    applyRedditWide(wideFeed ? column : null, wideFeed && config.redditFeedWide !== false);
+    const enabled = config.redditMainOptimize !== false && supported;
 
     if (!enabled) {
         clearRedditMainMarks();
         return;
     }
 
-    const column = findRedditMainColumn();
     if (!column) {
         // 正文尚未渲染（shreddit 异步），等待 observer 再次触发
         return;
@@ -1837,11 +1849,18 @@ function scheduleRedditMainSync() {
     }, 150);
 }
 
+function resizeRedditMain() {
+    // Re-measure Reddit's original layout after a viewport / browser-panel resize.
+    clearRedditWide();
+    scheduleRedditMainSync();
+}
+
 function setupRedditMainWatcher() {
     if (window.self !== window.top) return;
     if (!/(^|\.)reddit\.com$/i.test(window.location.hostname)) return;
 
     applyRedditMainColumn();
+    window.addEventListener('resize', resizeRedditMain, { passive: true });
 
     if (!redditObserver) {
         redditObserver = new MutationObserver(() => scheduleRedditMainSync());
@@ -1854,6 +1873,7 @@ function setupRedditMainWatcher() {
             if (window.location.pathname !== lastPath) {
                 lastPath = window.location.pathname;
                 clearRedditMainMarks();
+                clearRedditWide();
                 applyRedditMainColumn();
             }
         }, 500);
@@ -1861,6 +1881,8 @@ function setupRedditMainWatcher() {
 }
 
 function cleanupRedditMainWatcher() {
+    window.removeEventListener('resize', resizeRedditMain);
+    clearRedditWide();
     if (redditObserver) {
         redditObserver.disconnect();
         redditObserver = null;
@@ -2118,15 +2140,24 @@ export default defineContentScript({
         // 添加自动翻译事件监听器
         if (config.autoTranslate) autoTranslationEvent();
 
+        // 挂载悬浮球与划词翻译组件：利用空闲时间调度，避免在页面主流程渲染首屏时竞争 CPU 产生卡顿
+        const scheduleUiMount = (mountFn: () => void) => {
+            if (typeof (window as any).requestIdleCallback === 'function') {
+                (window as any).requestIdleCallback(() => mountFn(), { timeout: 250 });
+            } else {
+                setTimeout(() => mountFn(), 40);
+            }
+        };
+
         // 挂载悬浮球（如果配置未禁用）
         if (config.disableFloatingBall !== true && window.self === window.top) {
             // 使用配置中的位置
-            mountFloatingBall();
+            scheduleUiMount(() => mountFloatingBall());
         }
 
         // 挂载划词翻译组件（如果配置未禁用）
         if (config.disableSelectionTranslator !== true && window.self === window.top) {
-            mountSelectionTranslator();
+            scheduleUiMount(() => mountSelectionTranslator());
         }
 
         // 挂载翻译状态组件（默认关闭，仅当明确开启时挂载）
@@ -2147,10 +2178,10 @@ export default defineContentScript({
                     }
                     applyLinkedinWideUi();
                     applyGithubReadmeLeft();
-                    // Reddit 配置变更（开关 / 最小字号）即时重应用；
+                    // Reddit 配置变更（宽度 / 阅读开关 / 最小字号）即时重应用；
                     // 关闭时 applyRedditMainColumn 内部会清掉已放大的 inline 字号
                     clearRedditMainMarks();
-                    applyRedditMainColumn();
+                    scheduleRedditMainSync();
                 } catch {
                     if (translationStatusMountedRef) unmountTranslationStatusComponent();
                 }
@@ -2987,9 +3018,9 @@ function injectSiteSpecificStyles() {
     const hostname = window.location.hostname;
 
     // Reddit 侧边栏布局修复
-    if (hostname.includes('reddit.com')) {
+    if (/(^|\.)reddit\.com$/i.test(hostname)) {
         const style = document.createElement('style');
-        style.textContent = `
+        style.textContent = redditReadingCss + `
             /* Allow wrapping in sidebar to prevent layout breakage */
             aside .subreddit-name,
             aside .author-name,
