@@ -3,12 +3,12 @@
     <div v-if="updateInfo && updateInfo.updateAvailable" class="update-banner">
       <span class="update-banner-icon">🎉</span>
       <span class="update-banner-text">
-        发现新版本 <b>V{{ updateInfo.latestVersion }}</b>（当前 V{{ updateInfo.currentVersion }}）
+        {{ t('app.updateAvailable', { latest: 'V' + updateInfo.latestVersion, current: 'V' + updateInfo.currentVersion }) }}
         <template v-if="updateInfo.notes">— {{ updateInfo.notes }}</template>
       </span>
-      <a class="update-banner-btn" :href="updateInfo.zip" download="VerseVibe.zip" target="_blank" rel="noopener">下载升级包</a>
-      <el-tooltip content="解压后到 chrome://extensions 重新加载已解压的扩展即可" placement="bottom">
-        <span class="update-banner-help">如何升级？</span>
+      <a class="update-banner-btn" :href="updateInfo.zip" download="VerseVibe.zip" target="_blank" rel="noopener">{{ t('app.updateDownload') }}</a>
+      <el-tooltip :content="t('app.updateHowTip')" placement="bottom">
+        <span class="update-banner-help">{{ t('app.updateHow') }}</span>
       </el-tooltip>
     </div>
     <template v-if="!fullLayout">
@@ -17,13 +17,14 @@
           <Header>
             <template #right>
               <div class="header-actions">
-                <el-tooltip content="重载插件" placement="left">
-                  <el-button link type="primary" class="reload-btn" @click="reloadExtension" aria-label="重载插件">
+                <LocaleSelect size="small" class="header-locale" />
+                <el-tooltip :content="t('app.reloadExtension')" placement="left">
+                  <el-button link type="primary" class="reload-btn" @click="reloadExtension" :aria-label="t('app.reloadExtension')">
                     <el-icon :size="20"><Refresh /></el-icon>
                   </el-button>
                 </el-tooltip>
-                <el-tooltip content="展开为左右版式全页设置" placement="left">
-                  <el-button link type="primary" class="expand-btn" @click="fullLayout = true" aria-label="展开设置">
+                <el-tooltip :content="t('app.expandSettings')" placement="left">
+                  <el-button link type="primary" class="expand-btn" @click="fullLayout = true" :aria-label="t('app.ariaExpand')">
                     <el-icon :size="22"><Setting /></el-icon>
                   </el-button>
                 </el-tooltip>
@@ -45,13 +46,14 @@
         <header class="full-header">
           <h1 class="full-title">VerseVibe <span class="version">V{{ version }}</span></h1>
           <div class="header-actions">
-            <el-tooltip content="重载插件" placement="left">
-              <el-button link type="primary" class="reload-btn" @click="reloadExtension" aria-label="重载插件">
+            <LocaleSelect size="small" class="header-locale" />
+            <el-tooltip :content="t('app.reloadExtension')" placement="left">
+              <el-button link type="primary" class="reload-btn" @click="reloadExtension" :aria-label="t('app.reloadExtension')">
                 <el-icon :size="20"><Refresh /></el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="收起为紧凑版" placement="left">
-              <el-button link type="primary" class="collapse-btn" @click="fullLayout = false" aria-label="收起设置">
+            <el-tooltip :content="t('app.collapseSettings')" placement="left">
+              <el-button link type="primary" class="collapse-btn" @click="fullLayout = false" :aria-label="t('app.ariaCollapse')">
                 <el-icon :size="22"><Setting /></el-icon>
               </el-button>
             </el-tooltip>
@@ -76,10 +78,13 @@ import Footer from '../../components/Footer.vue';
 import { Refresh, Setting } from '@element-plus/icons-vue';
 import { storage } from '@wxt-dev/storage';
 import { UPDATE_INFO_KEY, type UpdateInfo } from '../utils/updateCheck';
+import { t } from '../utils/i18n';
+import LocaleSelect from '../../components/LocaleSelect.vue';
 import '../../styles/theme.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
 
 const version = process.env.VUE_APP_VERSION ?? '0.0.0';
+const UPDATE_STALE_MS = 30 * 60 * 1000;
 const fullLayout = ref(true);
 const updateInfo = ref<UpdateInfo | null>(null);
 
@@ -97,12 +102,25 @@ onMounted(async () => {
   } catch {
     // ignore
   }
-  // 打开设置页时主动触发一次检查（后台返回最新结果）
-  try {
-    const res: any = await browser.runtime.sendMessage({ type: 'checkUpdateNow' });
-    if (res?.info) updateInfo.value = res.info;
-  } catch {
-    // background 未就绪时忽略，已有 storage 值兜底
+  // background 启动时与每 6 小时已各检查一次，这里只在缓存过期时补一次，
+  // 且推迟到首屏渲染完成后发送，避免唤醒 MV3 后台与页面加载抢资源。
+  const checkedAt = updateInfo.value?.checkedAt ?? 0;
+  if (Date.now() - checkedAt < UPDATE_STALE_MS) return;
+
+  const trigger = () => {
+    browser.runtime
+      .sendMessage({ type: 'checkUpdateNow' })
+      .then((res: any) => {
+        if (res?.info) updateInfo.value = res.info;
+      })
+      .catch(() => {
+        // background 未就绪时忽略，已有 storage 值兜底
+      });
+  };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(trigger, { timeout: 4000 });
+  } else {
+    setTimeout(trigger, 2000);
   }
 });
 
@@ -188,6 +206,41 @@ function reloadExtension() {
   gap: 8px;
 }
 
+.header-locale {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 56px !important;
+  flex-shrink: 0 !important;
+}
+
+.header-locale :deep(.el-select__wrapper) {
+  padding: 1px 5px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  border-radius: 4px !important;
+}
+
+.header-locale :deep(.el-select__prefix) {
+  margin-right: 0 !important;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-locale :deep(.el-select__selected-item),
+.header-locale :deep(.el-select__placeholder) {
+  display: none !important;
+}
+
+.header-locale :deep(.el-select__suffix) {
+  margin-left: 2px !important;
+}
+
+.header-locale :deep(.el-select__caret) {
+  font-size: 11px !important;
+}
+
 .full-page {
   display: flex;
   flex-direction: column;
@@ -263,6 +316,22 @@ function reloadExtension() {
 
 .settings-main :deep(.main-advanced-body > .el-row) {
   margin: 0 !important;
+  min-width: 0 !important;
+}
+
+.settings-main :deep(.el-col) {
+  min-width: 0 !important;
+}
+
+.settings-main :deep(.popup-text) {
+  font-size: 12.5px !important;
+  line-height: 1.35 !important;
+  word-break: break-word !important;
+}
+
+.settings-main :deep(.el-button--small) {
+  font-size: 11.5px !important;
+  padding: 4px 8px !important;
 }
 
 .settings-main :deep(.main-advanced-body > .el-row:has(textarea)),

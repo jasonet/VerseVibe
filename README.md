@@ -57,7 +57,7 @@
 
 ## 📦 Chrome / Edge 插件下载安装（开发者模式）
 
-**[下载 VerseVibe 0.9.19 开发者模式 ZIP 包](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.19-chrome-edge.zip)**
+**[下载 VerseVibe 0.9.24 开发者模式 ZIP 包](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.24-chrome-edge.zip)**
 
 该 ZIP 包包含已编译的插件加载目录，专用于通过 Chrome / Edge 的「开发者模式」加载扩展程序。无需安装 Node.js、下载源码或自行编译。下载后必须先解压，不能直接选择 ZIP 文件。
 
@@ -74,7 +74,7 @@
 
 如果提示找不到清单文件，请检查所选目录下是否直接存在 `manifest.json`，并确认 ZIP 已完整解压。
 
-另提供 **[CRX 签名包（0.9.19）](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.19.crx)**。上面的开发者模式安装步骤使用 ZIP 解压目录。
+另提供 **[CRX 签名包（0.9.24）](https://github.com/jasonet/VerseVibe/raw/refs/heads/main/downloads/versevibe-0.9.24.crx)**。上面的开发者模式安装步骤使用 ZIP 解压目录。
 
 ---
 

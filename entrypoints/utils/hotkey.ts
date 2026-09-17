@@ -2,6 +2,8 @@
  * 快捷键处理工具函数
  */
 
+import { t } from './i18n';
+
 // 支持的修饰键
 export const MODIFIER_KEYS: Record<string, string[]> = {
   ctrl: ['control', 'ctrl'],
@@ -72,7 +74,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
       key: '',
       isValid: false,
       displayName: '',
-      errorMessage: '快捷键不能为空'
+      errorMessage: t('hotkey.empty')
     };
   }
 
@@ -84,7 +86,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
       key: '',
       isValid: false,
       displayName: '',
-      errorMessage: '无效的快捷键格式'
+      errorMessage: t('hotkey.invalidFormat')
     };
   }
 
@@ -105,7 +107,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
           key: part,
           isValid: false,
           displayName: '',
-          errorMessage: `不支持的按键: ${part}`
+          errorMessage: t('hotkey.unsupportedKey', { key: part })
         };
       }
     } else {
@@ -127,7 +129,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
           key,
           isValid: false,
           displayName: '',
-          errorMessage: `不支持的修饰键: ${part}`
+          errorMessage: t('hotkey.unsupportedModifier', { key: part })
         };
       }
     }
@@ -140,7 +142,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
       key,
       isValid: false,
       displayName: '',
-      errorMessage: '单个字母键需要与修饰键组合使用'
+      errorMessage: t('hotkey.needModifier')
     };
   }
 
@@ -151,7 +153,7 @@ export function parseHotkey(hotkeyString: string): ParsedHotkey {
       key,
       isValid: false,
       displayName: '',
-      errorMessage: 'CMD 键已被禁用，请使用其他修饰键组合'
+      errorMessage: t('hotkey.metaDisabled')
     };
   }
 
@@ -274,41 +276,41 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
   // 常见的系统快捷键冲突检测
   const commonConflicts = [
     // Windows/Linux 系统快捷键
-    { modifiers: ['ctrl'], key: 'c', desc: '复制' },
-    { modifiers: ['ctrl'], key: 'v', desc: '粘贴' },
-    { modifiers: ['ctrl'], key: 'x', desc: '剪切' },
-    { modifiers: ['ctrl'], key: 'z', desc: '撤销' },
-    { modifiers: ['ctrl'], key: 'y', desc: '重做' },
-    { modifiers: ['ctrl'], key: 'a', desc: '全选' },
-    { modifiers: ['ctrl'], key: 's', desc: '保存' },
-    { modifiers: ['ctrl'], key: 'o', desc: '打开' },
-    { modifiers: ['ctrl'], key: 'n', desc: '新建' },
-    { modifiers: ['ctrl'], key: 'w', desc: '关闭标签页' },
-    { modifiers: ['ctrl'], key: 't', desc: '新建标签页' },
-    { modifiers: ['ctrl'], key: 'r', desc: '刷新页面' },
-    { modifiers: ['ctrl'], key: 'f', desc: '查找' },
-    { modifiers: ['ctrl'], key: 'h', desc: '历史记录' },
-    { modifiers: ['ctrl'], key: 'd', desc: '添加书签' },
-    { modifiers: ['alt'], key: 'f4', desc: '关闭程序' },
-    { modifiers: ['ctrl', 'shift'], key: 't', desc: '重新打开关闭的标签页' },
-    { modifiers: ['ctrl', 'shift'], key: 'n', desc: '无痕模式' },
-    { modifiers: ['ctrl', 'shift'], key: 'delete', desc: '清除浏览数据' },
+    { modifiers: ['ctrl'], key: 'c', desc: t('hotkey.act.copy') },
+    { modifiers: ['ctrl'], key: 'v', desc: t('hotkey.act.paste') },
+    { modifiers: ['ctrl'], key: 'x', desc: t('hotkey.act.cut') },
+    { modifiers: ['ctrl'], key: 'z', desc: t('hotkey.act.undo') },
+    { modifiers: ['ctrl'], key: 'y', desc: t('hotkey.act.redo') },
+    { modifiers: ['ctrl'], key: 'a', desc: t('hotkey.act.selectAll') },
+    { modifiers: ['ctrl'], key: 's', desc: t('hotkey.act.save') },
+    { modifiers: ['ctrl'], key: 'o', desc: t('hotkey.act.open') },
+    { modifiers: ['ctrl'], key: 'n', desc: t('hotkey.act.new') },
+    { modifiers: ['ctrl'], key: 'w', desc: t('hotkey.act.closeTab') },
+    { modifiers: ['ctrl'], key: 't', desc: t('hotkey.act.newTab') },
+    { modifiers: ['ctrl'], key: 'r', desc: t('hotkey.act.refresh') },
+    { modifiers: ['ctrl'], key: 'f', desc: t('hotkey.act.find') },
+    { modifiers: ['ctrl'], key: 'h', desc: t('hotkey.act.history') },
+    { modifiers: ['ctrl'], key: 'd', desc: t('hotkey.act.bookmark') },
+    { modifiers: ['alt'], key: 'f4', desc: t('hotkey.act.quitApp') },
+    { modifiers: ['ctrl', 'shift'], key: 't', desc: t('hotkey.act.reopenTab') },
+    { modifiers: ['ctrl', 'shift'], key: 'n', desc: t('hotkey.act.incognito') },
+    { modifiers: ['ctrl', 'shift'], key: 'delete', desc: t('hotkey.act.clearData') },
 
     // macOS 系统快捷键
-    { modifiers: ['meta'], key: 'c', desc: '复制' },
-    { modifiers: ['meta'], key: 'v', desc: '粘贴' },
-    { modifiers: ['meta'], key: 'x', desc: '剪切' },
-    { modifiers: ['meta'], key: 'z', desc: '撤销' },
-    { modifiers: ['meta'], key: 'a', desc: '全选' },
-    { modifiers: ['meta'], key: 's', desc: '保存' },
-    { modifiers: ['meta'], key: 'o', desc: '打开' },
-    { modifiers: ['meta'], key: 'n', desc: '新建' },
-    { modifiers: ['meta'], key: 'w', desc: '关闭标签页' },
-    { modifiers: ['meta'], key: 't', desc: '新建标签页' },
-    { modifiers: ['meta'], key: 'r', desc: '刷新页面' },
-    { modifiers: ['meta'], key: 'f', desc: '查找' },
-    { modifiers: ['meta'], key: 'q', desc: '退出程序' },
-    { modifiers: ['meta'], key: 'space', desc: 'Spotlight搜索' },
+    { modifiers: ['meta'], key: 'c', desc: t('hotkey.act.copy') },
+    { modifiers: ['meta'], key: 'v', desc: t('hotkey.act.paste') },
+    { modifiers: ['meta'], key: 'x', desc: t('hotkey.act.cut') },
+    { modifiers: ['meta'], key: 'z', desc: t('hotkey.act.undo') },
+    { modifiers: ['meta'], key: 'a', desc: t('hotkey.act.selectAll') },
+    { modifiers: ['meta'], key: 's', desc: t('hotkey.act.save') },
+    { modifiers: ['meta'], key: 'o', desc: t('hotkey.act.open') },
+    { modifiers: ['meta'], key: 'n', desc: t('hotkey.act.new') },
+    { modifiers: ['meta'], key: 'w', desc: t('hotkey.act.closeTab') },
+    { modifiers: ['meta'], key: 't', desc: t('hotkey.act.newTab') },
+    { modifiers: ['meta'], key: 'r', desc: t('hotkey.act.refresh') },
+    { modifiers: ['meta'], key: 'f', desc: t('hotkey.act.find') },
+    { modifiers: ['meta'], key: 'q', desc: t('hotkey.act.quit') },
+    { modifiers: ['meta'], key: 'space', desc: t('hotkey.act.spotlight') },
   ];
 
   for (const conflict of commonConflicts) {
@@ -317,7 +319,7 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
       conflict.modifiers.every(mod => modifiers.includes(mod))) {
       return {
         hasConflict: true,
-        conflictDescription: `与系统快捷键冲突: ${conflict.desc}`
+        conflictDescription: t('hotkey.conflict', { action: conflict.desc })
       };
     }
   }
@@ -330,9 +332,11 @@ export function validateHotkeyConflicts(parsedHotkey: ParsedHotkey): {
  */
 const isMacPlatform = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
+const withDefault = (text: string): string => t('hotkey.presetDefaultSuffix', { value: text });
+
 export const PRESET_HOTKEYS = [
   { value: "Alt+T", label: "Alt+T / Option+T" },
-  { value: "Alt+A", label: "Alt+A / Option+A (默认)" },
+  { value: "Alt+A", get label() { return withDefault("Alt+A / Option+A"); } },
   { value: "Alt+S", label: "Alt+S / Option+S" },
   { value: "Alt+D", label: "Alt+D / Option+D" },
   { value: "Alt+Q", label: "Alt+Q / Option+Q" },
@@ -344,8 +348,8 @@ export const PRESET_HOTKEYS = [
   { value: "F10", label: "F10" },
   { value: "F11", label: "F11" },
   { value: "F12", label: "F12" },
-  { value: "none", label: "禁用快捷键" },
-  { value: "custom", label: "自定义快捷键..." },
+  { value: "none", get label() { return t('key.none'); } },
+  { value: "custom", get label() { return t('key.custom'); } },
 ].filter((item) => {
   if (!isMacPlatform) return true;
   return !/^Alt\+[A-Z]$/i.test(item.value);

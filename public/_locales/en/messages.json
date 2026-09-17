@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "VerseVibe"
+  },
+  "extDescription": {
+    "message": "Web content resonates naturally across languages — creativity from the spirit of the tree of life."
+  },
+  "cmdFlickrDownload": {
+    "message": "Download the largest image on the current Flickr page"
+  }
+}

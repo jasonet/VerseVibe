@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 import './style.css';
 import App from './App.vue';
-import 'element-plus/dist/index.css'
+import '../utils/elementPlusStyles'
 import { ChatDotRound, Setting, Refresh, Edit, Upload, Download, Star, Loading, Coffee, WarningFilled, Warning, CircleCheckFilled } from '@element-plus/icons-vue'
 
 import {

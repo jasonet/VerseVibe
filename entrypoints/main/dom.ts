@@ -297,9 +297,11 @@ export function grabAllNode(rootNode: Node): Element[] {
                     }
                 };
 
-                // 跳过黑名单标签
+                // 跳过黑名单标签及无障碍/剪贴板隐藏容器
                 if (skipSet.has(tag) ||
                     node.classList?.contains('sr-only') ||
+                    node.classList?.contains('visuallyhidden') ||
+                    node.hasAttribute?.('data-copy-content') ||
                     node.classList?.contains('notranslate')) {
                     log(`Rejected by skipSet/class`);
                     return NodeFilter.FILTER_REJECT;
@@ -604,6 +606,9 @@ function shouldSkipNode(node: any, tag: string): boolean {
     if (
         skipSet.has(tag) ||
         node.classList?.contains('notranslate') ||
+        node.classList?.contains('sr-only') ||
+        node.classList?.contains('visuallyhidden') ||
+        node.hasAttribute?.('data-copy-content') ||
         node.isContentEditable ||
         checkTextSize(node) ||
         isMainlyNumericContent(node)

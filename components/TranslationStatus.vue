@@ -2,16 +2,16 @@
   <div class="translation-status-container" v-if="isVisible && isFloatingBallTranslating && !userClosed">
     <div class="translation-status-card">
       <div class="translation-status-header">
-        <div class="translation-status-title">生命树进度</div>
+        <div class="translation-status-title">{{ t('status.title') }}</div>
         <div class="translation-status-close" @click="close">×</div>
       </div>
       <div class="translation-status-content">
         <div class="translation-status-row">
-          <div class="translation-status-label">当前活跃任务:</div>
+          <div class="translation-status-label">{{ t('status.activeTasks') }}</div>
           <div class="translation-status-value">{{ status.activeTranslations }} / {{ status.maxConcurrent }}</div>
         </div>
         <div class="translation-status-row">
-          <div class="translation-status-label">等待中的任务:</div>
+          <div class="translation-status-label">{{ t('status.pendingTasks') }}</div>
           <div class="translation-status-value">{{ status.pendingTranslations }}</div>
         </div>
         <div class="translation-status-progress">
@@ -25,6 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { getTranslationStatus } from '../entrypoints/utils/translateApi';
+import { t } from '../entrypoints/utils/i18n';
 
 // 组件状态
 const isVisible = ref(false);

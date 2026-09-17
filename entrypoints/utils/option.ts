@@ -1,3 +1,8 @@
+import { t } from './i18n';
+
+/** 「X（默认）」标签：复用 opt.defaultSuffix，避免每种语言各写一份括号与空格。 */
+const withDefault = (text: string): string => t('opt.defaultSuffix', { value: text });
+
 export const services = {
     // 传统机器翻译
     microsoft: "microsoft",
@@ -193,7 +198,15 @@ export function bumpTranslationCount(cfg: {
     }
 }
 
+// 既是「自定义模型」的显示文案，也是跨模块比对用的持久化哨兵值（template.ts / cache.ts /
+// newApi.ts 等多处用 === 比较），因此值本身不能随语言变化，只在渲染时用 modelLabel() 映射。
 export const customModelString = "自定义模型";
+
+/** 模型名 → 显示名。仅 customModelString 需要翻译，其余模型名是服务商的真实标识。 */
+export function modelLabel(model: string): string {
+    return model === customModelString ? t('model.custom') : model;
+}
+
 export const models = new Map<string, Array<string>>([
     [services.openai, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-5-chat-latest", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", "gpt-4o", "o3", "o3-mini", customModelString]],
     [services.azureOpenai, ["gpt-5-nano", "gpt-5-mini", "gpt5", "gpt-5-chat-latest", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini", "gpt-4o", "o3", "o3-mini", customModelString]],
@@ -240,214 +253,224 @@ export const models = new Map<string, Array<string>>([
 const MICROSOFT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='1' y='1' width='10' height='10' fill='%23F25022'/%3E%3Crect x='13' y='1' width='10' height='10' fill='%237FBA00'/%3E%3Crect x='1' y='13' width='10' height='10' fill='%2300A4EF'/%3E%3Crect x='13' y='13' width='10' height='10' fill='%23FFB900'/%3E%3C/svg%3E";
 const GOOGLE_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23FFC107' d='M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z'/%3E%3Cpath fill='%23FF3D00' d='M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z'/%3E%3Cpath fill='%234CAF50' d='M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.6 16.2 44 24 44z'/%3E%3Cpath fill='%231976D2' d='M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C39.9 36 44 30.6 44 24c0-1.3-.1-2.3-.4-3.5z'/%3E%3C/svg%3E";
 
+// 所有 label 均写成 getter：读取时求值 t()，语言切换会自动反映到模板，
+// 而 value / 对象形状保持不变，调用方无需改动。
 export const options = {
     on: [
-        { value: true, label: "开启" },
-        { value: false, label: "关闭" },
+        { value: true, get label() { return t('common.on'); } },
+        { value: false, get label() { return t('common.off'); } },
     ],
     // 是否即时翻译
     autoTranslate: [
-        { value: true, label: "开启" },
-        { value: false, label: "关闭" },
+        { value: true, get label() { return t('common.on'); } },
+        { value: false, get label() { return t('common.off'); } },
     ],
     // 是否使用缓存
     useCache: [
-        { value: true, label: "开启" },
-        { value: false, label: "关闭" },
+        { value: true, get label() { return t('common.on'); } },
+        { value: false, get label() { return t('common.off'); } },
     ],
-    form: [{ value: "auto", label: "自动检测" }],
+    form: [{ value: "auto", get label() { return t('opt.autoDetect'); } }],
     to: [
-        { value: "zh-Hans", label: "中文" },
-        { value: "zh-Hant", label: "繁体中文" },
-        { value: "en", label: "英语" },
-        { value: "ja", label: "日语" },
-        { value: "ko", label: "韩语" },
-        { value: "fr", label: "法语" },
-        { value: "ru", label: "俄语" },
-        { value: "es", label: "西班牙语" },
-        { value: "de", label: "德语" },
-        { value: "pt", label: "葡萄牙语" },
-        { value: "it", label: "意大利语" },
+        { value: "zh-Hans", get label() { return t('langName.zh-Hans'); } },
+        { value: "zh-Hant", get label() { return t('langName.zh-Hant'); } },
+        { value: "en", get label() { return t('langName.en'); } },
+        { value: "ja", get label() { return t('langName.ja'); } },
+        { value: "ko", get label() { return t('langName.ko'); } },
+        { value: "fr", get label() { return t('langName.fr'); } },
+        { value: "ru", get label() { return t('langName.ru'); } },
+        { value: "es", get label() { return t('langName.es'); } },
+        { value: "de", get label() { return t('langName.de'); } },
+        { value: "pt", get label() { return t('langName.pt'); } },
+        { value: "it", get label() { return t('langName.it'); } },
+    ],
+    // 界面语言：四种选项一律用各自的母语书写（Apple/Google 惯例），auto 走 i18n
+    languages: [
+        { value: "auto", get label() { return t('locale.auto'); } },
+        { value: "zh-Hans", label: "简体中文" },
+        { value: "zh-Hant", label: "繁體中文" },
+        { value: "en", label: "English" },
+        { value: "ja", label: "日本語" },
     ],
     keys: [
-        { value: "none", label: "禁用快捷键" },
+        { value: "none", get label() { return t('key.none'); } },
 
-        { value: "Computer", label: "键盘选项", disabled: true },
+        { value: "Computer", get label() { return t('key.groupKeyboard'); }, disabled: true },
         { value: "Control", label: "Ctrl" },
         { value: "Alt", label: "Alt" },
         { value: "Shift", label: "Shift" },
         { value: "Escape", label: "ESC" },
-        { value: "`", label: "波浪号键" },
+        { value: "`", get label() { return t('key.tilde'); } },
 
-        { value: "mouse", label: "鼠标选项", disabled: true },
-        { value: "DoubleClick", label: "鼠标双击" },
-        { value: "LongPress", label: "鼠标长按" },
-        { value: "MiddleClick", label: "鼠标滚轮单击" },
+        { value: "mouse", get label() { return t('key.groupMouse'); }, disabled: true },
+        { value: "DoubleClick", get label() { return t('key.doubleClick'); } },
+        { value: "LongPress", get label() { return t('key.longPress'); } },
+        { value: "MiddleClick", get label() { return t('key.middleClick'); } },
 
-        { value: "touchscreen", label: "触屏设备选项", disabled: true },
-        { value: "TwoFinger", label: "双指翻译" },
-        { value: "ThreeFinger", label: "三指翻译" },
-        { value: "FourFinger", label: "四指翻译" },
-        { value: "DoubleClickScree", label: "双击翻译" },
-        { value: "TripleClickScree", label: "三击翻译" },
+        { value: "touchscreen", get label() { return t('key.groupTouch'); }, disabled: true },
+        { value: "TwoFinger", get label() { return t('key.twoFinger'); } },
+        { value: "ThreeFinger", get label() { return t('key.threeFinger'); } },
+        { value: "FourFinger", get label() { return t('key.fourFinger'); } },
+        { value: "DoubleClickScree", get label() { return t('key.doubleTap'); } },
+        { value: "TripleClickScree", get label() { return t('key.tripleTap'); } },
 
-        { value: "custom", label: "自定义快捷键（测试版）" },
+        { value: "custom", get label() { return t('key.custom'); } },
     ],
     services: [
         // 免费在线API翻译（浏览器默认）
-        { value: "machine", label: "免费在线API翻译（浏览器默认）", disabled: true },
-        { value: services.microsoft, label: "微软翻译", icon: MICROSOFT_ICON },
-        { value: services.google, label: "谷歌翻译", icon: GOOGLE_ICON },
+        { value: "machine", get label() { return t('svc.group.machine'); }, disabled: true },
+        { value: services.microsoft, get label() { return t('svc.microsoft'); }, icon: MICROSOFT_ICON },
+        { value: services.google, get label() { return t('svc.google'); }, icon: GOOGLE_ICON },
         { value: services.deepL, label: "DeepL" },
         // 隐藏 DeepLX（以后可恢复，勿删）
-        // { value: services.deeplx, label: "DeepLX" },
-        { value: services.xiaoniu, label: "小牛翻译" },
-        { value: services.youdao, label: "有道翻译" },
-        { value: services.tencent, label: "腾讯云翻译" },
+        // { value: services.deeplx, get label() { return t('svc.deeplx'); } },
+        { value: services.xiaoniu, get label() { return t('svc.xiaoniu'); } },
+        { value: services.youdao, get label() { return t('svc.youdao'); } },
+        { value: services.tencent, get label() { return t('svc.tencent'); } },
         // AI 私密翻译（本地运行，数据不出本机）
-        { value: "ai", label: "AI私密翻译（建议 自定义translategemma-4b-it_immersive-translate 2.2GB 2026本地运行）", disabled: true },
-        { value: services.custom, label: "自定义接口⭐️" },
-        { value: services.chromeTranslator, label: "Chrome内置AI翻译⭐⭐" },
+        { value: "ai", get label() { return t('svc.group.ai'); }, disabled: true },
+        { value: services.custom, get label() { return t('svc.custom'); } },
+        { value: services.chromeTranslator, get label() { return t('svc.chromeTranslator'); } },
         // AI 远程翻译（需自备 Key）
-        { value: "ai_remote", label: "AI远程翻译（Key）", disabled: true },
-        { value: services.deepseek, label: "DeepSeek️" },
-        { value: services.siliconCloud, label: "硅基流动⭐️" },
-        { value: services.huanYuan, label: "腾讯混元⭐" },
-        { value: services.newapi, label: "New API" },
+        { value: "ai_remote", get label() { return t('svc.group.aiRemote'); }, disabled: true },
+        { value: services.deepseek, get label() { return t('svc.deepseek'); } },
+        { value: services.siliconCloud, get label() { return t('svc.siliconCloud'); } },
+        { value: services.huanYuan, get label() { return t('svc.huanYuan'); } },
+        { value: services.newapi, get label() { return t('svc.newapi'); } },
         { value: services.openai, label: "OpenAI" },
         { value: services.azureOpenai, label: "Azure OpenAI" },
-        { value: services.huanYuanTranslation, label: "腾讯混元翻译" },
-        { value: services.tongyi, label: "阿里通义" },
-        { value: services.doubao, label: "字节豆包" },
+        { value: services.huanYuanTranslation, get label() { return t('svc.huanYuanTranslation'); } },
+        { value: services.tongyi, get label() { return t('svc.tongyi'); } },
+        { value: services.doubao, get label() { return t('svc.doubao'); } },
         { value: services.claude, label: "Claude" },
         { value: services.gemini, label: "Gemini" },
-        { value: services.moonshot, label: "Kimi" },
-        { value: services.zhipu, label: "Z.ai" },
+        { value: services.moonshot, get label() { return t('svc.moonshot'); } },
+        { value: services.zhipu, get label() { return t('svc.zhipu'); } },
         // 更多 / 小众模型（均可改用「自定义接口 / New API / OpenRouter」接入）
-        { value: "ai_more", label: "更多 / 小众模型", disabled: true },
+        { value: "ai_more", get label() { return t('svc.group.more'); }, disabled: true },
         { value: services.openrouter, label: "OpenRouter" },
-        { value: services.grok, label: "Grok (X.AI)" },
+        { value: services.grok, get label() { return t('svc.grok'); } },
         { value: services.groq, label: "Groq" },
-        { value: services.baichuan, label: "百川智能" },
+        { value: services.baichuan, get label() { return t('svc.baichuan'); } },
         // 隐藏 零一万物 / 阶跃星辰 / 无向芯穹（以后可恢复，勿删）
-        // { value: services.lingyi, label: "零一万物" },
+        // { value: services.lingyi, get label() { return t('svc.lingyi'); } },
         { value: services.minimax, label: "MiniMax" },
-        // { value: services.jieyue, label: "阶跃星辰" },
-        // { value: services.infini, label: "无向芯穹" },
+        // { value: services.jieyue, get label() { return t('svc.jieyue'); } },
+        // { value: services.infini, get label() { return t('svc.infini'); } },
     ],
     display: [
-        { value: 0, label: "仅译文模式" },
-        { value: 1, label: "双语对照模式" },
+        { value: 0, get label() { return t('opt.displaySingle'); } },
+        { value: 1, get label() { return t('opt.displayBilingual'); } },
     ],
     // 双语翻译样式
     styles: [
         // 下划线系列
-        { value: "underline", label: "下划线系列", disabled: true },
-        { value: 33, label: "炫光底线·紫", class: "verse-vibe-display-glow-underline", group: "underline" },
-        { value: 41, label: "炫光底线·黄", class: "verse-vibe-display-glow-underline-yellow", group: "underline" },
-        { value: 42, label: "炫光底线·红", class: "verse-vibe-display-glow-underline-red", group: "underline" },
-        { value: 43, label: "炫光底线·绿", class: "verse-vibe-display-glow-underline-green", group: "underline" },
-        { value: 44, label: "炫光底线·褐", class: "verse-vibe-display-glow-underline-brown", group: "underline" },
-        { value: 5, label: "优雅虚线", class: "verse-vibe-display-dot-underline", group: "underline" },
-        { value: 51, label: "优雅虚线·红", class: "verse-vibe-display-dot-underline-red", group: "underline" },
-        { value: 52, label: "优雅虚线·黄", class: "verse-vibe-display-dot-underline-yellow", group: "underline" },
-        { value: 53, label: "优雅虚线·绿", class: "verse-vibe-display-dot-underline-green", group: "underline" },
-        { value: 54, label: "优雅虚线·紫", class: "verse-vibe-display-dot-underline-purple", group: "underline" },
-        { value: 4, label: "蓝色实线", class: "verse-vibe-display-solid-underline", group: "underline" },
-        { value: 55, label: "实线·红", class: "verse-vibe-display-solid-underline-red", group: "underline" },
-        { value: 56, label: "实线·橘黄", class: "verse-vibe-display-solid-underline-orange", group: "underline" },
-        { value: 57, label: "实线·浅蓝", class: "verse-vibe-display-solid-underline-lightblue", group: "underline" },
-        { value: 58, label: "双实线·浅蓝", class: "verse-vibe-display-double-underline-lightblue", group: "underline" },
-        { value: 59, label: "双实线·橘黄", class: "verse-vibe-display-double-underline-orange", group: "underline" },
-        { value: 60, label: "双实线·浅红", class: "verse-vibe-display-double-underline-lightred", group: "underline" },
-        { value: 6, label: "活泼波浪", class: "verse-vibe-display-wavy", group: "underline" },
-        { value: 61, label: "活泼波浪·红", class: "verse-vibe-display-wavy-lively-red", group: "underline" },
-        { value: 26, label: "闷骚浪·红", class: "verse-vibe-display-wavy-red", group: "underline" },
-        { value: 27, label: "闷骚浪·黄", class: "verse-vibe-display-wavy-yellow", group: "underline" },
-        { value: 28, label: "闷骚浪·绿", class: "verse-vibe-display-wavy-green", group: "underline" },
-        { value: 29, label: "闷骚浪·蓝", class: "verse-vibe-display-wavy-blue", group: "underline" },
-        { value: 30, label: "闷骚浪·黑", class: "verse-vibe-display-wavy-black", group: "underline" },
-        { value: 31, label: "闷骚浪·紫", class: "verse-vibe-display-wavy-purple", group: "underline" },
-        { value: 32, label: "闷骚浪·橘", class: "verse-vibe-display-wavy-orange", group: "underline" },
+        { value: "underline", get label() { return t('style.group.underline'); }, disabled: true },
+        { value: 33, get label() { return t('style.33'); }, class: "verse-vibe-display-glow-underline", group: "underline" },
+        { value: 41, get label() { return t('style.41'); }, class: "verse-vibe-display-glow-underline-yellow", group: "underline" },
+        { value: 42, get label() { return t('style.42'); }, class: "verse-vibe-display-glow-underline-red", group: "underline" },
+        { value: 43, get label() { return t('style.43'); }, class: "verse-vibe-display-glow-underline-green", group: "underline" },
+        { value: 44, get label() { return t('style.44'); }, class: "verse-vibe-display-glow-underline-brown", group: "underline" },
+        { value: 5, get label() { return t('style.5'); }, class: "verse-vibe-display-dot-underline", group: "underline" },
+        { value: 51, get label() { return t('style.51'); }, class: "verse-vibe-display-dot-underline-red", group: "underline" },
+        { value: 52, get label() { return t('style.52'); }, class: "verse-vibe-display-dot-underline-yellow", group: "underline" },
+        { value: 53, get label() { return t('style.53'); }, class: "verse-vibe-display-dot-underline-green", group: "underline" },
+        { value: 54, get label() { return t('style.54'); }, class: "verse-vibe-display-dot-underline-purple", group: "underline" },
+        { value: 4, get label() { return t('style.4'); }, class: "verse-vibe-display-solid-underline", group: "underline" },
+        { value: 55, get label() { return t('style.55'); }, class: "verse-vibe-display-solid-underline-red", group: "underline" },
+        { value: 56, get label() { return t('style.56'); }, class: "verse-vibe-display-solid-underline-orange", group: "underline" },
+        { value: 57, get label() { return t('style.57'); }, class: "verse-vibe-display-solid-underline-lightblue", group: "underline" },
+        { value: 58, get label() { return t('style.58'); }, class: "verse-vibe-display-double-underline-lightblue", group: "underline" },
+        { value: 59, get label() { return t('style.59'); }, class: "verse-vibe-display-double-underline-orange", group: "underline" },
+        { value: 60, get label() { return t('style.60'); }, class: "verse-vibe-display-double-underline-lightred", group: "underline" },
+        { value: 6, get label() { return t('style.6'); }, class: "verse-vibe-display-wavy", group: "underline" },
+        { value: 61, get label() { return t('style.61'); }, class: "verse-vibe-display-wavy-lively-red", group: "underline" },
+        { value: 26, get label() { return t('style.26'); }, class: "verse-vibe-display-wavy-red", group: "underline" },
+        { value: 27, get label() { return t('style.27'); }, class: "verse-vibe-display-wavy-yellow", group: "underline" },
+        { value: 28, get label() { return t('style.28'); }, class: "verse-vibe-display-wavy-green", group: "underline" },
+        { value: 29, get label() { return t('style.29'); }, class: "verse-vibe-display-wavy-blue", group: "underline" },
+        { value: 30, get label() { return t('style.30'); }, class: "verse-vibe-display-wavy-black", group: "underline" },
+        { value: 31, get label() { return t('style.31'); }, class: "verse-vibe-display-wavy-purple", group: "underline" },
+        { value: 32, get label() { return t('style.32'); }, class: "verse-vibe-display-wavy-orange", group: "underline" },
 
         // 卡片系列
-        { value: "card", label: "卡片系列", disabled: true },
-        { value: 7, label: "简约卡片", class: "verse-vibe-display-card-mode", group: "card" },
-        { value: 8, label: "渐变卡片", class: "verse-vibe-display-modern-card", group: "card" },
-        { value: 9, label: "纸张卡片", class: "verse-vibe-display-paper", group: "card" },
+        { value: "card", get label() { return t('style.group.card'); }, disabled: true },
+        { value: 7, get label() { return t('style.7'); }, class: "verse-vibe-display-card-mode", group: "card" },
+        { value: 8, get label() { return t('style.8'); }, class: "verse-vibe-display-modern-card", group: "card" },
+        { value: 9, get label() { return t('style.9'); }, class: "verse-vibe-display-paper", group: "card" },
 
         // 高亮系列
-        { value: "highlight", label: "高亮系列", disabled: true },
-        { value: 10, label: "学习标记", class: "verse-vibe-display-learning-mode", group: "highlight" },
-        { value: 62, label: "学习标记·浅蓝", class: "verse-vibe-display-learning-mode-lightblue", group: "highlight" },
-        { value: 63, label: "学习标记·浅粉", class: "verse-vibe-display-learning-mode-lightpink", group: "highlight" },
-        { value: 64, label: "学习标记·浅绿", class: "verse-vibe-display-learning-mode-lightgreen", group: "highlight" },
-        { value: 65, label: "学习标记·浅紫", class: "verse-vibe-display-learning-mode-lightpurple", group: "highlight" },
-        { value: 11, label: "荧光标记", class: "verse-vibe-display-marker", group: "highlight" },
-        { value: 66, label: "荧光标记·浅蓝", class: "verse-vibe-display-marker-lightblue", group: "highlight" },
-        { value: 67, label: "荧光标记·浅粉", class: "verse-vibe-display-marker-lightpink", group: "highlight" },
-        { value: 68, label: "荧光标记·浅绿", class: "verse-vibe-display-marker-lightgreen", group: "highlight" },
-        { value: 69, label: "荧光标记·浅紫", class: "verse-vibe-display-marker-lightpurple", group: "highlight" },
-        { value: 12, label: "柔和渐变", class: "verse-vibe-display-highlight-fade", group: "highlight" },
-        { value: 70, label: "柔和渐变·浅蓝", class: "verse-vibe-display-highlight-fade-lightblue", group: "highlight" },
-        { value: 71, label: "柔和渐变·浅粉", class: "verse-vibe-display-highlight-fade-lightpink", group: "highlight" },
-        { value: 72, label: "柔和渐变·浅绿", class: "verse-vibe-display-highlight-fade-lightgreen", group: "highlight" },
-        { value: 73, label: "柔和渐变·浅紫", class: "verse-vibe-display-highlight-fade-lightpurple", group: "highlight" },
+        { value: "highlight", get label() { return t('style.group.highlight'); }, disabled: true },
+        { value: 10, get label() { return t('style.10'); }, class: "verse-vibe-display-learning-mode", group: "highlight" },
+        { value: 62, get label() { return t('style.62'); }, class: "verse-vibe-display-learning-mode-lightblue", group: "highlight" },
+        { value: 63, get label() { return t('style.63'); }, class: "verse-vibe-display-learning-mode-lightpink", group: "highlight" },
+        { value: 64, get label() { return t('style.64'); }, class: "verse-vibe-display-learning-mode-lightgreen", group: "highlight" },
+        { value: 65, get label() { return t('style.65'); }, class: "verse-vibe-display-learning-mode-lightpurple", group: "highlight" },
+        { value: 11, get label() { return t('style.11'); }, class: "verse-vibe-display-marker", group: "highlight" },
+        { value: 66, get label() { return t('style.66'); }, class: "verse-vibe-display-marker-lightblue", group: "highlight" },
+        { value: 67, get label() { return t('style.67'); }, class: "verse-vibe-display-marker-lightpink", group: "highlight" },
+        { value: 68, get label() { return t('style.68'); }, class: "verse-vibe-display-marker-lightgreen", group: "highlight" },
+        { value: 69, get label() { return t('style.69'); }, class: "verse-vibe-display-marker-lightpurple", group: "highlight" },
+        { value: 12, get label() { return t('style.12'); }, class: "verse-vibe-display-highlight-fade", group: "highlight" },
+        { value: 70, get label() { return t('style.70'); }, class: "verse-vibe-display-highlight-fade-lightblue", group: "highlight" },
+        { value: 71, get label() { return t('style.71'); }, class: "verse-vibe-display-highlight-fade-lightpink", group: "highlight" },
+        { value: 72, get label() { return t('style.72'); }, class: "verse-vibe-display-highlight-fade-lightgreen", group: "highlight" },
+        { value: 73, get label() { return t('style.73'); }, class: "verse-vibe-display-highlight-fade-lightpurple", group: "highlight" },
 
         // 背景色系列
-        { value: "background", label: "背景色系列", disabled: true },
-        { value: 13, label: "温暖黄底", class: "verse-vibe-display-lightyellow", group: "background" },
-        { value: 14, label: "清新蓝底", class: "verse-vibe-display-lightblue", group: "background" },
-        { value: 15, label: "素雅灰底", class: "verse-vibe-display-lightgray", group: "background" },
-        { value: 35, label: "紫色底", class: "verse-vibe-display-bg-purple", group: "background" },
-        { value: 36, label: "黄色底", class: "verse-vibe-display-bg-yellow", group: "background" },
-        { value: 37, label: "红色底", class: "verse-vibe-display-bg-red", group: "background" },
-        { value: 38, label: "蓝色底", class: "verse-vibe-display-bg-blue", group: "background" },
-        { value: 39, label: "绿色底", class: "verse-vibe-display-bg-green", group: "background" },
-        { value: 40, label: "褐色底", class: "verse-vibe-display-bg-brown", group: "background" },
+        { value: "background", get label() { return t('style.group.background'); }, disabled: true },
+        { value: 13, get label() { return t('style.13'); }, class: "verse-vibe-display-lightyellow", group: "background" },
+        { value: 14, get label() { return t('style.14'); }, class: "verse-vibe-display-lightblue", group: "background" },
+        { value: 15, get label() { return t('style.15'); }, class: "verse-vibe-display-lightgray", group: "background" },
+        { value: 35, get label() { return t('style.35'); }, class: "verse-vibe-display-bg-purple", group: "background" },
+        { value: 36, get label() { return t('style.36'); }, class: "verse-vibe-display-bg-yellow", group: "background" },
+        { value: 37, get label() { return t('style.37'); }, class: "verse-vibe-display-bg-red", group: "background" },
+        { value: 38, get label() { return t('style.38'); }, class: "verse-vibe-display-bg-blue", group: "background" },
+        { value: 39, get label() { return t('style.39'); }, class: "verse-vibe-display-bg-green", group: "background" },
+        { value: 40, get label() { return t('style.40'); }, class: "verse-vibe-display-bg-brown", group: "background" },
 
         // 特殊效果
-        { value: "special", label: "特殊效果", disabled: true },
-        { value: 34, label: "炫光分割线", class: "verse-vibe-display-glow-divider", group: "special" },
-        { value: 48, label: "炫光分割线·灰黑", class: "verse-vibe-display-glow-divider-dark", group: "special" },
-        { value: 49, label: "炫光分割线·橘黄", class: "verse-vibe-display-glow-divider-orange", group: "special" },
-        { value: 50, label: "炫光分割线·绿", class: "verse-vibe-display-glow-divider-green", group: "special" },
-        { value: 16, label: "典雅引用", class: "verse-vibe-display-quote", group: "special" },
-        { value: 45, label: "典雅引用·黄", class: "verse-vibe-display-quote-yellow", group: "special" },
-        { value: 46, label: "典雅引用·红", class: "verse-vibe-display-quote-red", group: "special" },
-        { value: 47, label: "典雅引用·紫", class: "verse-vibe-display-quote-purple", group: "special" },
-        { value: 17, label: "轻巧边框", class: "verse-vibe-display-border", group: "special" },
-        { value: 74, label: "轻巧边框·浅蓝", class: "verse-vibe-display-border-lightblue", group: "special" },
-        { value: 75, label: "轻巧边框·浅粉", class: "verse-vibe-display-border-lightpink", group: "special" },
-        { value: 76, label: "轻巧边框·浅绿", class: "verse-vibe-display-border-lightgreen", group: "special" },
-        { value: 77, label: "轻巧边框·浅紫", class: "verse-vibe-display-border-lightpurple", group: "special" },
-        { value: 18, label: "阅读焦点", class: "verse-vibe-display-focus", group: "special" },
-        { value: 19, label: "简约底线", class: "verse-vibe-display-clean", group: "special" },
+        { value: "special", get label() { return t('style.group.special'); }, disabled: true },
+        { value: 34, get label() { return t('style.34'); }, class: "verse-vibe-display-glow-divider", group: "special" },
+        { value: 48, get label() { return t('style.48'); }, class: "verse-vibe-display-glow-divider-dark", group: "special" },
+        { value: 49, get label() { return t('style.49'); }, class: "verse-vibe-display-glow-divider-orange", group: "special" },
+        { value: 50, get label() { return t('style.50'); }, class: "verse-vibe-display-glow-divider-green", group: "special" },
+        { value: 16, get label() { return t('style.16'); }, class: "verse-vibe-display-quote", group: "special" },
+        { value: 45, get label() { return t('style.45'); }, class: "verse-vibe-display-quote-yellow", group: "special" },
+        { value: 46, get label() { return t('style.46'); }, class: "verse-vibe-display-quote-red", group: "special" },
+        { value: 47, get label() { return t('style.47'); }, class: "verse-vibe-display-quote-purple", group: "special" },
+        { value: 17, get label() { return t('style.17'); }, class: "verse-vibe-display-border", group: "special" },
+        { value: 74, get label() { return t('style.74'); }, class: "verse-vibe-display-border-lightblue", group: "special" },
+        { value: 75, get label() { return t('style.75'); }, class: "verse-vibe-display-border-lightpink", group: "special" },
+        { value: 76, get label() { return t('style.76'); }, class: "verse-vibe-display-border-lightgreen", group: "special" },
+        { value: 77, get label() { return t('style.77'); }, class: "verse-vibe-display-border-lightpurple", group: "special" },
+        { value: 18, get label() { return t('style.18'); }, class: "verse-vibe-display-focus", group: "special" },
+        { value: 19, get label() { return t('style.19'); }, class: "verse-vibe-display-clean", group: "special" },
 
         // 专业样式
-        { value: "pro", label: "专业样式", disabled: true },
-        { value: 20, label: "代码风格", class: "verse-vibe-display-tech", group: "pro" },
-        { value: 78, label: "代码风格·黑底", class: "verse-vibe-display-tech-dark", group: "pro" },
-        { value: 79, label: "代码风格·火星黄土", class: "verse-vibe-display-tech-mars", group: "pro" },
-        { value: 21, label: "书籍风格", class: "verse-vibe-display-elegant", group: "pro" },
-        { value: 80, label: "竖版直书（日文/文言）", class: "verse-vibe-display-vertical", group: "pro" },
-        { value: 81, label: "竖版宣纸（古籍）", class: "verse-vibe-display-vertical-paper", group: "pro" },
+        { value: "pro", get label() { return t('style.group.pro'); }, disabled: true },
+        { value: 20, get label() { return t('style.20'); }, class: "verse-vibe-display-tech", group: "pro" },
+        { value: 78, get label() { return t('style.78'); }, class: "verse-vibe-display-tech-dark", group: "pro" },
+        { value: 79, get label() { return t('style.79'); }, class: "verse-vibe-display-tech-mars", group: "pro" },
+        { value: 21, get label() { return t('style.21'); }, class: "verse-vibe-display-elegant", group: "pro" },
+        { value: 80, get label() { return t('style.80'); }, class: "verse-vibe-display-vertical", group: "pro" },
+        { value: 81, get label() { return t('style.81'); }, class: "verse-vibe-display-vertical-paper", group: "pro" },
 
         // 透明度
-        { value: "transparent", label: "透明效果", disabled: true },
-        { value: 22, label: "半透明弱化", class: "verse-vibe-display-dimmed", group: "transparent" },
-        { value: 23, label: "轻透明感", class: "verse-vibe-display-transparent-mode", group: "transparent" },
+        { value: "transparent", get label() { return t('style.group.transparent'); }, disabled: true },
+        { value: 22, get label() { return t('style.22'); }, class: "verse-vibe-display-dimmed", group: "transparent" },
+        { value: 23, get label() { return t('style.23'); }, class: "verse-vibe-display-transparent-mode", group: "transparent" },
 
         // 用户自定义扩展 (New)
-        { value: "custom_ext", label: "高级扩展", disabled: true },
-        { value: 24, label: "LinkedIn 优化", class: "verse-vibe-display-linkedin-spec", group: "custom_ext" },
-        { value: 25, label: "玻璃拟态", class: "verse-vibe-display-glass", group: "custom_ext" },
+        { value: "custom_ext", get label() { return t('style.group.custom_ext'); }, disabled: true },
+        { value: 24, get label() { return t('style.24'); }, class: "verse-vibe-display-linkedin-spec", group: "custom_ext" },
+        { value: 25, get label() { return t('style.25'); }, class: "verse-vibe-display-glass", group: "custom_ext" },
     ],
     // 悬浮球快捷键选项
     floatingBallHotkeys: [
-        { value: "none", label: "禁用快捷键" },
+        { value: "none", get label() { return t('key.none'); } },
         { value: "Alt+T", label: "Alt+T / Option+T" },
-        { value: "Alt+A", label: "Alt+A / Option+A (默认)" },
+        { value: "Alt+A", get label() { return withDefault("Alt+A / Option+A"); } },
         { value: "Alt+S", label: "Alt+S / Option+S" },
         { value: "Alt+D", label: "Alt+D / Option+D" },
         { value: "Alt+Q", label: "Alt+Q / Option+Q" },
@@ -457,21 +480,21 @@ export const options = {
         { value: "F10", label: "F10" },
         { value: "F11", label: "F11" },
         { value: "F12", label: "F12" },
-        { value: "custom", label: "自定义快捷键（测试版）" },
+        { value: "custom", get label() { return t('key.custom'); } },
     ].filter((item) => {
         if (!isMacPlatform) return true;
         return !/^Alt\+[A-Z]$/i.test(item.value);
     }),
     theme: [
-        { value: "auto", label: "跟随操作系统" },
-        { value: "light", label: "亮色主题" },
-        { value: "dark", label: "暗色主题" },
+        { value: "auto", get label() { return t('opt.themeAuto'); } },
+        { value: "light", get label() { return t('opt.themeLight'); } },
+        { value: "dark", get label() { return t('opt.themeDark'); } },
     ],
     // 最小中文字号选项
     minFontSizes: [
         { value: 12, label: "12px" },
         { value: 13, label: "13px" },
-        { value: 14, label: "14px (默认)" },
+        { value: 14, get label() { return withDefault("14px"); } },
         { value: 15, label: "15px" },
         { value: 16, label: "16px" },
         { value: 17, label: "17px" },
@@ -481,29 +504,29 @@ export const options = {
     ],
     // 输入框翻译目标语言选项
     inputBoxTranslationTarget: [
-        { value: "zh-Hans", label: "中文" },
-        { value: "en", label: "英语" },
-        { value: "ja", label: "日语" },
-        { value: "ko", label: "韩语" },
-        { value: "fr", label: "法语" },
-        { value: "ru", label: "俄语" },
-        { value: "es", label: "西班牙语" },
-        { value: "de", label: "德语" },
-        { value: "pt", label: "葡萄牙语" },
-        { value: "it", label: "意大利语" },
+        { value: "zh-Hans", get label() { return t('langName.zh-Hans'); } },
+        { value: "en", get label() { return t('langName.en'); } },
+        { value: "ja", get label() { return t('langName.ja'); } },
+        { value: "ko", get label() { return t('langName.ko'); } },
+        { value: "fr", get label() { return t('langName.fr'); } },
+        { value: "ru", get label() { return t('langName.ru'); } },
+        { value: "es", get label() { return t('langName.es'); } },
+        { value: "de", get label() { return t('langName.de'); } },
+        { value: "pt", get label() { return t('langName.pt'); } },
+        { value: "it", get label() { return t('langName.it'); } },
     ],
     // 输入框翻译触发方式选项
     inputBoxTranslationTrigger: [
-        { value: "disabled", label: "关闭" },
-        { value: "triple_space", label: "连按三下空格" },
-        { value: "triple_equal", label: "连按三下等号(=)" },
-        { value: "triple_dash", label: "连按三下短横线(-)" },
+        { value: "disabled", get label() { return t('opt.triggerDisabled'); } },
+        { value: "triple_space", get label() { return t('opt.triggerTripleSpace'); } },
+        { value: "triple_equal", get label() { return t('opt.triggerTripleEqual'); } },
+        { value: "triple_dash", get label() { return t('opt.triggerTripleDash'); } },
     ],
     // Reddit 正文贴列最小字号选项
     redditMinFontSizes: [
         { value: 14, label: "14px" },
         { value: 15, label: "15px" },
-        { value: 16, label: "16px (默认)" },
+        { value: 16, get label() { return withDefault("16px"); } },
         { value: 17, label: "17px" },
         { value: 18, label: "18px" },
         { value: 19, label: "19px" },
@@ -513,56 +536,73 @@ export const options = {
     ],
     // LinkedIn 宽幅尺寸档位
     linkedinWideScale: [
-        { value: "normal", label: "原始宽" },
-        { value: "1.5x", label: "1.5倍宽" },
-        { value: "2x", label: "2倍宽" },
-        { value: "3x", label: "3倍宽" },
-        { value: "full", label: "全宽" },
+        { value: "normal", get label() { return t('opt.scaleNormal'); } },
+        { value: "1.5x", get label() { return t('opt.scale15x'); } },
+        { value: "2x", get label() { return t('opt.scale2x'); } },
+        { value: "3x", get label() { return t('opt.scale3x'); } },
+        { value: "full", get label() { return t('opt.scaleFull'); } },
+    ],
+    // Reddit 正文/Feed 宽度档位
+    redditWideScale: [
+        { value: "1x", get label() { return t('opt.scaleNormal'); } },
+        { value: "1.5x", get label() { return withDefault(t('opt.scale15x')); } },
+        { value: "2x", get label() { return t('opt.scale2x'); } },
+        { value: "2.5x", get label() { return t('opt.scale25x'); } },
+    ],
+    // X.com（Twitter）时间线宽度档位
+    xWideScale: [
+        { value: "1x", get label() { return t('opt.scaleNormal'); } },
+        { value: "1.5x", get label() { return t('opt.scale15x'); } },
+        { value: "2x", get label() { return withDefault(t('opt.scale2x')); } },
+        { value: "2.5x", get label() { return t('opt.scale25x'); } },
     ],
 };
 
 // 翻译风格预设：一键写入当前服务的 system_role（仅 AI 类服务可用）
 // value 为空字符串表示“自定义”占位项，不会覆盖现有 system_role。
+// label 走 i18n；system_role 是发给大模型的提示词，保持英文不翻译。
 export const promptPresets: { value: string; label: string; system_role: string }[] = [
     {
         value: "default",
-        label: "专业直译（默认）",
+        get label() { return t('preset.default'); },
         system_role:
             "You are a professional translation engine. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
     {
         value: "fluent",
-        label: "白话流畅",
+        get label() { return t("preset.fluent"); },
         system_role:
             "You are a professional translation engine. Translate into natural, fluent, idiomatic language as a native speaker would write it, prioritizing readability over literal word-for-word rendering. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
     {
         value: "classical",
-        label: "典雅文言",
+        get label() { return t("preset.classical"); },
         system_role:
             "You are a master translator of Classical Chinese (文言文). When the target language is Chinese, render the translation in elegant, concise Classical Chinese prose (文言文) with literary refinement, while keeping the original meaning faithful. For other target languages, use an elevated, literary register. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
     {
         value: "academic",
-        label: "学术严谨",
+        get label() { return t("preset.academic"); },
         system_role:
             "You are an academic translation engine. Translate with rigorous accuracy and formal, scholarly tone. Keep technical terms precise and consistent; preserve domain-specific terminology. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
     {
         value: "colloquial",
-        label: "口语自然",
+        get label() { return t("preset.colloquial"); },
         system_role:
             "You are a translation engine specialized in casual, spoken-style language. Translate into relaxed, conversational, everyday speech as people actually talk, using natural contractions and colloquialisms where appropriate. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
     {
         value: "literary",
-        label: "文学优美",
+        get label() { return t("preset.literary"); },
         system_role:
             "You are a literary translation engine. Translate with attention to rhythm, imagery, and aesthetic flow, producing graceful and expressive prose while staying faithful to the original meaning. Strictly preserve all HTML tags and attributes. ONLY translate text content. DO NOT add any explanations, notes, or meta-comments.",
     },
 ];
 
 export const defaultOption = {
+    // 界面语言：'auto' 跟随浏览器，或 'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
+    lang: "auto",
     on: true,
     from: "auto",
     to: "zh-Hans",
@@ -594,6 +634,9 @@ export const defaultOption = {
     linkedinAutoHidePromotedMedia: false, // 默认关闭：LinkedIn 对 Promoted 标签做了混淆/本地化，文本识别不可靠，无法稳定隐藏
     githubReadmeLeft: true, // 默认启用：GitHub 仓库首页 README 横排到文件列表左侧（左栏由 2 行变 2 列）
     redditMainOptimize: true, // 默认启用：Reddit 评论页左侧正文贴列阅读优化（放大正文字号）
-    redditFeedWide: true, // 默认勾选：Reddit 主阅读列 150% 宽度，窄窗口自动适配
+    redditFeedWide: true, // 默认勾选：Reddit 主阅读列加宽，窄窗口自动适配
+    redditWideScale: "1.5x", // 默认 1.5 倍宽 (150%)
     redditMinFontSize: 16, // Reddit 正文贴列最小字号（小于此值的正文文本会被放大到此值）
+    xWide: true, // 默认勾选：X.com（Twitter）主时间线列加宽，窄窗口自动适配
+    xWideScale: "2x", // 默认 2 倍宽 (200%)
 };

@@ -834,16 +834,22 @@ function bilingualAppendChild(node: any, text: string) {
         const parentDisplay = parentStyle.display || '';
 
         if (parentDisplay.includes('flex')) {
-            // 在任意 flex 祖先下，强制允许换行，并让译文这一块单独占一整行
-            // 典型场景：coder.com 的「 + Bullet 列表」，否则译文会出现在右侧
+            // 仅在横向 flex（row）容器下允许换行并占满整行（如 bullet 列表），
+            // 若容器为纵向（column），元素本就垂直堆叠，强加 wrap 会导致纵向换列，
+            // 并在 X.com（Twitter）等虚拟滚动列表滚动时引发排版闪烁与抖动！
+            const isRowFlex = !parentStyle.flexDirection.includes('column');
             try {
-                if (parentStyle.flexWrap === 'nowrap') {
+                if (isRowFlex && parentStyle.flexWrap === 'nowrap') {
                     (parent as HTMLElement).style.flexWrap = 'wrap';
                 }
             } catch {
                 // ignore
             }
-            wrapper.style.flexBasis = '100%';
+            if (isRowFlex) {
+                wrapper.style.flexBasis = '100%';
+            } else {
+                wrapper.style.flexBasis = 'auto';
+            }
             wrapper.style.alignSelf = 'stretch';
         }
 

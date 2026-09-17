@@ -24,11 +24,19 @@ export function clearRedditWide() {
     activeColumn = null;
 }
 
-export function applyRedditWide(column: HTMLElement | null, enabled: boolean) {
+export function applyRedditWide(column: HTMLElement | null, enabled: boolean, scale = 1.5) {
     if (!enabled || !column || window.innerWidth < 960) {
         clearRedditWide();
         return;
     }
+    if (!Number.isFinite(scale) || scale < 1) scale = 1.5;
+
+    // 1x 档位即为原始宽度，清除加宽并恢复原生布局
+    if (scale <= 1) {
+        clearRedditWide();
+        return;
+    }
+
     if (activeColumn === column && column.isConnected) return;
     clearRedditWide();
 
@@ -43,6 +51,11 @@ export function applyRedditWide(column: HTMLElement | null, enabled: boolean) {
         const style = getComputedStyle(element);
         return rect.width > 1 && rect.height > 1 && style.display !== 'none' && style.visibility !== 'hidden';
     };
+
+    // 获取左侧导航栏占用的宽度，用于计算主体可用的居中空间
+    const leftNav = document.querySelector<HTMLElement>('reddit-sidebar-nav, #left-sidebar-container, [data-testid="left-sidebar"]');
+    const leftNavWidth = (leftNav && visible(leftNav)) ? Math.round(leftNav.getBoundingClientRect().width) : 0;
+    const availTotal = Math.max(640, window.innerWidth - leftNavWidth - 32);
 
     // Reddit's current layout often nests the sidebar several levels below the
     // actual two-column host. Find the nearest ancestor whose direct children
@@ -74,35 +87,52 @@ export function applyRedditWide(column: HTMLElement | null, enabled: boolean) {
         const isGrid = layoutStyle.display === 'grid';
         const isFlex = layoutStyle.display === 'flex' && layoutStyle.flexDirection === 'row';
 
-        // Release centered wrapper caps before measuring the available space;
-        // otherwise the old 1120px cap makes the 150% column look clipped even
-        // when the viewport has room for the sidebar beside it.
-        for (let wrapper = layout.parentElement; wrapper && wrapper !== document.body; wrapper = wrapper.parentElement) {
-            if (wrapper.querySelector('nav, #left-sidebar-container')) break;
-            if (getComputedStyle(wrapper).maxWidth !== 'none') setStyle(wrapper, 'max-width', '100%');
+        // 逐层放开祖先容器的 max-width 约束，并确保各层水平居中（避免偏右或靠左）
+        for (let wrapper: HTMLElement | null = layout.parentElement; wrapper && wrapper !== document.body; wrapper = wrapper.parentElement) {
+            if (wrapper.querySelector('reddit-sidebar-nav, #left-sidebar-container')) {
+                setStyle(wrapper, 'max-width', '100%');
+                setStyle(wrapper, 'box-sizing', 'border-box');
+                break;
+            }
+            setStyle(wrapper, 'max-width', '100%');
+            setStyle(wrapper, 'width', '100%');
+            setStyle(wrapper, 'box-sizing', 'border-box');
+            setStyle(wrapper, 'margin-left', 'auto');
+            setStyle(wrapper, 'margin-right', 'auto');
+            if (getComputedStyle(wrapper).display === 'flex') {
+                setStyle(wrapper, 'justify-content', 'center');
+            }
         }
 
         const mainRect = mainBranch.getBoundingClientRect();
         const sideRect = sideBranch.getBoundingClientRect();
         const gap = parseFloat(layoutStyle.columnGap || layoutStyle.gap || '0') || 0;
         if (mainRect.width > 0 && sideRect.width > 0 && (isGrid || isFlex)) {
-            const desiredMain = mainRect.width * 1.5;
-            // Apply the desired width first. Centered Reddit wrappers move left
-            // when their width grows, so measuring available space from the old
-            // left edge would incorrectly cap the column before it reaches 150%.
-            let widenedMain = desiredMain;
-            const totalWidth = widenedMain + sideRect.width + gap;
+            let desiredMain = Math.round(mainRect.width * scale);
+            let totalWidth = desiredMain + sideRect.width + gap;
+
+            // 如果总宽超出可用空间，自适应收窄主列至能完整容纳右侧栏为止
+            if (totalWidth > availTotal) {
+                desiredMain = Math.max(Math.round(mainRect.width), Math.round(availTotal - sideRect.width - gap));
+                totalWidth = desiredMain + sideRect.width + gap;
+            }
 
             setStyle(layout, 'box-sizing', 'border-box');
             setStyle(layout, 'width', `${totalWidth}px`);
             setStyle(layout, 'max-width', '100%');
+            // 核心：强制两端外边距为 auto，并在父级对齐中置中，消除内容整体偏居右的问题
+            setStyle(layout, 'margin-left', 'auto');
+            setStyle(layout, 'margin-right', 'auto');
+            setStyle(layout, 'justify-self', 'center');
             if (isGrid) {
-                setStyle(layout, 'grid-template-columns', `${widenedMain}px ${sideRect.width}px`);
+                setStyle(layout, 'grid-template-columns', `${desiredMain}px ${sideRect.width}px`);
+                setStyle(layout, 'justify-content', 'center');
             } else {
-                setStyle(mainBranch, 'flex', `0 0 ${widenedMain}px`);
+                setStyle(layout, 'justify-content', 'center');
+                setStyle(mainBranch, 'flex', `0 0 ${desiredMain}px`);
                 setStyle(sideBranch, 'flex', `0 0 ${sideRect.width}px`);
             }
-            setStyle(mainBranch, 'width', `${widenedMain}px`);
+            setStyle(mainBranch, 'width', `${desiredMain}px`);
             setStyle(mainBranch, 'box-sizing', 'border-box');
             setStyle(mainBranch, 'max-width', 'none');
             setStyle(mainBranch, 'min-width', '0');
@@ -115,33 +145,56 @@ export function applyRedditWide(column: HTMLElement | null, enabled: boolean) {
             layout.setAttribute(WIDE_ATTR, '1');
             column.setAttribute(WIDE_ATTR, '1');
 
-            // On genuinely narrow desktop widths, trim only the excess that
-            // would escape the viewport, while keeping the sidebar separated.
-            const sideOverflow = sideBranch.getBoundingClientRect().right - (window.innerWidth - 16);
-            if (sideOverflow > 0) {
-                widenedMain = Math.max(0, widenedMain - sideOverflow);
-                setStyle(layout, 'width', `${widenedMain + sideRect.width + gap}px`);
-                if (isGrid) setStyle(layout, 'grid-template-columns', `${widenedMain}px ${sideRect.width}px`);
-                else setStyle(mainBranch, 'flex', `0 0 ${widenedMain}px`);
-                setStyle(mainBranch, 'width', `${widenedMain}px`);
-            }
             activeColumn = column;
             return;
         }
     }
 
-    // If Reddit has a visible sidebar but exposes no separable layout host,
-    // leave the feed at its normal width rather than letting it cover the side
-    // column. A bare 150% child is only safe when no sidebar is present.
+    // 若无右侧栏（单列浏览或侧栏隐藏页面）：平滑扩展至指定倍数并居中
     if (sidebar) return;
-    setStyle(column, 'width', '150%');
-    setStyle(column, 'max-width', 'none');
+    const baseWidth = column.getBoundingClientRect().width || 640;
+    const targetWidth = Math.min(Math.round(baseWidth * scale), availTotal);
+    setStyle(column, 'width', `${targetWidth}px`);
+    setStyle(column, 'max-width', '100%');
     setStyle(column, 'box-sizing', 'border-box');
+    setStyle(column, 'margin-left', 'auto');
+    setStyle(column, 'margin-right', 'auto');
+    for (let wrapper: HTMLElement | null = column.parentElement; wrapper && wrapper !== document.body; wrapper = wrapper.parentElement) {
+        if (wrapper.querySelector('reddit-sidebar-nav, #left-sidebar-container')) break;
+        setStyle(wrapper, 'max-width', '100%');
+        setStyle(wrapper, 'margin-left', 'auto');
+        setStyle(wrapper, 'margin-right', 'auto');
+        if (getComputedStyle(wrapper).display === 'flex') {
+            setStyle(wrapper, 'justify-content', 'center');
+        }
+    }
     column.setAttribute(WIDE_ATTR, '1');
     activeColumn = column;
 }
 
 export const redditReadingCss = `
+  /* 确保加宽容器与主体整体居中，消除偏居右现象 */
+  [data-vv-reddit-wide] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  shreddit-app main,
+  shreddit-app #main-content {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  shreddit-app .subgrid-container,
+  shreddit-app .main-container {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    justify-content: center !important;
+  }
+  [data-vv-reddit-wide] shreddit-post,
+  [data-vv-reddit-wide] shreddit-comment-tree,
+  [data-vv-reddit-wide] #comment-tree {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
   [data-vv-reddit-main] :is(.md, [id$="-post-rtjson-content"], [id$="-comment-rtjson-content"]) {
     line-height: 1.65 !important;
     overflow-wrap: anywhere;

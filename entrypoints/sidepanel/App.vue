@@ -5,19 +5,20 @@
         <Header>
           <template #right>
             <div class="header-actions">
-              <el-tooltip content="PDF 沉浸式翻译" placement="left">
-                <el-button link type="primary" class="reload-btn" @click="openPdfReader" aria-label="打开 PDF 阅读">
+              <LocaleSelect size="small" class="header-locale" />
+              <el-tooltip :content="t('app.openPdfReader')" placement="left">
+                <el-button link type="primary" class="reload-btn" @click="openPdfReader" :aria-label="t('app.ariaOpenPdf')">
                   <el-icon :size="20"><Document /></el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="重载插件" placement="left">
-                <el-button link type="primary" class="reload-btn" @click="reloadExtension" aria-label="重载插件">
+              <el-tooltip :content="t('app.reloadExtension')" placement="left">
+                <el-button link type="primary" class="reload-btn" @click="reloadExtension" :aria-label="t('app.reloadExtension')">
                   <el-icon :size="20"><Refresh /></el-icon>
                 </el-button>
               </el-tooltip>
-              <el-button link type="primary" class="fullpage-settings-btn" @click="openFullPageSettings" aria-label="新标签页打开设置">
+              <el-button link type="primary" class="fullpage-settings-btn" @click="openFullPageSettings" :aria-label="t('app.ariaFullPageSettings')">
                 <el-icon :size="20"><Setting /></el-icon>
-                <span class="fullpage-settings-label">全页设置</span>
+                <span class="fullpage-settings-label">{{ t('app.fullPageSettings') }}</span>
               </el-button>
             </div>
           </template>
@@ -41,6 +42,8 @@ import { Refresh, Setting, Document } from '@element-plus/icons-vue';
 import browser from 'webextension-polyfill';
 import '../../styles/theme.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
+import { t } from '../utils/i18n';
+import LocaleSelect from '../../components/LocaleSelect.vue';
 
 async function openPdfReader() {
   // 若当前标签是 PDF，带入其 URL；否则进入本地文件模式
@@ -139,7 +142,42 @@ function reloadExtension() {
   gap: 6px;
 }
 
+.header-locale {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 56px !important;
+  flex-shrink: 0 !important;
+}
+
+.header-locale :deep(.el-select__wrapper) {
+  padding: 1px 5px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  border-radius: 4px !important;
+}
+
+.header-locale :deep(.el-select__prefix) {
+  margin-right: 0 !important;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-locale :deep(.el-select__selected-item),
+.header-locale :deep(.el-select__placeholder) {
+  display: none !important;
+}
+
+.header-locale :deep(.el-select__suffix) {
+  margin-left: 2px !important;
+}
+
+.header-locale :deep(.el-select__caret) {
+  font-size: 11px !important;
+}
+
 .fullpage-settings-label {
-  font-size: 12px;
+  font-size: 11px;
 }
 </style>

@@ -1,16 +1,16 @@
 <template>
   <div class="footer-container footer-size">
-    <p class="translation-count">你已经翻译
+    <p class="translation-count">{{ t('footer.translatedPrefix') }}
       <el-text class="count-number" type="primary">{{ countMachine }}</el-text>
       <span class="count-sep">/</span>
       <el-text class="count-number ai" type="primary">{{ countAI }}</el-text>
       <span class="count-sep">/</span>
       <el-text class="count-number chrome" type="primary">{{ countChrome }}</el-text>
-      词条
+      {{ t('footer.entries') }}
     </p>
-    <p class="count-legend">API在线翻译 / AI翻译 / Chrome本地（按词条计，每段文本算 1 条）</p>
+    <p class="count-legend">{{ t('footer.legend') }}</p>
     <div class="footer-links">
-      <el-link class="action-link left" :class="{ 'failed': buttonText === '清除失败', 'success': buttonText === '清除成功' }" @click="clearCache"
+      <el-link class="action-link left" :class="{ 'failed': clearState === 'failed', 'success': clearState === 'success' }" @click="clearCache"
         :disabled="buttonDisabled">
         <el-icon v-if="showLoading">
           <Loading class="el-icon-loading" />
@@ -27,16 +27,25 @@ import { Star, Loading, Coffee } from "@element-plus/icons-vue";
 import { Config } from "../entrypoints/utils/model";
 import { storage } from '@wxt-dev/storage';
 import browser from 'webextension-polyfill';
+import { t } from '../entrypoints/utils/i18n';
 
 // 实际上是 el-link 而不是 el-button
 const buttonDisabled = ref(false);
-const buttonText = ref('清除翻译缓存');
+type ClearState = 'idle' | 'clearing' | 'success' | 'failed';
+const clearState = ref<ClearState>('idle');
+const CLEAR_LABEL_KEY: Record<ClearState, string> = {
+  idle: 'footer.clearCache',
+  clearing: 'footer.clearing',
+  success: 'footer.clearSuccess',
+  failed: 'footer.clearFailed',
+};
+const buttonText = computed(() => t(CLEAR_LABEL_KEY[clearState.value]));
 
 const showLoading = ref(false);
 async function clearCache() {
   try {
     buttonDisabled.value = true;
-    buttonText.value = "正在清除...";
+    clearState.value = 'clearing';
     showLoading.value = true;
 
     // 获取当前标签页
@@ -49,23 +58,23 @@ async function clearCache() {
     await browser.tabs.sendMessage(tabs[0].id, { message: 'clearCache' });
 
     // 显示成功状态
-    buttonText.value = "清除成功";
+    clearState.value = 'success';
 
     // 恢复按钮状态
     setTimeout(() => {
       buttonDisabled.value = false;
-      buttonText.value = '清除翻译缓存';
+      clearState.value = 'idle';
       showLoading.value = false;
     }, 1500);
 
   } catch (error) {
     console.error('清除缓存失败:', error);
-    buttonText.value = "清除失败";
+    clearState.value = 'failed';
 
     // 恢复按钮状态
     setTimeout(() => {
       buttonDisabled.value = false;
-      buttonText.value = '清除翻译缓存';
+      clearState.value = 'idle';
       showLoading.value = false;
     }, 1500);
   }

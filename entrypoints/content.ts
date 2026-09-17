@@ -16,6 +16,7 @@ import TranslationStatus from '@/components/TranslationStatus.vue';
 import { mountNewApiComponent } from "@/entrypoints/utils/newApi";
 import { mountVueWithTrustedTypesBypass } from "@/entrypoints/utils/trustedTypes";
 import { applyRedditWide, clearRedditWide, redditReadingCss } from './main/redditReading';
+import { applyXWide, clearXWide, applyXMinFont, clearXMinFont, xReadingCss } from './main/xReading';
 
 const LINKEDIN_WIDE_STYLE_ID = 'versevibe-linkedin-wide-style';
 const LINKEDIN_WIDE_CLASS = 'versevibe-linkedin-wide';
@@ -46,13 +47,16 @@ let linkedinDialogGuardHandler: ((event: MouseEvent) => void) | null = null;
 let linkedinDialogFullscreenObserver: MutationObserver | null = null;
 let linkedinDialogFullscreenSyncTimer: number | null = null;
 
-// ===== GitHub 仓库首页：README 横排到文件列表左侧（左栏 2 行 → 2 列）=====
+// ===== GitHub 仓库页面：README/正文横排到文件列表左侧（正文在左，文件在右）=====
 const GITHUB_README_LEFT_STYLE_ID = 'versevibe-github-readme-left-style';
 const GITHUB_README_LEFT_CLASS = 'versevibe-github-readme-left';
 const GITHUB_README_ATTR = 'data-vv-gh-readme';   // README 区外框
 const GITHUB_FILES_ATTR = 'data-vv-gh-files';     // 文件表格区
 const GITHUB_FULLWIDTH_ATTR = 'data-vv-gh-fullwidth'; // 页面布局容器去掉 max-width，整页 100% 自适应
 const GITHUB_ORIG_WIDTH_ATTR = 'data-vv-gh-ow';        // 记录 Primer Content 原始 data-width，便于复原
+const GITHUB_BLOB_SWAP_ATTR = 'data-vv-gh-blob-swap';  // 子页面（blob/tree）互换容器
+const GITHUB_BLOB_CONTENT_ATTR = 'data-vv-gh-blob-content'; // 子页面正文/代码区
+const GITHUB_BLOB_PANE_ATTR = 'data-vv-gh-blob-pane';       // 子页面文件树/侧栏区
 let githubRouteTimer: number | null = null;
 let githubObserver: MutationObserver | null = null;
 let githubSyncTimer: number | null = null;
@@ -64,6 +68,11 @@ const redditOriginalFonts = new Map<HTMLElement, [string, string]>();
 let redditRouteTimer: number | null = null;
 let redditObserver: MutationObserver | null = null;
 let redditSyncTimer: number | null = null;
+
+// ===== X.com（Twitter）：主时间线列加宽 =====
+let xRouteTimer: number | null = null;
+let xObserver: MutationObserver | null = null;
+let xSyncTimer: number | null = null;
 
 function isLinkedinWidePath(pathname: string): boolean {
     return pathname.startsWith('/feed') || pathname.startsWith('/posts');
@@ -1469,30 +1478,40 @@ function cleanupLinkedinWideUiWatcher() {
 }
 
 /* ============================================================
- * GitHub 仓库首页布局优化
- * 在 github.com/{owner}/{repo}（恰好两级路径）的项目首页，
- * 把左栏“文件列表(上) + README(下)”改为“README(左) + 文件列表(右)”横排，
- * 整页由 2 列变 3 列（README | 文件列表 | About 侧栏）。
- *
- * 实现：只对左栏 prc-PageLayout-Content 内、同时包含“文件表格”和“README”
- * 的那个公共父容器（OverviewContent-module__Box_11）做 flex 横排，
- * README 子项用 order:-1 移到左侧。纯 CSS + 标记属性，不挪动 DOM 节点，
- * 避免 GitHub React/Turbo 重渲染把改动冲掉。选择器基于稳定的模块前缀。
+ * GitHub 仓库页面布局优化
+ * 1) 项目首页（/{owner}/{repo}）：
+ *    把左栏“文件列表(上) + README(下)”改为“README(左) + 文件列表(右)”横排；
+ * 2) 文件/子页面（/{owner}/{repo}/blob/... 或 /tree/...）：
+ *    保持阅读风格一致，正文部分左右互换，文件树在右、正文在左。
  * ============================================================ */
 
-/** 仅匹配仓库首页：恰好 /{owner}/{repo} 两级，且首段不是 GitHub 保留路由。 */
-function isGithubRepoOverviewPath(pathname: string): boolean {
+function isGithubRepoPath(pathname: string): boolean {
     const segs = pathname.split('/').filter(Boolean);
-    if (segs.length !== 2) return false;
+    if (segs.length < 2) return false;
     const reserved = new Set([
         'settings', 'marketplace', 'explore', 'notifications', 'orgs', 'sponsors',
         'features', 'about', 'pricing', 'team', 'enterprise', 'login', 'join',
         'new', 'codespaces', 'search', 'topics', 'collections', 'trending',
         'apps', 'organizations', 'account', 'dashboard', 'stars', 'watching',
-        'issues', 'pulls', 'explore',
+        'issues', 'pulls',
     ]);
     if (reserved.has(segs[0].toLowerCase())) return false;
     return true;
+}
+
+/** 仅匹配仓库首页：恰好 /{owner}/{repo} 两级，且首段不是 GitHub 保留路由。 */
+function isGithubRepoOverviewPath(pathname: string): boolean {
+    const segs = pathname.split('/').filter(Boolean);
+    return segs.length === 2 && isGithubRepoPath(pathname);
+}
+
+/** 匹配文件或目录详情子页面：/{owner}/{repo}/blob/... 或 /{owner}/{repo}/tree/... */
+function isGithubBlobOrTreePath(pathname: string): boolean {
+    const segs = pathname.split('/').filter(Boolean);
+    if (segs.length < 4) return false;
+    if (!isGithubRepoPath(pathname)) return false;
+    const type = segs[2]?.toLowerCase();
+    return type === 'blob' || type === 'tree';
 }
 
 function ensureGithubReadmeLeftStyle() {
@@ -1501,7 +1520,7 @@ function ensureGithubReadmeLeftStyle() {
     style.id = GITHUB_README_LEFT_STYLE_ID;
     style.textContent = `
 /* 整页 100% 自适应：去掉 GitHub 页面布局容器（Primer PageLayout / container-xl）
-   的 max-width 限制，让“README | 文件列表 | About”三列铺满整个视口宽度。
+   的 max-width 限制，让“README | 文件列表 | About”或子页面铺满整个视口宽度。
    仅去掉 max-width（不强加 width:100%，以免干扰 flex 子项的弹性计算）。
    Primer Content 区另外通过把 data-width 改成 "full" 来原生放开（见 JS）。 */
 [${GITHUB_FULLWIDTH_ATTR}] {
@@ -1535,17 +1554,61 @@ function ensureGithubReadmeLeftStyle() {
   flex: 0 1 480px !important;
   min-width: 360px !important;
 }
+
+/* GitHub 子页面（blob/tree）：左右互换，正文在左，文件在右 */
+[${GITHUB_BLOB_SWAP_ATTR}] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-areas: "content pane" !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+/* 文件正文区：排在左侧 (order: 1 / grid-area: content)，独占自适应空间 */
+[${GITHUB_BLOB_SWAP_ATTR}] > [${GITHUB_BLOB_CONTENT_ATTR}] {
+  order: 1 !important;
+  grid-area: content !important;
+  grid-column: 1 !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+/* 正文内部 markdown / 代码查看区：去掉自身最大宽度限制，自适应铺满 */
+[${GITHUB_BLOB_SWAP_ATTR}] > [${GITHUB_BLOB_CONTENT_ATTR}] :is(.markdown-body, article, [class*="SharedMarkdownContent"], [data-target="readme.content"], [class*="BlobContent"], [class*="blob-wrapper"], [class*="react-code-lines"], textarea#read-only-cursor-text-area) {
+  max-width: none !important;
+  width: 100% !important;
+}
+/* 分隔线：在中间 (order: 2) */
+[${GITHUB_BLOB_SWAP_ATTR}] > :not([${GITHUB_BLOB_CONTENT_ATTR}]):not([${GITHUB_BLOB_PANE_ATTR}]) {
+  order: 2 !important;
+}
+/* 文件树/侧边栏区：排在右侧 (order: 3 / grid-area: pane) */
+[${GITHUB_BLOB_SWAP_ATTR}] > [${GITHUB_BLOB_PANE_ATTR}] {
+  order: 3 !important;
+  grid-area: pane !important;
+  grid-column: 2 !important;
+  flex: 0 0 auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
 `;
     document.head.appendChild(style);
 }
 
 function clearGithubReadmeLeftMarks() {
     document.documentElement
-        .querySelectorAll(`[${GITHUB_README_ATTR}], [${GITHUB_FILES_ATTR}], [${GITHUB_FULLWIDTH_ATTR}]`)
+        .querySelectorAll(`[${GITHUB_README_ATTR}], [${GITHUB_FILES_ATTR}], [${GITHUB_FULLWIDTH_ATTR}], [${GITHUB_BLOB_SWAP_ATTR}], [${GITHUB_BLOB_CONTENT_ATTR}], [${GITHUB_BLOB_PANE_ATTR}]`)
         .forEach((el) => {
             el.removeAttribute(GITHUB_README_ATTR);
             el.removeAttribute(GITHUB_FILES_ATTR);
             el.removeAttribute(GITHUB_FULLWIDTH_ATTR);
+            el.removeAttribute(GITHUB_BLOB_SWAP_ATTR);
+            el.removeAttribute(GITHUB_BLOB_CONTENT_ATTR);
+            el.removeAttribute(GITHUB_BLOB_PANE_ATTR);
         });
     // 复原被改过的 Primer Content data-width
     document.documentElement
@@ -1558,6 +1621,128 @@ function clearGithubReadmeLeftMarks() {
     document
         .querySelectorAll(`.${GITHUB_README_LEFT_CLASS}`)
         .forEach((el) => el.classList.remove(GITHUB_README_LEFT_CLASS));
+}
+
+/**
+ * 子页面（blob/tree）：定位包含正文 Content 和文件树 Pane 的公共布局容器
+ */
+function findLowestCommonAncestor(el1: HTMLElement, el2: HTMLElement): {
+    commonParent: HTMLElement;
+    branch1: HTMLElement;
+    branch2: HTMLElement;
+} | null {
+    const ancestors1: HTMLElement[] = [];
+    let cur: HTMLElement | null = el1;
+    while (cur && cur !== document.body) {
+        ancestors1.push(cur);
+        cur = cur.parentElement;
+    }
+
+    cur = el2;
+    let prevChild2: HTMLElement | null = null;
+    while (cur && cur !== document.body) {
+        const idx = ancestors1.indexOf(cur);
+        if (idx !== -1) {
+            // cur 为最近公共祖先，分别找出位于 cur 直接子级的两个分支节点
+            const branch1: HTMLElement = ancestors1[idx - 1] || el1;
+            const branch2: HTMLElement = prevChild2 || el2;
+            if (branch1 && branch2 && branch1 !== branch2 && branch1.parentElement === cur && branch2.parentElement === cur) {
+                return { commonParent: cur, branch1, branch2 };
+            }
+        }
+        prevChild2 = cur;
+        cur = cur.parentElement;
+    }
+    return null;
+}
+
+/**
+ * 子页面（blob/tree）：定位包含正文 Content 和文件树 Pane 的公共布局容器
+ */
+function findGithubBlobGroup(): [HTMLElement, HTMLElement, HTMLElement] | null {
+    // 1. 寻找正文区（Markdown、代码查看器等）
+    const contentSelectors = [
+        'article.markdown-body',
+        '.markdown-body',
+        '#readme',
+        '[data-target="readme.content"]',
+        '[data-testid="blob-content"]',
+        '[class*="BlobContent"]',
+        '[class*="react-blob-view"]',
+        '[class*="react-code-view"]',
+        '[class*="blob-wrapper"]',
+        '#read-only-cursor-text-area',
+        '[class*="PageLayout-Content"]',
+        '[class*="PageLayout-content"]',
+        '[class*="PageLayout-module__content"]',
+        '[class*="prc-PageLayout-Content"]'
+    ];
+
+    // 2. 寻找文件树/侧边栏导航区
+    const treeSelectors = [
+        '[role="tree"]',
+        '#repos-file-tree',
+        '[data-testid="tree-list"]',
+        '[data-testid="file-tree-container"]',
+        'nav[aria-label*="file" i]',
+        'nav[aria-label*="Files" i]',
+        'div[aria-label*="Files" i]',
+        '[class*="RepoFileTree"]',
+        '[class*="FolderTree"]',
+        '[class*="file-tree" i]',
+        '[class*="react-tree-list"]',
+        '[class*="prc-PageLayout-Pane"]',
+        '[class*="PageLayout-pane"]',
+        '[class*="PageLayout-module__pane"]'
+    ];
+
+    let contentEl: HTMLElement | null = null;
+    for (const sel of contentSelectors) {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (el) { contentEl = el; break; }
+    }
+    if (!contentEl) return null;
+
+    let treeEl: HTMLElement | null = null;
+    for (const sel of treeSelectors) {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (el && !contentEl.contains(el)) {
+            treeEl = el;
+            break;
+        }
+    }
+
+    if (contentEl && treeEl) {
+        const lca = findLowestCommonAncestor(contentEl, treeEl);
+        if (lca) {
+            return [lca.commonParent, lca.branch1, lca.branch2];
+        }
+    }
+
+    // 备用：直接根据 Primer PageLayout 结构查找
+    const pContent = document.querySelector<HTMLElement>(
+        '[class*="PageLayout-Content"], [class*="PageLayout-content"], [class*="PageLayout-module__content"], [class*="prc-PageLayout-Content"]'
+    );
+    const pPane = document.querySelector<HTMLElement>(
+        '[class*="PageLayout-Pane"], [class*="PageLayout-pane"], [class*="PageLayout-module__pane"], [class*="prc-PageLayout-Pane"]'
+    );
+    if (pContent && pPane) {
+        const lca = findLowestCommonAncestor(pContent, pPane);
+        if (lca) {
+            return [lca.commonParent, lca.branch1, lca.branch2];
+        }
+    }
+
+    const splitPane = document.querySelector<HTMLElement>('[data-selector="repos-split-pane"]');
+    if (splitPane && splitPane.children.length >= 2) {
+        const first = splitPane.children[0] as HTMLElement;
+        const second = splitPane.children[1] as HTMLElement;
+        if (first && second) {
+            return [splitPane, second, first];
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -1635,31 +1820,63 @@ function applyGithubReadmeLeft() {
     if (window.self !== window.top) return;
     if (!/(^|\.)github\.com$/i.test(window.location.hostname)) return;
 
-    const enabled =
-        (config as any).githubReadmeLeft !== false &&
-        isGithubRepoOverviewPath(window.location.pathname);
-
+    const enabled = (config as any).githubReadmeLeft !== false;
     if (!enabled) {
         clearGithubReadmeLeftMarks();
         return;
     }
 
-    const group = findGithubReadmeGroup();
-    if (!group) {
-        // README/文件区尚未渲染（React 异步），等待 observer 再次触发
+    const pathname = window.location.pathname;
+
+    // 1. 仓库首页（/{owner}/{repo}）：README 在左、文件列表在右
+    if (isGithubRepoOverviewPath(pathname)) {
+        const group = findGithubReadmeGroup();
+        if (!group) {
+            // README/文件区尚未渲染（React 异步），等待 observer 再次触发
+            clearGithubReadmeLeftMarks();
+            return;
+        }
+        const [container, readmeBox, filesBox] = group;
+
+        ensureGithubReadmeLeftStyle();
+        // 先清旧标记，再标当前一组（应对仓库间 Turbo 切换）
         clearGithubReadmeLeftMarks();
+        container.classList.add(GITHUB_README_LEFT_CLASS);
+        readmeBox.setAttribute(GITHUB_README_ATTR, '1');
+        filesBox.setAttribute(GITHUB_FILES_ATTR, '1');
+        // 去掉外层布局容器的 max-width，让整页三列 100% 自适应
+        markGithubFullWidthAncestors(container);
         return;
     }
-    const [container, readmeBox, filesBox] = group;
 
-    ensureGithubReadmeLeftStyle();
-    // 先清旧标记，再标当前一组（应对仓库间 Turbo 切换）
+    // 2. 仓库子页面（/{owner}/{repo}/blob/... 或 /tree/...）：左右互换，正文在左、文件树在右
+    if (isGithubBlobOrTreePath(pathname)) {
+        const group = findGithubBlobGroup();
+        if (!group) {
+            // 页面正文或文件树可能还在 React 客户端异步挂载中，延迟再试
+            if (!document.querySelector(`[${GITHUB_BLOB_SWAP_ATTR}]`)) {
+                window.setTimeout(scheduleGithubReadmeLeftSync, 200);
+            }
+            clearGithubReadmeLeftMarks();
+            return;
+        }
+        const [parent, content, pane] = group;
+
+        // 若已成功标记且节点仍在树中，避免无谓重算
+        if (parent.getAttribute(GITHUB_BLOB_SWAP_ATTR) === '1' && content.isConnected && pane.isConnected) {
+            return;
+        }
+
+        ensureGithubReadmeLeftStyle();
+        clearGithubReadmeLeftMarks();
+        parent.setAttribute(GITHUB_BLOB_SWAP_ATTR, '1');
+        content.setAttribute(GITHUB_BLOB_CONTENT_ATTR, '1');
+        pane.setAttribute(GITHUB_BLOB_PANE_ATTR, '1');
+        markGithubFullWidthAncestors(parent);
+        return;
+    }
+
     clearGithubReadmeLeftMarks();
-    container.classList.add(GITHUB_README_LEFT_CLASS);
-    readmeBox.setAttribute(GITHUB_README_ATTR, '1');
-    filesBox.setAttribute(GITHUB_FILES_ATTR, '1');
-    // 去掉外层布局容器的 max-width，让整页三列 100% 自适应
-    markGithubFullWidthAncestors(container);
 }
 
 function scheduleGithubReadmeLeftSync() {
@@ -1676,6 +1893,10 @@ function setupGithubReadmeLeftWatcher() {
 
     applyGithubReadmeLeft();
 
+    window.addEventListener('turbo:render', scheduleGithubReadmeLeftSync);
+    window.addEventListener('turbo:load', scheduleGithubReadmeLeftSync);
+    window.addEventListener('popstate', scheduleGithubReadmeLeftSync);
+
     if (!githubObserver) {
         githubObserver = new MutationObserver(() => scheduleGithubReadmeLeftSync());
         githubObserver.observe(document.body, { childList: true, subtree: true });
@@ -1689,11 +1910,15 @@ function setupGithubReadmeLeftWatcher() {
                 clearGithubReadmeLeftMarks();
                 applyGithubReadmeLeft();
             }
-        }, 500);
+        }, 300);
     }
 }
 
 function cleanupGithubReadmeLeftWatcher() {
+    window.removeEventListener('turbo:render', scheduleGithubReadmeLeftSync);
+    window.removeEventListener('turbo:load', scheduleGithubReadmeLeftSync);
+    window.removeEventListener('popstate', scheduleGithubReadmeLeftSync);
+
     if (githubObserver) {
         githubObserver.disconnect();
         githubObserver = null;
@@ -1818,10 +2043,9 @@ function applyRedditMainColumn() {
 
     const supported = isRedditOptimizePath(window.location.pathname);
     const column = supported ? findRedditMainColumn() : null;
-    // A post/comments page has a different right column and must keep Reddit's
-    // native detail layout. The 150% option is limited to subreddit/home feeds.
-    const wideFeed = isRedditFeedPath(window.location.pathname);
-    applyRedditWide(wideFeed ? column : null, wideFeed && config.redditFeedWide !== false);
+    // Reddit 本文加宽（多档可选，默认 1.5x / 150%）：作用于 feed 列表及帖子正文阅读列，并保持整体居中
+    const scale = typeof config.redditWideScale === 'string' ? parseFloat(config.redditWideScale) : 1.5;
+    applyRedditWide(column, supported && config.redditFeedWide !== false, Number.isFinite(scale) && scale >= 1 ? scale : 1.5);
     const enabled = config.redditMainOptimize !== false && supported;
 
     if (!enabled) {
@@ -1896,6 +2120,131 @@ function cleanupRedditMainWatcher() {
         redditSyncTimer = null;
     }
     clearRedditMainMarks();
+}
+
+function isXHost() {
+    return /(^|\.)(x|twitter)\.com$/i.test(window.location.hostname);
+}
+
+function applyXWideColumn() {
+    if (window.self !== window.top) return;
+    if (!isXHost()) return;
+
+    const column = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]')
+        || document.querySelector<HTMLElement>('main[role="main"] [data-testid="primaryColumn"]');
+    const scale = typeof config.xWideScale === 'string' ? parseFloat(config.xWideScale) : NaN;
+    applyXWide(column, config.xWide !== false, Number.isFinite(scale) && scale >= 1 ? scale : 2.0);
+
+    let minSize = Number((config as any).redditMinFontSize);
+    if (!Number.isFinite(minSize) || minSize <= 0) minSize = 16;
+    applyXMinFont(minSize);
+}
+
+function scheduleXWideSync() {
+    if (xSyncTimer != null) return;
+    xSyncTimer = window.setTimeout(() => {
+        xSyncTimer = null;
+        try { applyXWideColumn(); } catch {}
+    }, 150);
+}
+
+function resizeXWide() {
+    // Re-measure X's original column width after a viewport / browser-panel resize.
+    clearXWide();
+    scheduleXWideSync();
+}
+
+function setupXWideWatcher() {
+    if (window.self !== window.top) return;
+    if (!isXHost()) return;
+
+    applyXWideColumn();
+    window.addEventListener('resize', resizeXWide, { passive: true });
+
+    if (!xObserver) {
+        xObserver = new MutationObserver((mutations) => {
+            // 仅在主列、侧栏等骨架结构挂载/切换时重新计算列宽，
+            // 忽略内部文字翻译或列表项滚动产生的微小 DOM 变更，彻底消除滚动排版闪烁
+            let needsSync = false;
+            for (let i = 0; i < mutations.length; i++) {
+                const m = mutations[i];
+                for (let j = 0; j < m.addedNodes.length; j++) {
+                    const node = m.addedNodes[j] as HTMLElement;
+                    if (node.nodeType === 1) {
+                        if (node.getAttribute?.('data-testid') === 'primaryColumn' ||
+                            node.getAttribute?.('data-testid') === 'sidebarColumn' ||
+                            node.querySelector?.('[data-testid="primaryColumn"], [data-testid="sidebarColumn"]')) {
+                            needsSync = true;
+                            break;
+                        }
+                    }
+                }
+                if (needsSync) break;
+                for (let j = 0; j < m.removedNodes.length; j++) {
+                    const node = m.removedNodes[j] as HTMLElement;
+                    if (node.nodeType === 1) {
+                        if (node.getAttribute?.('data-testid') === 'primaryColumn' ||
+                            node.getAttribute?.('data-testid') === 'sidebarColumn' ||
+                            node.querySelector?.('[data-testid="primaryColumn"], [data-testid="sidebarColumn"]')) {
+                            needsSync = true;
+                            break;
+                        }
+                    }
+                }
+                if (needsSync) break;
+            }
+            if (!needsSync) {
+                // 如果当前页面有主列且尚未被加宽（例如单列/历史页异步渲染），也触发同步
+                const col = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
+                if (col && !col.hasAttribute('data-vv-x-wide') && config.xWide !== false) {
+                    needsSync = true;
+                }
+            }
+            if (needsSync) {
+                scheduleXWideSync();
+            }
+        });
+        xObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    // X 是 SPA：路由切换不重载页面，轮询 pathname 重新应用（如 /i/history、设置页、个人页等）
+    if (xRouteTimer == null) {
+        let lastPath = window.location.pathname;
+        xRouteTimer = window.setInterval(() => {
+            const currentPath = window.location.pathname;
+            if (currentPath !== lastPath) {
+                lastPath = currentPath;
+                clearXWide();
+                applyXWideColumn();
+                window.setTimeout(() => { try { applyXWideColumn(); } catch {} }, 200);
+                window.setTimeout(() => { try { applyXWideColumn(); } catch {} }, 600);
+                window.setTimeout(() => { try { applyXWideColumn(); } catch {} }, 1200);
+                return;
+            }
+            // 补偿检查：如果主列在 DOM 中但尚未被加宽，执行加宽
+            const col = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
+            if (col && !col.hasAttribute('data-vv-x-wide') && config.xWide !== false) {
+                applyXWideColumn();
+            }
+        }, 500);
+    }
+}
+
+function cleanupXWideWatcher() {
+    window.removeEventListener('resize', resizeXWide);
+    clearXWide();
+    clearXMinFont();
+    if (xObserver) {
+        xObserver.disconnect();
+        xObserver = null;
+    }
+    if (xRouteTimer != null) {
+        window.clearInterval(xRouteTimer);
+        xRouteTimer = null;
+    }
+    if (xSyncTimer != null) {
+        window.clearTimeout(xSyncTimer);
+        xSyncTimer = null;
+    }
 }
 
 /**
@@ -2104,6 +2453,7 @@ export default defineContentScript({
         applyLinkedinWideUi();
         setupGithubReadmeLeftWatcher();
         setupRedditMainWatcher();
+        setupXWideWatcher();
 
         // 添加手动翻译事件监听器
         setupManualTranslationTriggers();
@@ -2182,6 +2532,9 @@ export default defineContentScript({
                     // 关闭时 applyRedditMainColumn 内部会清掉已放大的 inline 字号
                     clearRedditMainMarks();
                     scheduleRedditMainSync();
+                    // X 加宽开关变更即时生效
+                    clearXWide();
+                    scheduleXWideSync();
                 } catch {
                     if (translationStatusMountedRef) unmountTranslationStatusComponent();
                 }
@@ -3065,6 +3418,34 @@ function injectSiteSpecificStyles() {
         `;
         document.head.appendChild(style);
         console.log('[VerseVibe] Injected Reddit sidebar compatibility styles');
+    }
+
+    // Apple 站点（Newsroom 等）双语对照排版样式
+    if (/(^|\.)apple\.(com|co|[a-z]{2})(\.[a-z]{2})?$/i.test(hostname)) {
+        const style = document.createElement('style');
+        style.textContent = `
+            /* 确保 Apple Newsroom 文章段落、副标题及说明文字下方双语译文块换行且布局美观 */
+            .pagebody-copy .verse-vibe-bilingual-content,
+            .featured-subhead .verse-vibe-bilingual-content,
+            .image-caption .verse-vibe-bilingual-content,
+            .gallery-caption .verse-vibe-bilingual-content,
+            .hero-headline .verse-vibe-bilingual-content {
+                display: block !important;
+                width: 100% !important;
+                margin-top: 6px !important;
+                margin-bottom: 6px !important;
+            }
+        `;
+        document.head.appendChild(style);
+        console.log('[VerseVibe] Injected Apple Newsroom compatibility styles');
+    }
+
+    // X.com（Twitter）主时间线列加宽后的双语排版
+    if (/(^|\.)(x|twitter)\.com$/i.test(hostname)) {
+        const style = document.createElement('style');
+        style.textContent = xReadingCss;
+        document.head.appendChild(style);
+        console.log('[VerseVibe] Injected X.com compatibility styles');
     }
 }
 

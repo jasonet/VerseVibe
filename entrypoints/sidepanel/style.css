@@ -24,10 +24,12 @@
     border-radius: 5px;
 }
 
-/*popup选项框文字*/
+/*popup选项框文字：紧凑字号，避免拉宽配置列与按钮*/
 .popup-text {
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 500;
+    line-height: 1.35;
+    word-break: break-word;
 }
 
 .popup-vertical-left {
@@ -49,11 +51,22 @@
     padding: 10px !important;
 }
 
-/* Side Panel：填满浏览器右侧面板宽高 */
+/* Side Panel：填满浏览器右侧面板宽高。
+   注意这里刻意不用 height:100%：Safari 没有 sidePanel API，工具栏弹出的面板
+   会把本页当作 action popup 加载，而 popup 的高度是依文档内容撑开的。
+   一旦 html/body 被写死成视口高度，文档就失去固有高度，
+   弹窗会被压成默认小尺寸、内容被裁切且不出现滚动条。 */
 html, body {
     width: 100%;
-    height: 100%;
     margin: 0;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
 }
 
 #app {
@@ -69,9 +82,6 @@ html, body {
 /* 由 .dark 类与变量控制主题，这里不再强制全局颜色 */
 
 @media (min-width: 480px) {
-    .popup-text {
-        font-size: 16px;
-    }
     #app {
         padding: 4px 8px;
     }

@@ -93,15 +93,20 @@ export class Config {
     linkedinAutoHidePromotedMedia: boolean; // LinkedIn feed 自动隐藏推广帖媒体
     githubReadmeLeft: boolean; // GitHub 仓库首页 README 横排到文件列表左侧
     redditMainOptimize: boolean; // Reddit 评论页左侧正文贴列阅读优化
-    redditFeedWide: boolean; // Reddit 主阅读列 150% 宽度
+    redditFeedWide: boolean; // Reddit 主阅读列加宽
+    redditWideScale: string; // Reddit 本文/Feed 宽度档位: 1x | 1.5x | 2x | 2.5x
     redditMinFontSize: number; // Reddit 正文贴列最小字号
+    xWide: boolean; // X.com（Twitter）主时间线列加宽
+    xWideScale: string; // X.com 时间线宽度档位: 1x | 1.5x | 2x | 2.5x
     skipTranslateHeader: boolean; // 不翻译页头（默认开启，全文翻译时跳过）
     skipTranslateFooter: boolean; // 不翻译页尾（默认开启，全文翻译时跳过）
     translationFontScale: number; // 译文字号缩放倍数（1 = 原始大小）
     pdfTakeover: boolean; // 打开在线 PDF 时自动进入沉浸式翻译阅读器
     pdfServerUrl: string; // PDF 沉浸式翻译本地服务地址（混合架构：插件发字节给此服务生成双语 PDF）
+    lang: string; // 界面语言: 'auto'（跟随浏览器）| 'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
 
     constructor() {
+        this.lang = defaultOption.lang;
         this.on = true;
         this.autoTranslate = false;
         this.from = defaultOption.from;
@@ -162,7 +167,10 @@ export class Config {
         this.githubReadmeLeft = defaultOption.githubReadmeLeft; // 默认启用：GitHub README 左移横排
         this.redditMainOptimize = defaultOption.redditMainOptimize; // 默认启用：Reddit 正文贴列阅读优化
         this.redditFeedWide = defaultOption.redditFeedWide;
+        this.redditWideScale = defaultOption.redditWideScale; // 默认 1.5 倍宽 (150%)
         this.redditMinFontSize = defaultOption.redditMinFontSize; // Reddit 正文贴列最小字号
+        this.xWide = defaultOption.xWide; // 默认启用：X.com 主时间线列加宽
+        this.xWideScale = defaultOption.xWideScale; // X.com 时间线宽度默认 2 倍宽 (200%)
         this.skipTranslateHeader = true; // 默认不翻译页头
         this.skipTranslateFooter = true; // 默认不翻译页尾
         this.translationFontScale = 1; // 译文字号缩放倍数（1 = 原始大小，可在设置页放大/缩小）

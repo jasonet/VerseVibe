@@ -90,7 +90,14 @@ function getShortErrorReason(errMsg: string): string {
   if (msg.includes("network error")) {
     return "网络连接异常";
   }
-  if (msg.includes("auth failed") || msg.includes("api key") || msg.includes("401") || msg.includes("unauthorized")) {
+  if (
+    msg.includes("auth failed") ||
+    msg.includes("api key") ||
+    msg.includes("401") ||
+    msg.includes("unauthorized") ||
+    msg.includes("403") ||
+    msg.includes("forbidden")
+  ) {
     return "密钥无效或未授权";
   }
   if (msg.includes("quota") || msg.includes("limit") || msg.includes("429")) {
@@ -104,6 +111,9 @@ function getShortErrorReason(errMsg: string): string {
   }
   if (msg.includes("500") || msg.includes("502") || msg.includes("503")) {
     return "服务端异常";
+  }
+  if (msg.includes("[object response]") || msg.includes("[object object]")) {
+    return "服务响应异常";
   }
   // 兜底：截取一小段原始信息，避免过长
   const trimmed = raw.trim().replace(/\s+/g, " ");
@@ -141,17 +151,19 @@ function handleErrorClick(errMsg: string) {
 
 // 根据错误信息返回错误提示
 function getErrorMessage(errMsg: string): string {
-  if (errMsg.includes("auth failed") || errMsg.includes("API key")) {
-    return "Token 似乎有点问题，请前往设置页面重新配置后再试。";
-  } else if (errMsg.includes("quota") || errMsg.includes("limit")) {
+  if (errMsg.includes("auth failed") || errMsg.includes("API key") || errMsg.includes("401") || errMsg.includes("403")) {
+    return "Token 似乎有点问题或未授权，请前往设置页面重新配置后再试。";
+  } else if (errMsg.includes("quota") || errMsg.includes("limit") || errMsg.includes("429")) {
     const service = options.services.find((s: { value: string; label: string }) => s.value === config.service);
     return "你的请求频率过高，被【" + (service?.label || config.service) + "】拒绝了，请稍后再试吧~";
-  } else if (errMsg.includes("network error")) {
+  } else if (errMsg.includes("network error") || errMsg.includes("failed to fetch")) {
     return "网络连接好像不稳定，请检查网络后再试。";
   } else if (errMsg.includes("model")) {
     return "模型配置可能有误，请前往设置页面进行检查和调整。";
   } else if (errMsg.includes("timeout")) {
     return "请求超时啦，请稍后再试一次。";
+  } else if (errMsg.includes("[object Response]") || errMsg.includes("[object Object]")) {
+    return "翻译服务响应异常，请点击重试或前往设置切换翻译服务。";
   } else {
     return errMsg || "出现了未知错误，请前往开源社区联系开发者吧~";
   }

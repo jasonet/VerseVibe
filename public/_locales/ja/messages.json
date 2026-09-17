@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "VerseVibe"
+  },
+  "extDescription": {
+    "message": "ウェブの内容を言語の壁を越えて自然につなぐ、生命の樹から生まれる創造性。"
+  },
+  "cmdFlickrDownload": {
+    "message": "現在の Flickr ページで最大サイズの画像をダウンロード"
+  }
+}

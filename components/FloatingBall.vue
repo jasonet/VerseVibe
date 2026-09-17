@@ -40,6 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { t } from '@/entrypoints/utils/i18n';
 import type { PropType, CSSProperties } from 'vue';
 import { config } from '@/entrypoints/utils/config';
 
@@ -103,7 +104,7 @@ const shortcutTip = computed(() => {
   const hotkey = config.floatingBallHotkey === 'custom' 
     ? config.customFloatingBallHotkey 
     : config.floatingBallHotkey;
-  return `快捷键: ${hotkey}`;
+  return t('ball.hotkeyTip', { hotkey });
 });
 
 const currentDisplayPosition = computed(() => internalPosition.value || props.position);

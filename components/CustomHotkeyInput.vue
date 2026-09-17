@@ -3,7 +3,7 @@
     <!-- 自定义快捷键输入对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      title="自定义快捷键"
+      :title="t('hotkey.dialogTitle')"
       width="300px"
       :close-on-click-modal="false"
       :modal="false"
@@ -14,7 +14,7 @@
       <div class="hotkey-input-container">
         <div class="input-section">
           <el-text class="input-label">
-            请按下您想要设置的快捷键组合：
+            {{ t('hotkey.dialogPrompt') }}
           </el-text>
           <div 
             class="hotkey-input-field"
@@ -30,11 +30,11 @@
             ref="inputField"
           >
             <div v-if="!isRecording && !currentHotkey" class="placeholder">
-              点击这里开始录制快捷键...
+              {{ t('hotkey.recordPlaceholder') }}
             </div>
             <div v-else-if="isRecording" class="recording-text">
               <el-icon class="recording-icon"><Loading /></el-icon>
-              正在录制，请按下快捷键...
+              {{ t('hotkey.recording') }}
             </div>
             <div v-else-if="currentHotkey" class="hotkey-display">
               {{ parsedHotkey?.displayName || currentHotkey }}
@@ -56,13 +56,13 @@
           <!-- 成功提示 -->
           <div v-if="parsedHotkey?.isValid && !errorMessage && !conflictWarning" class="success-message">
             <el-icon><CircleCheckFilled /></el-icon>
-            快捷键有效，可以使用
+            {{ t('hotkey.valid') }}
           </div>
         </div>
 
         <!-- 预设快捷键推荐 -->
         <div class="preset-section">
-          <el-text class="section-title">或选择推荐的快捷键：</el-text>
+          <el-text class="section-title">{{ t('hotkey.orChoosePreset') }}</el-text>
           <div class="preset-buttons">
             <el-button
               v-for="preset in recommendedHotkeys"
@@ -80,21 +80,21 @@
         <!-- 简化说明 -->
         <div class="help-section">
           <el-text size="small" type="info">
-            提示：建议使用修饰键组合（如 Ctrl+字母），避免与系统快捷键冲突。注意：不能使用 CMD 充当快捷键
+            {{ t('hotkey.help') }}
           </el-text>
         </div>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleCancel">取消</el-button>
-          <el-button @click="clearHotkey" v-if="currentHotkey">清除</el-button>
+          <el-button @click="handleCancel">{{ t('common.cancel') }}</el-button>
+          <el-button @click="clearHotkey" v-if="currentHotkey">{{ t('common.clear') }}</el-button>
           <el-button 
             type="primary" 
             @click="handleConfirm"
             :disabled="!canConfirm"
           >
-            确认
+            {{ t('common.confirm') }}
           </el-button>
         </div>
       </template>
@@ -107,6 +107,7 @@ import { ref, computed, nextTick, watch } from 'vue';
 import { ElDialog, ElButton, ElText, ElIcon, ElCollapse, ElCollapseItem } from 'element-plus';
 import { Loading, WarningFilled, Warning, CircleCheckFilled } from '@element-plus/icons-vue';
 import { parseHotkey, matchesHotkey, validateHotkeyConflicts, type ParsedHotkey } from '@/entrypoints/utils/hotkey';
+import { t } from '@/entrypoints/utils/i18n';
 
 // Props
 interface Props {
@@ -187,14 +188,14 @@ function validateCurrentHotkey(hotkeyString: string) {
   const parsed = parseHotkey(hotkeyString);
   
   if (!parsed.isValid) {
-    errorMessage.value = parsed.errorMessage || '无效的快捷键';
+    errorMessage.value = parsed.errorMessage || t('hotkey.invalid');
     return;
   }
   
   // 检查冲突
   const conflictCheck = validateHotkeyConflicts(parsed);
   if (conflictCheck.hasConflict) {
-    conflictWarning.value = conflictCheck.conflictDescription || '可能存在冲突';
+    conflictWarning.value = conflictCheck.conflictDescription || t('hotkey.maybeConflict');
   }
 }
 

@@ -15,8 +15,19 @@ export default defineConfig({
     modules: ['@wxt-dev/webextension-polyfill'],
     hooks: {
         // 移除 options_ui，避免引用已删除的 options.html（设置页已改为未列入 manifest 的 settings.html）
-        'build:manifestGenerated': (_wxt, manifest) => {
+        'build:manifestGenerated': (wxt, manifest) => {
             delete (manifest as Record<string, unknown>).options_ui;
+            if (wxt.config.browser === 'safari') {
+                delete (manifest as Record<string, unknown>).side_panel;
+                if (Array.isArray(manifest.permissions)) {
+                    manifest.permissions = manifest.permissions.filter(
+                        (p) => !['offscreen', 'sidePanel', 'favicon'].includes(p as string)
+                    );
+                }
+                if (manifest.action) {
+                    (manifest.action as Record<string, unknown>).default_popup = 'sidepanel.html';
+                }
+            }
         },
     },
     imports: {
@@ -31,7 +42,13 @@ export default defineConfig({
         }
     }),
     manifest: {
-        permissions: ['storage', 'contextMenus', 'offscreen', 'downloads', 'sidePanel', 'alarms'],
+        // 扩展元信息跟随浏览器界面语言（_locales 由 Chrome 按自身 UI 语言解析，
+        // 不跟随应用内的语言开关——这是扩展的标准行为）
+        default_locale: 'en',
+        name: '__MSG_extName__',
+        description: '__MSG_extDescription__',
+        permissions: ['storage', 'contextMenus', 'offscreen', 'downloads', 'sidePanel', 'alarms', 'favicon', 'geolocation'],
+        optional_permissions: ['topSites'],
         host_permissions: ['<all_urls>'],
         icons: {
             "16": "icon/tree-16.png",
@@ -64,12 +81,12 @@ export default defineConfig({
                 "suggested_key": {
                     "default": "Alt+D"
                 },
-                "description": "下载当前 Flickr 页面的最大尺寸图片"
+                "description": "__MSG_cmdFlickrDownload__"
             }
         },
         web_accessible_resources: [
             {
-                resources: ["icon/*.png", "pdfreader.html"],
+                resources: ["icon/*.png", "pdfreader.html", "dashboard-assets/**"],
                 matches: ["<all_urls>"]
             }
         ]

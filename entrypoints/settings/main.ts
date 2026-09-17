@@ -1,7 +1,8 @@
-import { createApp } from 'vue';
+import { createApp, watchEffect } from 'vue';
 import './style.css';
 import App from './App.vue';
-import 'element-plus/dist/index.css';
+import '../utils/elementPlusStyles';
+import { t } from '../utils/i18n';
 import {
     ChatDotRound,
     Setting,
@@ -39,6 +40,11 @@ import {
     ElDivider,
     ElInputNumber,
 } from 'element-plus';
+
+// 页面标题跟随界面语言（在 mount 前执行，避免先闪出静态标题）
+watchEffect(() => {
+    document.title = t('app.settingsTitle');
+});
 
 const app = createApp(App);
 

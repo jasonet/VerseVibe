@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "靈魂樹"
+  },
+  "extDescription": {
+    "message": "網頁內容在不同語言間自然共振，創造力來自生命樹的靈性"
+  },
+  "cmdFlickrDownload": {
+    "message": "下載目前 Flickr 頁面的最大尺寸圖片"
+  }
+}

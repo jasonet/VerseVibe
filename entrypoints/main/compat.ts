@@ -110,6 +110,11 @@ export function getMainDomain(url: any) {
             return 'x.com';
         }
 
+        // 处理特殊情况: Apple 各国/地区域名统一处理为 apple.com
+        if (/(^|\.)apple\.(com|co|[a-z]{2})(\.[a-z]{2})?$/i.test(hostname)) {
+            return 'apple.com';
+        }
+
         // 移除可能的www前缀
         hostname = hostname.replace(/^www\./, '');
 
@@ -228,8 +233,102 @@ export const replaceCompatFn: ReplaceCompatFn = {
     }
 };
 
+/**
+ * 判断是否应该跳过 Apple 站点上的特定元素
+ */
+function shouldSkipAppleElement(node: any): boolean {
+    if (!node) return false;
+
+    // 1. 隐藏的剪贴板/无障碍副本（如页面底部的全篇隐藏 <p>，若不跳过会造成大量幽灵翻译并浪费 API）
+    if (
+        node.matches?.('.visuallyhidden, [data-copy-content], [aria-hidden="true"]') ||
+        node.closest?.('.visuallyhidden, [data-copy-content], [aria-hidden="true"]')
+    ) {
+        return true;
+    }
+
+    // 2. 页面级导航、页头与页脚
+    const skipSelectors = [
+        '#globalheader',
+        '#globalnav',
+        '.globalnav',
+        '.globalheader',
+        '#ac-globalfooter',
+        '.ac-globalfooter',
+        '.globalfooter',
+        '.sharesheet',            // 社交分享面板
+        '.desktop-notification',  // 桌面通知提示
+        '#sdn-content',
+        '.dotnav',                // 画廊轮播圆点
+        '.modal-gallery',         // 模态弹窗画廊底层
+        '.ac-gn-segmentbar',      // 导航细栏
+        '#localnav',              // 局部导航
+        '.ac-ln-menu',
+    ];
+
+    for (const selector of skipSelectors) {
+        if (node.matches?.(selector) || node.closest?.(selector)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * 适配 Apple 站点（特别是 Apple Newsroom 及官网产品介绍页）的非标准段落与排版结构
+ */
+function handleAppleElement(node: any): any | { skip: boolean } | false {
+    if (shouldSkipAppleElement(node)) {
+        return { skip: true };
+    }
+
+    // 1. Apple Newsroom 文章主要段落正文（Apple 核心内容通常为 div.pagebody-copy）
+    const pagebodyCopy = findMatchingElement(node, 'div.pagebody-copy, .pagebody-copy');
+    if (pagebodyCopy) return pagebodyCopy;
+
+    // 2. 文章副标题 / 导语（.featured-subhead 内的 .component-content 或 .featured-subhead 自身）
+    const subhead = findMatchingElement(node, '.featured-subhead .component-content, .featured-subhead, .section-intro, .typography-intro');
+    if (subhead) return subhead;
+
+    // 3. 各级标题（文章主标题、章节标题、大号标题等）
+    const headline = findMatchingElement(node, 'h1.hero-headline, .hero-headline, .section-headline, .typography-headline, .typography-section-headline, .typography-headline-super, .pagebody-header');
+    if (headline) return headline;
+
+    // 4. 图片说明与画廊说明文字
+    const caption = findMatchingElement(node, 'div.image-caption, div.gallery-caption, .image-description, figcaption');
+    if (caption) return caption;
+
+    // 5. 引用文字与摘录
+    const quote = findMatchingElement(node, 'div.quote-copy, div.pullquote, blockquote, .typography-quote');
+    if (quote) return quote;
+
+    // 6. 分类标签与发布日期 (Eyebrow)
+    const eyebrow = findMatchingElement(node, '.category-eyebrow, .category-eyebrow__category, .category-eyebrow__date, .typography-eyebrow');
+    if (eyebrow) return eyebrow;
+
+    // 7. Newsroom 首页及话题列表的信息流卡片标题、描述与时间
+    const feedTile = findMatchingElement(node, '.tile__headline, .tile__title, .tile__description, .tile-copy, .tile__timestamp, .tile__category');
+    if (feedTile) return feedTile;
+
+    // 8. 尾部相关文章推荐列表
+    const relatedArticle = findMatchingElement(node, 'h2.article-list__heading, h3.article-list__item__title, .article-list__item__category, .article-list__item__date');
+    if (relatedArticle) return relatedArticle;
+
+    // 9. 媒体联络信息
+    const contactInfo = findMatchingElement(node, '.presscontacts-headline, .contactinfo-title, .contactinfo-text');
+    if (contactInfo) return contactInfo;
+
+    // 10. 脚注与法律条款（如 .footnotes li, .footnote-content, .footnote, ol.footnotes-list li, .sosumi 等）
+    const footnote = findMatchingElement(node, '.footnotes li, .footnote-content, .footnote, ol.footnotes-list li, .sosumi');
+    if (footnote) return footnote;
+
+    return false;
+}
+
 // 元素 node 选择环节的兼容函数
 export const selectCompatFn: SelectCompatFn = {
+    ["apple.com"]: handleAppleElement,
     ["mvnrepository.com"]: (node: any) => {
         if (node.tagName.toLowerCase() === 'div' && node.classList.contains('im-description')) return node
     },
